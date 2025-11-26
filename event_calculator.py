@@ -1,5 +1,5 @@
 import sys, os
-from utilities import FileManager
+from utilities import Archivist
 from config import PATHWAYS
 
 event = 0
@@ -56,7 +56,7 @@ def collect_data():
 
 
 def tracker(progress_type, data, data_action):
-    previous_data = fim.reader(file)
+    previous_data = arciv.reader(file)
     selectable_options = dict()
     numeral = 1
 
@@ -111,16 +111,16 @@ def tracker(progress_type, data, data_action):
     
     progress[selected_event][progress_name] = output
 
-    # progress_data = fim.reader(file)
-    updated_progress = fim.join_data(file, progress, None, static=True)
-    fim.writer(file, updated_progress)
+    # progress_data = arciv.reader(file)
+    updated_progress = arciv.join_data(file, progress, None, static=True)
+    arciv.writer(file, updated_progress)
 
     return data
 
 
-fim = FileManager(PATHWAYS["data directory"])
+arciv = Archivist(PATHWAYS["data directory"])
 file = os.path.join(PATHWAYS["data directory"], PATHWAYS["progress"])
-option_data = fim.reader(PATHWAYS["options"], join=True)["Event"]
+option_data = arciv.reader(PATHWAYS["options"], join=True)["Event"]
 # object_selection = 0
 
 
@@ -183,7 +183,7 @@ if action == 2:
     
 
 
-report = fim.reader(file)
+report = arciv.reader(file)
 print("\nData report:")
 try:
     for x in report.keys():

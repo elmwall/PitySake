@@ -1,3 +1,6 @@
 Notes/
 PitySake_Data/
 PitySake_Accessories/
+__pycache__/
+
+test.py

@@ -1,11 +1,11 @@
 import os
-from utilities import FileManager
+from utilities import Archivist
 from config import PATHWAYS
 
 
 
 def enter_data(object_type):
-    option_data = fim.reader(PATHWAYS["options"], True)
+    option_data = arciv.reader(PATHWAYS["options"], True)
     new_object = dict()
 
     print()
@@ -44,7 +44,7 @@ def enter_data(object_type):
 
 
 # Create call to file manager script set to data folder
-fim = FileManager(PATHWAYS["data directory"])
+arciv = Archivist(PATHWAYS["data directory"])
 
 
 # User selection for what type of data to collect
@@ -56,17 +56,17 @@ while object_selection not in [1, 2]:
         print("Enter valid integer.")
 
 if object_selection == 1:
-    object_type = "Character Event"
+    event_type = "Character Event"
     filepath = PATHWAYS["character_event"]
 elif object_selection == 2:
-    object_type = "Tool Event"
+    event_type = "Tool Event"
     filepath = PATHWAYS["tool_event"]
 
 file = os.path.join(PATHWAYS["data directory"], filepath)
 
 
 # Request information about new object from user
-new_object, name = enter_data(object_type)
+new_event, name = enter_data(event_type)
 
 
 # Backup interval
@@ -75,13 +75,12 @@ new_object, name = enter_data(object_type)
 BACKUP_FREQUENCY = [30, 10, 2]  
 
 # Perform backup and join data with library data
-if fim.backup(file, BACKUP_FREQUENCY, object_type): # Backup prior to file changes.
-    # print("check")
-    updated_library = fim.join_data(file, new_object, name)
+if arciv.backup(file, BACKUP_FREQUENCY, event_type): # Backup prior to file changes.
+    updated_history = arciv.join_data(file, new_event, name)
 
 # Write updated library to file
-if updated_library:
-    fim.writer(file, updated_library)
+if updated_history:
+    arciv.writer(file, updated_history)
     print("\nLibrary updated!\n")
 
 
