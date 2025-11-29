@@ -10,7 +10,6 @@ class Archivist:
         Functions: reader, writer, confirm_action, backup, join_data
         """
         self.directory = directory
-        # self.file = os.path.join(self.directory, filepath)
 
     def reader(self, file:str, join=False):
         """
@@ -77,6 +76,7 @@ class Archivist:
             
 
         backup_file = False
+        
         # Check backup frequencies and set backup file path if any frequency condition is met and update edit meta
         for value in backup_frequency:
             if file_edit_count > 0 and file_edit_count % value == 0:
@@ -100,13 +100,18 @@ class Archivist:
 
         # Compare contents of backup and current data
         if backup_length > file_length+2:
-            return self.confirm_action("WARNING!\nBackup datalength is larger than that of current file.\nIf you have not removed data entries: abort and check data health.\nProceed anyway?")
-        elif not backup_file:
+            confirm_backup = self.confirm_action("\nWARNING!\nBackup datalength is larger than that of current file.\nIf you have not removed data entries: abort and check data health.\nBackup anyway?\n")
+        else:
+            confirm_backup = True
+
+        if not backup_file:
+            return True
+        elif confirm_backup:
+            shutil.copy(file, backup_file)
+            print("\nData backup performed.")
             return True
         else:
-            shutil.copy(file, backup_file)
-            print("Data backup performed.")
-            return True
+            return False
         
 
 
@@ -183,24 +188,25 @@ class Negotiator:
         """
         Functions for requesting and managing user input and listing options for checkpoints or data collection.
 
-        Functions: request_input, listed_options, auto_options
+        Functions: request_key, listed_options, auto_options
         """
 
         self.quit_key = "q"
         self.separator = "-"*50
         self.indent = 3
 
-    def request_input(self, options:list, enforced=False, return_string=False):
+    def request_key(self, options:list, enforced=False, return_string=False):
         """
         General function for recording input with checks against conditions. Returns: int or str
 
         options : list of conditions.
         enforced : set True to demand input for critical actions or preventing loss of data.
-        return_string : set true to return keyboard input as string.
+        return_string : set output type as int or str
         """
 
         # Record keyboard input. Input not inlcuded among valid options will quit the script unless enforced, for critical options. 
-        if not enforced: print(f"  {self.quit_key.upper()}: Quit")
+        quitting = self.quit_key.upper()
+        if not enforced: print(f"{" ":3}{quitting:2} Quit")
         while True:
             if msvcrt.kbhit():
                 try:
@@ -209,11 +215,63 @@ class Negotiator:
                     key = "none"
                     
                 if key in options:
-                    if return_string: return key
-                    return int(key)
+                    # Depending on whether output is to be used as a key or index its type can be adjusted.
+                    return key if return_string else int(key)
+
                 elif not enforced and key.lower() == self.quit_key:
                     print("\nQuitting, good bye.\n")
                     quit()
+
+        
+    def request_numeral(self, message:str, lower_limit=False, upper_limit=False):
+        """
+        Request a numerical value within limits (optional). Returns: int
+
+        message : explanatory text
+        lower_limit : lowest value allowed
+        upper_limit : highest value allowed
+        """
+        # print()
+        # print(message)
+        lower_message, lower_switch = "", 0
+        upper_message, upper_switch = "", 0
+        if lower_limit: lower_message, lower_switch = " from ", 1
+        if upper_limit: upper_message, upper_switch = " up to ", 1
+        message = message + f"{lower_message}{lower_limit}"*lower_switch + f"{upper_message}{upper_limit}"*upper_switch
+
+        while True:
+            # print("Enter value: ")
+            
+            # print(f"Press {self.quit_key.upper()} to quit.")
+
+            value = input(f"{message}: ")
+            if value == self.quit_key.lower():
+                print("\nQuitting, good bye.\n")
+                quit()
+
+            try:
+                value = int(value)
+            except:
+                print("Enter valid number.")
+                continue
+            
+            if not lower_limit and not upper_limit:
+                return value
+            
+            if type(lower_limit) == int and type(upper_limit) == int:
+                if lower_limit >= upper_limit:
+                    print("Lower limit value must be smaller than upper limit value.")
+                    break
+            if type(lower_limit) == int:
+                if value < lower_limit:
+                    print(f"\nValue must be at least {lower_limit}.")
+                    break
+            if type(upper_limit) == int:
+                if value > upper_limit: 
+                    print(f"\nValue cannot be higher than {upper_limit}.")
+                    break
+            
+            return value
 
 
     def listed_options(self, message:str, options:list):
@@ -228,22 +286,22 @@ class Negotiator:
         print(message)
         counter = 1
         for alternative in options:
-            print(f"  {counter}: {alternative}")
+            print(f"{" ":3}{str(counter):2} {alternative}")
             counter += 1
 
         string_selectors = [str(num) for num in range(1,len(options)+1)]
 
-        selection = self.request_input(string_selectors)-1
+        selection = self.request_key(string_selectors)-1
 
         return options[selection]
 
 
-    def auto_options(self, message:str, collection:dict[any, list]):
+    def auto_options(self, message:str, collection:dict):
         """
-        Cycles through keys and displays lists as selectable options, and pairs keys with corresponding selection. Returns: dict 
+        Cycles through categories and subcategories and requests input as value or alternative within list. Returns: dict 
 
         message : explanatory text
-        collection : dict of data to be reviewed
+        collection : dict with format *{category_key: input_options}*, where *input_options* should be either the exact string: "enter numeral", or a list.
         """
 
         output = dict()
@@ -253,14 +311,27 @@ class Negotiator:
             selectable_options = dict()
 
             print(f"Select {category} among:")
+            numeral = True if collection[category] == "enter numeral" else False
+            # if option == "enter numeral": print("Enter value:")
+                # numeral = True
+            if numeral: selection = self.request_numeral()
+            # while numeral:
+            #     print("Enter value:")
+            #     try:
+            #         selection = int(input())
+            #         break
+            #     except:
+            #         print("Enter valid number.")
             counter = 1
-            for option in collection[category]:
-                selectable_options[str(counter)] = option
-                print(f"  {counter} {option}")
-                counter += 1
-
-            selection = self.request_input(selectable_options.keys(), return_string=True)
-            print(type(selection))
-            output[category.capitalize()] = selectable_options[selection]
+            if not numeral:
+                for option in collection[category]:
+                    selectable_options[str(counter)] = option
+                    print(f"{" ":3}{str(counter):2} {option}")
+                    counter += 1
+                selection = self.request_key(selectable_options.keys(), return_string=True)
+                output[category.capitalize()] = selectable_options[selection]
+            else:
+                output[category.capitalize()] = selection
+            # print(type(selection))
 
         return output

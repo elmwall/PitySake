@@ -6,10 +6,11 @@ OPTIONS_DATA = "data_options.json"
 EVENTS_DATA = "event_data.json"
 
 PATHWAYS = {
-    "characters": "character_data.json",
-    "data directory": "PitySake_Data",
-    "events": "event_data.json",
-    "options": "data_options.json",
-    "tools": "tool_data.json",
-    "progress": "progress_data.json"
+    "Character": "character_data.json",
+    "Misc": "misc_data.json",
+    "Directory": "PitySake_Data",
+    "Event": "event_data.json",
+    "Options": "data_options.json",
+    "Tool": "tool_data.json",
+    "Progress": "progress_data.json"
 }

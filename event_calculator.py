@@ -1,67 +1,73 @@
 import sys, os
-from utilities import Archivist
+from utilities import Archivist, Negotiator
 from config import PATHWAYS
 
 event = 0
 
-data = {
-    "Previous event": {
-        "Page": False,
-        "Row": False
-    },
-    "Current event": {
-        "Page": False,
-        "Row": False
-    }
-}
+# data = {
+#     "Previous event": {
+#         "Page": False,
+#         "Row": False
+#     },
+#     "Current event": {
+#         "Page": False,
+#         "Row": False
+#     }
+# }
+
+class Mathematician:
+    def __init__(self):
+        pass
 
 
-def collect_data():
-    for x in data.keys():
-        print()
-        while True:
-            for y in data[x].keys():
-                # print(f"{x}: {y}")
-                data[x][y] = False
-                while not data[x][y]:
-                    try:
-                        data[x][y] = int(input(f"{x}, {y}: "))
-                    except:
-                        print("\nEnter valid numeral.")
-            
-            # print("Row must in between 1 and 5.")
-            if data[x]["Row"] in range (1,6) and data[x]["Page"] > 0:
-                break
-            else:
-                print("\nPage must be at least 1.\nRow must be between 1 and 5.\n")
-
-    event = abs(5*(data["Previous event"]["Page"] - data["Current event"]["Page"]) + data["Previous event"]["Row"] - data["Current event"]["Row"])
-    print()
-
-    if event == 0:
-        print("\nEvent cannot be 0.")
-        return False, event
-    elif event > 90:
-        print("\nMaximum value of event is 90.")
-        return False, event
-    elif data["Current event"]["Page"] > data["Previous event"]["Page"]:
-        print("\nPrevious event page cannot be smaller than the current.")
+def collect_data(calc_current=False, max_value=90):
+    # Assist with calculating event occurrence depending on page and row
+    # with 5 rows presented per page
+    
+    # Decide whether to calculate current estimate (current is Page 1, Row 1, then set previous), 
+    # or distance between historical event (set both current and previous).
+    if calc_current:
+        max_value -= 1
+        current_page, current_row = 1, 1
     else:
-        return event
+        print(f"\nWhen did the current {event_term} occur?")
+        current_page = negotiator.request_numeral("Page", lower_limit=1)
+        current_row = negotiator.request_numeral("Row", 1, 5)
+    print(f"\nPage {current_page}, Row {current_row}")
+    
+    # Calculate maximum page considering 5 per page
+    max_page = int(max_value/5 + current_page)
+    print(f"\nWhen did the previous {event_term} occur?")
+    # If the current event occupies the 5th row, the previous event must be on next page or higher 
+    if current_row == 5:    
+        previous_page = negotiator.request_numeral("Page", current_page+1, max_page)
+    else: 
+        previous_page = negotiator.request_numeral("Page", current_page, max_page)
 
-    # if data["Current event"]["Page"] < data["Previous event"]["Page"] or data["Current event"]["Page"] == data["Previous event"]["Page"]:
-    #     return True, event
-    # else:
-    #     print("Previous event page cannot be smaller than the current.")
+    # If current is on row 4 on the same page as the previous, row 5 is the only option for the previous
+    if current_page == previous_page:   
+        previous_row = 5 if current_row == 4 else negotiator.request_numeral("Row", current_row+1, 5)
+    # If the previous event occur maximum allowed page, row can at most be the same as current row, which means 1 if current is 1
+    elif previous_page == max_page and not calc_current: 
+        previous_row = 1 if current_row == 1 else negotiator.request_numeral("Row", upper_limit=current_row)
+    else:
+        previous_row = negotiator.request_numeral("Row", 1, 5)
+    print(f"\nPage {previous_page}, Row {previous_row}")
+
+    event = 5*(previous_page - current_page) + previous_row - current_row
+    print("\nEvent", event)
+    
+    return event+1 if calc_current else event
 
 
-def tracker(progress_type, data, data_action):
+
+def tracker(update, data, data_action):
     previous_data = arciv.reader(file)
     selectable_options = dict()
     numeral = 1
 
     print("-"*50, f"\nSelect event among:")
-    for option in option_data:
+    for option in data_options:
         selectable_options[str(numeral)] = option
         print(f"  {numeral}: {option}")
         numeral += 1
@@ -74,7 +80,7 @@ def tracker(progress_type, data, data_action):
         else:
             print("Enter valid numeral.")
     
-    if progress_type == 1:
+    if update == 1:
         progress_name = "Current value"
         if data_action == 2:
             try:
@@ -92,10 +98,10 @@ def tracker(progress_type, data, data_action):
             except:
                 print("Enter valid integer.")            
             output = data + previous_value
-    elif progress_type == 2:
+    elif update == 2:
         progress_name = "Previous event"
         output = data
-    elif progress_type == 3:
+    elif update == 3:
         progress_name = "Status"
         output = data
     
@@ -111,73 +117,47 @@ def tracker(progress_type, data, data_action):
     
     progress[selected_event][progress_name] = output
 
-    # progress_data = arciv.reader(file)
+
     updated_progress = arciv.join_data(file, progress, None, static=True)
     arciv.writer(file, updated_progress)
 
     return data
 
 
-arciv = Archivist(PATHWAYS["data directory"])
-file = os.path.join(PATHWAYS["data directory"], PATHWAYS["progress"])
-option_data = arciv.reader(PATHWAYS["options"], join=True)["Event"]
-# object_selection = 0
 
 
+arciv = Archivist(PATHWAYS["Directory"])
+negotiator = Negotiator()
+file = os.path.join(PATHWAYS["Directory"], PATHWAYS["Progress"])
+data_options = arciv.reader(PATHWAYS["Options"], join=True)
+attempt_term = data_options["Term"]["Attempt"]
+event_term = data_options["Term"]["Event"]
 
-action = 0
-print("\nSelect action among:\n1: Calculate progress or occurrence\n2: Update data\n3: Show current progress")
-while action not in [1, 2, 3]:
-    try:
-        action = int(input("\nSelect action: "))
-    except:
-        print("Enter valid integer.")
 
-if action == 1:
+opt_1 = f"Calculate {attempt_term}"
+opt_2 = f"Update current {attempt_term}/status"
+opt_3 = f"Show current {attempt_term}"
+
+action = negotiator.listed_options("Select action among", [opt_1, opt_2, opt_3])
+
+if action == opt_1:
     event = collect_data()
     print(f"Result: {event}")
-    sys.exit()
+    quit()
 
+if action == opt_2:
+    upd_opt_1 = "Add attempts"
+    upd_opt_2 = f"Calculate {attempt_term} from last {event_term}"
+    upd_opt_3 = "Update chance of next outcome"
+    
+    update = negotiator.listed_options("Update options:", [upd_opt_1, upd_opt_2, upd_opt_3])
 
-if action == 2:
-    progress_type = 0
-    print("\nSelect action among:\n1: Track progress\n2: Register event occurrence\n3: Update chance of next outcome")
-    while progress_type not in [1, 2, 3]:
-        try:
-            progress_type = int(input("\nSelect action: "))
-        except:
-            print("Enter valid integer.")
-
-    data_action = 0
-    if progress_type == 1:
-        print("\nSelect action among:\n1: Enter progress value (clear previous)\n2: Add to previous value")
-        while data_action not in [1, 2]:
-            try:
-                data_action = int(input("\nSelect action: "))
-            except:
-                print("Enter valid integer.")
-
-    value = 0
-    if progress_type == 3:
-        print("\nSet status:\n1: 50-50\n2: Guaranteed")
-        status_selection = 0
-        while status_selection not in [1, 2]:
-            try:
-                status_selection = int(input("\nSelect action: "))
-            except:
-                print("Enter valid integer.")    
-        if status_selection == 1:
-            value = "50-50"
-        elif status_selection == 2:
-            value = "Guaranteed"
+    if update == upd_opt_3:
+        value = negotiator.listed_options("Set status:", [data_options[event_term]["State"]])
     else:    
-        while value not in range (1,91):
-            try:
-                value = int(input("\nEnter progress value: "))
-            except:
-                print("Enter valid integer.")
+        negotiator.request_numeral("", 1, 90)
             
-    tracker(progress_type, value, data_action)
+    tracker(update, value, update)
 
 
     
