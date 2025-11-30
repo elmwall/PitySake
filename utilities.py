@@ -261,15 +261,15 @@ class Negotiator:
             if type(lower_limit) == int and type(upper_limit) == int:
                 if lower_limit >= upper_limit:
                     print("Lower limit value must be smaller than upper limit value.")
-                    break
+                    continue
             if type(lower_limit) == int:
                 if value < lower_limit:
                     print(f"\nValue must be at least {lower_limit}.")
-                    break
+                    continue
             if type(upper_limit) == int:
                 if value > upper_limit: 
                     print(f"\nValue cannot be higher than {upper_limit}.")
-                    break
+                    continue
             
             return value
 
@@ -296,7 +296,7 @@ class Negotiator:
         return options[selection]
 
 
-    def auto_options(self, message:str, collection:dict):
+    def auto_options(self, message:str, collection:dict, preset_values:dict):
         """
         Cycles through categories and subcategories and requests input as value or alternative within list. Returns: dict 
 
@@ -312,9 +312,17 @@ class Negotiator:
 
             print(f"Select {category} among:")
             numeral = True if collection[category] == "enter numeral" else False
+            string = True if collection[category] == "enter string" else False
+            preset = True if collection[category] == "enter preset" else False
             # if option == "enter numeral": print("Enter value:")
                 # numeral = True
-            if numeral: selection = self.request_numeral()
+            if numeral: 
+                selection = self.request_numeral(f"Enter value for {category}")
+            elif string: 
+                selection = input(f"Enter {category}: ")
+            elif preset:
+                selection = preset_values[category]
+            # preset = True if collection[category] == "enter preset" else False
             # while numeral:
             #     print("Enter value:")
             #     try:
@@ -322,16 +330,19 @@ class Negotiator:
             #         break
             #     except:
             #         print("Enter valid number.")
-            counter = 1
-            if not numeral:
+            if numeral or preset:
+                output[category.capitalize()] = selection
+            else:
+            # if not numeral and not preset:
+                counter = 1
                 for option in collection[category]:
                     selectable_options[str(counter)] = option
                     print(f"{" ":3}{str(counter):2} {option}")
                     counter += 1
                 selection = self.request_key(selectable_options.keys(), return_string=True)
                 output[category.capitalize()] = selectable_options[selection]
-            else:
-                output[category.capitalize()] = selection
+            # else:
+            #     output[category.capitalize()] = selection
             # print(type(selection))
 
         return output

@@ -20,44 +20,45 @@ class Mathematician:
         pass
 
 
-def collect_data(calc_current=False, max_value=90):
-    # Assist with calculating event occurrence depending on page and row
-    # with 5 rows presented per page
-    
-    # Decide whether to calculate current estimate (current is Page 1, Row 1, then set previous), 
-    # or distance between historical event (set both current and previous).
-    if calc_current:
-        max_value -= 1
-        current_page, current_row = 1, 1
-    else:
-        print(f"\nWhen did the current {event_term} occur?")
-        current_page = negotiator.request_numeral("Page", lower_limit=1)
-        current_row = negotiator.request_numeral("Row", 1, 5)
-    print(f"\nPage {current_page}, Row {current_row}")
-    
-    # Calculate maximum page considering 5 per page
-    max_page = int(max_value/5 + current_page)
-    print(f"\nWhen did the previous {event_term} occur?")
-    # If the current event occupies the 5th row, the previous event must be on next page or higher 
-    if current_row == 5:    
-        previous_page = negotiator.request_numeral("Page", current_page+1, max_page)
-    else: 
-        previous_page = negotiator.request_numeral("Page", current_page, max_page)
+    def calculate_attempts(self, negotiator, event_term="Win", calc_current=False, max_value=90):
+        # event_term = data_options["Term"]["Event"]
+        # Assist with calculating event occurrence depending on page and row
+        # with 5 rows presented per page
+        
+        # Decide whether to calculate current estimate (current is Page 1, Row 1, then set previous), 
+        # or distance between historical event (set both current and previous).
+        if calc_current:
+            max_value -= 1
+            current_page, current_row = 1, 1
+        else:
+            print(f"\nWhen did the current {event_term} occur?")
+            current_page = negotiator.request_numeral("Page", lower_limit=1)
+            current_row = negotiator.request_numeral("Row", 1, 5)
+        print(f"\nPage {current_page}, Row {current_row}")
+        
+        # Calculate maximum page considering 5 per page
+        max_page = int(max_value/5 + current_page)
+        print(f"\nWhen did the previous {event_term} occur?")
+        # If the current event occupies the 5th row, the previous event must be on next page or higher 
+        if current_row == 5:    
+            previous_page = negotiator.request_numeral("Page", current_page+1, max_page)
+        else: 
+            previous_page = negotiator.request_numeral("Page", current_page, max_page)
 
-    # If current is on row 4 on the same page as the previous, row 5 is the only option for the previous
-    if current_page == previous_page:   
-        previous_row = 5 if current_row == 4 else negotiator.request_numeral("Row", current_row+1, 5)
-    # If the previous event occur maximum allowed page, row can at most be the same as current row, which means 1 if current is 1
-    elif previous_page == max_page and not calc_current: 
-        previous_row = 1 if current_row == 1 else negotiator.request_numeral("Row", upper_limit=current_row)
-    else:
-        previous_row = negotiator.request_numeral("Row", 1, 5)
-    print(f"\nPage {previous_page}, Row {previous_row}")
+        # If current is on row 4 on the same page as the previous, row 5 is the only option for the previous
+        if current_page == previous_page:   
+            previous_row = 5 if current_row == 4 else negotiator.request_numeral("Row", current_row+1, 5)
+        # If the previous event occur maximum allowed page, row can at most be the same as current row, which means 1 if current is 1
+        elif previous_page == max_page and not calc_current: 
+            previous_row = 1 if current_row == 1 else negotiator.request_numeral("Row", upper_limit=current_row)
+        else:
+            previous_row = negotiator.request_numeral("Row", 1, 5)
+        print(f"\nPage {previous_page}, Row {previous_row}")
 
-    event = 5*(previous_page - current_page) + previous_row - current_row
-    print("\nEvent", event)
-    
-    return event+1 if calc_current else event
+        event = 5*(previous_page - current_page) + previous_row - current_row
+        print("\nEvent", event)
+        
+        return event+1 if calc_current else event
 
 
 
@@ -124,55 +125,55 @@ def tracker(update, data, data_action):
     return data
 
 
+def main():
+
+    arciv = Archivist(PATHWAYS["Directory"])
+    negotiator = Negotiator()
+    file = os.path.join(PATHWAYS["Directory"], PATHWAYS["Progress"])
+    data_options = arciv.reader(PATHWAYS["Options"], join=True)
+    attempt_term = data_options["Term"]["Attempt"]
+    event_term = data_options["Term"]["Event"]
 
 
-arciv = Archivist(PATHWAYS["Directory"])
-negotiator = Negotiator()
-file = os.path.join(PATHWAYS["Directory"], PATHWAYS["Progress"])
-data_options = arciv.reader(PATHWAYS["Options"], join=True)
-attempt_term = data_options["Term"]["Attempt"]
-event_term = data_options["Term"]["Event"]
+    opt_1 = f"Calculate {attempt_term}"
+    opt_2 = f"Update current {attempt_term}/status"
+    opt_3 = f"Show current {attempt_term}"
+
+    action = negotiator.listed_options("Select action among", [opt_1, opt_2, opt_3])
+
+    if action == opt_1:
+        event = calculate_attempts()
+        print(f"Result: {event}")
+        quit()
+
+    if action == opt_2:
+        upd_opt_1 = "Add attempts"
+        upd_opt_2 = f"Calculate {attempt_term} from last {event_term}"
+        upd_opt_3 = "Update chance of next outcome"
+        
+        update = negotiator.listed_options("Update options:", [upd_opt_1, upd_opt_2, upd_opt_3])
+
+        if update == upd_opt_3:
+            value = negotiator.listed_options("Set status:", [data_options[event_term]["State"]])
+        else:    
+            negotiator.request_numeral("", 1, 90)
+                
+        tracker(update, value, update)
 
 
-opt_1 = f"Calculate {attempt_term}"
-opt_2 = f"Update current {attempt_term}/status"
-opt_3 = f"Show current {attempt_term}"
-
-action = negotiator.listed_options("Select action among", [opt_1, opt_2, opt_3])
-
-if action == opt_1:
-    event = collect_data()
-    print(f"Result: {event}")
-    quit()
-
-if action == opt_2:
-    upd_opt_1 = "Add attempts"
-    upd_opt_2 = f"Calculate {attempt_term} from last {event_term}"
-    upd_opt_3 = "Update chance of next outcome"
-    
-    update = negotiator.listed_options("Update options:", [upd_opt_1, upd_opt_2, upd_opt_3])
-
-    if update == upd_opt_3:
-        value = negotiator.listed_options("Set status:", [data_options[event_term]["State"]])
-    else:    
-        negotiator.request_numeral("", 1, 90)
-            
-    tracker(update, value, update)
+        
 
 
-    
-
-
-report = arciv.reader(file)
-print("\nData report:")
-try:
-    for x in report.keys():
-        print(f"\n{x}")
-        for y, z in report[x].items():
-            print(f"   {y:16}{z}")
-except:
-    print("No data to show.")
-print()
+    report = arciv.reader(file)
+    print("\nData report:")
+    try:
+        for x in report.keys():
+            print(f"\n{x}")
+            for y, z in report[x].items():
+                print(f"   {y:16}{z}")
+    except:
+        print("No data to show.")
+    print()
 
 
 

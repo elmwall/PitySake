@@ -1,6 +1,7 @@
-import os
+import os, datetime
 from utilities import Archivist, Negotiator
 from config import PATHWAYS
+from event_calculator import Mathematician
 
 
 
@@ -25,7 +26,7 @@ def enter_data(name, object_type, data_options):
     return new_object
 
 
-def enter_event(name, data_options, Misc_obj):
+def enter_event(name, data_options, misc_obj):
     try:
         object = arciv.reader(file)[name]
     except:
@@ -37,17 +38,53 @@ def enter_event(name, data_options, Misc_obj):
         
 
     # data_options = arciv.reader(PATHWAYS["options"], join=True)
-    if Misc_obj:
+    if misc_obj:
         event = data_options["Term"]["collection"]
         new_object[name][event] = negotiator.listed_options(f"\nEnter details for {name} event", data_options[event])
     
     else:
         # Enter Event details
         event = data_options["Term"]["Event"]
-        event_date = input(f"\nEnter event date as YYMMDD: ")
+        now = datetime.datetime.now()
+        now = now.strftime("%y") + now.strftime("%m") + now.strftime("%d")
+        while True:
+            event_date = input(f"\nEnter event date as YYMMDD: ")
+            try:
+                date_validity = datetime.datetime(int("20"+event_date[0:2]), int(event_date[2:4]), int(event_date[4:6]))
+                date_int = int(event_date)
+            except ValueError as e:
+                print(e)
+                continue
+            except Exception as e:
+                print(e)
+
+            if len(event_date) != 6:
+                print("Incorrect date length")
+            elif int(event_date) > int(now) or int(event_date) < 200927:
+                print("Impossible date. Try again.")
+            else:
+                break
+
+
+        # event_date = negotiator.request_key()
         if not event in new_object[name].keys():
             new_object[name][event] = dict()
-        new_object[name][event][event_date] = negotiator.auto_options(f"\nEnter details for {name} event", data_options[event])
+        
+        attempt_term = data_options["Term"]["Attempt"]
+        
+        # print
+        if negotiator.listed_options("Select option", [f"Enter {attempt_term}", f"Calculate {attempt_term}"]) == f"Calculate {attempt_term}":
+            attempt = mathemate.calculate_attempts(negotiator, event_term=data_options["Term"]["Event"])
+        else:
+            attempt = input(f"\nEnter value for {attempt_term}: ")
+        
+        # while True:
+        new_object[name][event][event_date] = negotiator.auto_options(f"\nEnter details for {name} event", data_options[event], preset_values={attempt_term: attempt})
+
+            # if new_object[name][event][event_date][attempt_term] not in range(1,91):
+            #     print(f"Invalid {attempt_term}, enter data again.")
+            # else:
+            #     break
 
     return new_object
 
@@ -102,6 +139,7 @@ def main(object_type, data_options, reg_event):
 # Create call to file manager script set to data folder
 arciv = Archivist(PATHWAYS["Directory"])
 negotiator = Negotiator()
+mathemate = Mathematician()
 check_lib = "Check library"
 update_lib = "Update library"
 reg_event = "Register event"
