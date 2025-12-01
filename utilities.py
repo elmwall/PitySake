@@ -40,7 +40,7 @@ class Archivist:
             """
             
             print(message)
-            print("Any: No\nY:   Yes")
+            print("  Any: No\n  Y:   Yes")
             while True:
                 if msvcrt.kbhit():
                     selection = msvcrt.getch().decode("ASCII").lower()
@@ -115,14 +115,14 @@ class Archivist:
         
 
 
-    def join_data(self, file:str, new_data:dict, name:str, static=False):
+    def join_data(self, file:str, new_data:dict, name:str, update=False, static=False):
         """
         Update library with new or edited data. Returns: bool
 
         file : directory of file as string.  
         new_data : data to be included in file.  
         name : id of new data entry.  
-        static : for data validation check to mark files that are not expected to increase in length.
+        static : marks files that are not expected to increase in length.
         """
 
         data = self.reader(file)
@@ -151,12 +151,14 @@ class Archivist:
 
         # Add existing data to library
         if name in data.keys() and not static:
-            update = False
-            update = self.confirm_action("Object not added - already exists in library.\nAdd anyway?")
+            # update = False
+            # update = self.confirm_action("\nObject already exists in library.\nAdd anyway?")
             data.update(new_data)
-            if len(data) != original_length: 
+            if len(data) != original_length and not update: 
                 print("\nError occurred!\nLibrary update aborted.\n")
                 return False
+            # elif update:
+            #     return data
         else:
             data.update(new_data)
 
@@ -206,7 +208,7 @@ class Negotiator:
 
         # Record keyboard input. Input not inlcuded among valid options will quit the script unless enforced, for critical options. 
         quitting = self.quit_key.upper()
-        if not enforced: print(f"{" ":3}{quitting:2} Quit")
+        if not enforced: print(f"\n{" ":3}{quitting:2} Quit")
         while True:
             if msvcrt.kbhit():
                 try:
@@ -296,7 +298,7 @@ class Negotiator:
         return options[selection]
 
 
-    def auto_options(self, message:str, collection:dict, preset_values:dict):
+    def auto_options(self, message:str, collection:dict, preset_values:dict=False):
         """
         Cycles through categories and subcategories and requests input as value or alternative within list. Returns: dict 
 
@@ -307,15 +309,18 @@ class Negotiator:
         output = dict()
         print(message)
         for category in collection.keys():
-            print(f"\n{self.separator}")
+            
             selectable_options = dict()
 
-            print(f"Select {category} among:")
+            
             numeral = True if collection[category] == "enter numeral" else False
             string = True if collection[category] == "enter string" else False
             preset = True if collection[category] == "enter preset" else False
+            if preset and not preset_values:
+                print(f"Preset value for {collection} {category} missing.")
             # if option == "enter numeral": print("Enter value:")
                 # numeral = True
+            # print(numeral, string, preset)
             if numeral: 
                 selection = self.request_numeral(f"Enter value for {category}")
             elif string: 
@@ -330,10 +335,13 @@ class Negotiator:
             #         break
             #     except:
             #         print("Enter valid number.")
+
             if numeral or preset:
                 output[category.capitalize()] = selection
             else:
             # if not numeral and not preset:
+                print(f"\n{self.separator}")
+                print(f"Select {category} among:")
                 counter = 1
                 for option in collection[category]:
                     selectable_options[str(counter)] = option
@@ -341,6 +349,7 @@ class Negotiator:
                     counter += 1
                 selection = self.request_key(selectable_options.keys(), return_string=True)
                 output[category.capitalize()] = selectable_options[selection]
+                print(f"\nSelection: {selectable_options[selection]}")
             # else:
             #     output[category.capitalize()] = selection
             # print(type(selection))

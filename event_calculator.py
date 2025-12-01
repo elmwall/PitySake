@@ -56,13 +56,22 @@ class Mathematician:
         print(f"\nPage {previous_page}, Row {previous_row}")
 
         event = 5*(previous_page - current_page) + previous_row - current_row
-        print("\nEvent", event)
+
+        print("\nSummary")
+        print(f"  Previous event | Page: {previous_page:3} | Row: {previous_row}")
+        if not calc_current: 
+            print(f"  Current event  | Page: {current_page:3} | Row: {current_row}")
+            print(f"  Attempts: {event}")
+        else: 
+            print(f"  Next attempt at: {event+1}")
         
         return event+1 if calc_current else event
 
 
 
 def tracker(update, data, data_action):
+    quit()
+
     previous_data = arciv.reader(file)
     selectable_options = dict()
     numeral = 1
@@ -126,6 +135,7 @@ def tracker(update, data, data_action):
 
 
 def main():
+    quit()
 
     arciv = Archivist(PATHWAYS["Directory"])
     negotiator = Negotiator()
@@ -156,7 +166,7 @@ def main():
         if update == upd_opt_3:
             value = negotiator.listed_options("Set status:", [data_options[event_term]["State"]])
         else:    
-            negotiator.request_numeral("", 1, 90)
+            negotiator.request_numeral("", 0, 90)
                 
         tracker(update, value, update)
 
@@ -176,6 +186,9 @@ def main():
     print()
 
 
+negotiator = Negotiator()
+calc = Mathematician()
+calc.calculate_attempts(negotiator, calc_current=True)
 
 # print()
 # event = abs(5*(data["Previous event"]["Page"] - data["Current event"]["Page"]) + data["Previous event"]["Row"] - data["Current event"]["Row"])
