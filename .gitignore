@@ -1,6 +1,7 @@
 Notes/
 PitySake_Data/
 PitySake_Accessories/
+settings/
 __pycache__/
 
 test.py

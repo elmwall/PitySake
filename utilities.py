@@ -3,24 +3,29 @@ import json, os, shutil, msvcrt
 
 
 class Archivist:
-    def __init__(self, directory:str):
+    def __init__(self, data_directory:str, settings_directory:str):
         """
         File and data actions for JSON and dictionary data. 
 
         Functions: reader, writer, confirm_action, backup, join_data
         """
-        self.directory = directory
+        self.data_directory = data_directory
+        self.settings_directory = settings_directory
 
-    def reader(self, file:str, join=False):
+    def reader(self, file:str, join="none"):
         """
         Read and return JSON file.
 
         file : directory of file as string.
-        join : set True if **file** is a child directory of **self.directory** to join paths.
+        join : set to string "data" or "settings", if *file* is a located within of *self.data_directory* or *self.settings_directory*.
         """
 
-        if join:
-            file = os.path.join(self.directory, file)
+        if join == "data":
+            file = os.path.join(self.data_directory, file)
+        elif join == "settings":
+            file = os.path.join(self.settings_directory, file)
+        elif join != "none":
+            print("Invalid value of pathway indicator 'join'.")
 
         if os.path.exists(file):
             try:
@@ -63,7 +68,7 @@ class Archivist:
         """
         
         # Call file containing edit count info for all files
-        meta_file = os.path.join(self.directory, "meta.json")
+        meta_file = os.path.join(self.data_directory, "meta.json")
         try:
             edit_meta = self.reader(meta_file)
         except:
@@ -80,7 +85,7 @@ class Archivist:
         # Check backup frequencies and set backup file path if any frequency condition is met and update edit meta
         for value in backup_frequency:
             if file_edit_count > 0 and file_edit_count % value == 0:
-                backup_file = os.path.join(self.directory, datatype.lower() + f"_backup_{value}.json")
+                backup_file = os.path.join(self.data_directory, datatype.lower() + f"_backup_{value}.json")
                 break        
 
         edit_meta[file] = file_edit_count + 1
@@ -133,7 +138,7 @@ class Archivist:
             original_length = 0
             data = dict()
 
-        if name == "remove":
+        if name == "Remove":
             print("\nRemoval requested. Enter name of item to remove.")
             name = input("Name: ")
             
@@ -154,6 +159,7 @@ class Archivist:
             # update = False
             # update = self.confirm_action("\nObject already exists in library.\nAdd anyway?")
             data.update(new_data)
+            
             if len(data) != original_length and not update: 
                 print("\nError occurred!\nLibrary update aborted.\n")
                 return False
@@ -161,8 +167,9 @@ class Archivist:
             #     return data
         else:
             data.update(new_data)
-
-
+        
+        data = dict(sorted(data.items()))
+        
         # Checking data validity depending on action. 
         if len(data) != original_length+1 and not update and not static:
             print("\nError occurred!\n\nLibrary update aborted.")
@@ -312,7 +319,7 @@ class Negotiator:
             
             selectable_options = dict()
 
-            
+            # print(collection)
             numeral = True if collection[category] == "enter numeral" else False
             string = True if collection[category] == "enter string" else False
             preset = True if collection[category] == "enter preset" else False

@@ -1,6 +1,9 @@
 import sys, os
 from utilities import Archivist, Negotiator
-from config import PATHWAYS
+
+from settings.config import PATHWAYS
+
+
 
 event = 0
 
@@ -22,8 +25,7 @@ class Mathematician:
 
     def calculate_attempts(self, negotiator, event_term="Win", calc_current=False, max_value=90):
         # event_term = data_options["Term"]["Event"]
-        # Assist with calculating event occurrence depending on page and row
-        # with 5 rows presented per page
+        # Assist with calculating event occurrence depending on page and row, with 5 rows presented per page
         
         # Decide whether to calculate current estimate (current is Page 1, Row 1, then set previous), 
         # or distance between historical event (set both current and previous).
@@ -39,7 +41,8 @@ class Mathematician:
         # Calculate maximum page considering 5 per page
         max_page = int(max_value/5 + current_page)
         print(f"\nWhen did the previous {event_term} occur?")
-        # If the current event occupies the 5th row, the previous event must be on next page or higher 
+
+        # If the current event occupies the 5th and last row, the previous event must be on next page or higher 
         if current_row == 5:    
             previous_page = negotiator.request_numeral("Page", current_page+1, max_page)
         else: 
@@ -48,7 +51,8 @@ class Mathematician:
         # If current is on row 4 on the same page as the previous, row 5 is the only option for the previous
         if current_page == previous_page:   
             previous_row = 5 if current_row == 4 else negotiator.request_numeral("Row", current_row+1, 5)
-        # If the previous event occur maximum allowed page, row can at most be the same as current row, which means 1 if current is 1
+
+        # If the previous event occurred maximum possible page, row can at most be the same as current row, as to not exceed the limit value, which means 1 if current is 1
         elif previous_page == max_page and not calc_current: 
             previous_row = 1 if current_row == 1 else negotiator.request_numeral("Row", upper_limit=current_row)
         else:
@@ -140,7 +144,7 @@ def main():
     arciv = Archivist(PATHWAYS["Directory"])
     negotiator = Negotiator()
     file = os.path.join(PATHWAYS["Directory"], PATHWAYS["Progress"])
-    data_options = arciv.reader(PATHWAYS["Options"], join=True)
+    data_options = arciv.reader(PATHWAYS["Options"], join="settings")
     attempt_term = data_options["Term"]["Attempt"]
     event_term = data_options["Term"]["Event"]
 
@@ -186,25 +190,7 @@ def main():
     print()
 
 
-negotiator = Negotiator()
-calc = Mathematician()
-calc.calculate_attempts(negotiator, calc_current=True)
+# negotiator = Negotiator()
+# calc = Mathematician()
+# calc.calculate_attempts(negotiator, calc_current=True)
 
-# print()
-# event = abs(5*(data["Previous event"]["Page"] - data["Current event"]["Page"]) + data["Previous event"]["Row"] - data["Current event"]["Row"])
-
-# if event > 90:
-#     pass
-# else:
-#     print(f"Event occurred during turn: {event}")
-
-# previous_page = input("Previous event page: ")
-# previous_position = input("Previous event position: ")
-
-# previous_page = input("Previous event page: ")
-# previous_position = input("Previous event position: ")
-
-# current_page = input("Current event page: ")
-# current_position = input("Current event position: ")
-
-# event = 5*(previous_page - current_page) + previous_position - current_position
