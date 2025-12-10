@@ -3,5 +3,6 @@ PitySake_Data/
 PitySake_Accessories/
 settings/
 __pycache__/
+venv/
 
 test.py

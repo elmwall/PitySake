@@ -7,17 +7,6 @@ from settings.config import PATHWAYS
 
 event = 0
 
-# data = {
-#     "Previous event": {
-#         "Page": False,
-#         "Row": False
-#     },
-#     "Current event": {
-#         "Page": False,
-#         "Row": False
-#     }
-# }
-
 class Mathematician:
     def __init__(self):
         pass
@@ -73,121 +62,123 @@ class Mathematician:
 
 
 
-def tracker(update, data, data_action):
-    quit()
+# WIP
 
-    previous_data = arciv.reader(file)
-    selectable_options = dict()
-    numeral = 1
+# def tracker(update, data, data_action):
+#     quit()
 
-    print("-"*50, f"\nSelect event among:")
-    for option in data_options:
-        selectable_options[str(numeral)] = option
-        print(f"  {numeral}: {option}")
-        numeral += 1
+#     previous_data = arciv.reader(file)
+#     selectable_options = dict()
+#     numeral = 1
 
-    while True:
-        selection = input(f"\nEnter event: ")
-        if selection in selectable_options.keys():
-            selected_event = selectable_options[selection]
-            break
-        else:
-            print("Enter valid numeral.")
+#     print("-"*50, f"\nSelect event among:")
+#     for option in data_options:
+#         selectable_options[str(numeral)] = option
+#         print(f"  {numeral}: {option}")
+#         numeral += 1
+
+#     while True:
+#         selection = input(f"\nEnter event: ")
+#         if selection in selectable_options.keys():
+#             selected_event = selectable_options[selection]
+#             break
+#         else:
+#             print("Enter valid numeral.")
     
-    if update == 1:
-        progress_name = "Current value"
-        if data_action == 2:
-            try:
-                previous_value = previous_data[selected_event][progress_name]
-            except:
-                previous_value = 0
-                print("No previous data")
-        else:
-            previous_value = 0
-        output = data + previous_value
-        while output not in range(1,91):
-            print(f"\nNew value cannot exceed 90. Previous value: {previous_value}")
-            try:
-                data = int(input("Enter value to add: "))
-            except:
-                print("Enter valid integer.")            
-            output = data + previous_value
-    elif update == 2:
-        progress_name = "Previous event"
-        output = data
-    elif update == 3:
-        progress_name = "Status"
-        output = data
+#     if update == 1:
+#         progress_name = "Current value"
+#         if data_action == 2:
+#             try:
+#                 previous_value = previous_data[selected_event][progress_name]
+#             except:
+#                 previous_value = 0
+#                 print("No previous data")
+#         else:
+#             previous_value = 0
+#         output = data + previous_value
+#         while output not in range(1,91):
+#             print(f"\nNew value cannot exceed 90. Previous value: {previous_value}")
+#             try:
+#                 data = int(input("Enter value to add: "))
+#             except:
+#                 print("Enter valid integer.")            
+#             output = data + previous_value
+#     elif update == 2:
+#         progress_name = "Previous event"
+#         output = data
+#     elif update == 3:
+#         progress_name = "Status"
+#         output = data
     
-    if previous_data is dict:
-        progress = previous_data
-    else:
-        progress = dict()
+#     if previous_data is dict:
+#         progress = previous_data
+#     else:
+#         progress = dict()
     
-    try:
-        progress[selected_event] = previous_data[selected_event]
-    except:
-        progress[selected_event] = dict()
+#     try:
+#         progress[selected_event] = previous_data[selected_event]
+#     except:
+#         progress[selected_event] = dict()
     
-    progress[selected_event][progress_name] = output
+#     progress[selected_event][progress_name] = output
 
 
-    updated_progress = arciv.join_data(file, progress, None, static=True)
-    arciv.writer(file, updated_progress)
+#     updated_progress = arciv.join_data(file, progress, None, static=True)
+#     arciv.writer(file, updated_progress)
 
-    return data
-
-
-def main():
-    quit()
-
-    arciv = Archivist(PATHWAYS["Directory"])
-    negotiator = Negotiator()
-    file = os.path.join(PATHWAYS["Directory"], PATHWAYS["Progress"])
-    data_options = arciv.reader(PATHWAYS["Options"], join="settings")
-    attempt_term = data_options["Term"]["Attempt"]
-    event_term = data_options["Term"]["Event"]
+#     return data
 
 
-    opt_1 = f"Calculate {attempt_term}"
-    opt_2 = f"Update current {attempt_term}/status"
-    opt_3 = f"Show current {attempt_term}"
+# def main():
+#     quit()
 
-    action = negotiator.listed_options("Select action among", [opt_1, opt_2, opt_3])
+#     arciv = Archivist(PATHWAYS["Directory"])
+#     negotiator = Negotiator()
+#     file = os.path.join(PATHWAYS["Directory"], PATHWAYS["Progress"])
+#     data_options = arciv.reader(PATHWAYS["Options"], join="settings")
+#     attempt_term = data_options["Term"]["Attempt"]
+#     event_term = data_options["Term"]["Event"]
 
-    if action == opt_1:
-        event = calculate_attempts()
-        print(f"Result: {event}")
-        quit()
 
-    if action == opt_2:
-        upd_opt_1 = "Add attempts"
-        upd_opt_2 = f"Calculate {attempt_term} from last {event_term}"
-        upd_opt_3 = "Update chance of next outcome"
+#     opt_1 = f"Calculate {attempt_term}"
+#     opt_2 = f"Update current {attempt_term}/status"
+#     opt_3 = f"Show current {attempt_term}"
+
+#     action = negotiator.listed_options("Select action among", [opt_1, opt_2, opt_3])
+
+#     if action == opt_1:
+#         event = calculate_attempts()
+#         print(f"Result: {event}")
+#         quit()
+
+#     if action == opt_2:
+#         upd_opt_1 = "Add attempts"
+#         upd_opt_2 = f"Calculate {attempt_term} from last {event_term}"
+#         upd_opt_3 = "Update chance of next outcome"
         
-        update = negotiator.listed_options("Update options:", [upd_opt_1, upd_opt_2, upd_opt_3])
+#         update = negotiator.listed_options("Update options:", [upd_opt_1, upd_opt_2, upd_opt_3])
 
-        if update == upd_opt_3:
-            value = negotiator.listed_options("Set status:", [data_options[event_term]["State"]])
-        else:    
-            negotiator.request_numeral("", 0, 90)
+#         if update == upd_opt_3:
+#             value = negotiator.listed_options("Set status:", [data_options[event_term]["State"]])
+#         else:    
+#             negotiator.request_numeral("", 0, 90)
                 
-        tracker(update, value, update)
+#         tracker(update, value, update)
 
 
         
 
 
-    report = arciv.reader(file)
-    print("\nData report:")
-    try:
-        for x in report.keys():
-            print(f"\n{x}")
-            for y, z in report[x].items():
-                print(f"   {y:16}{z}")
-    except:
-        print("No data to show.")
-    print()
+    # report = arciv.reader(file)
+    # print("\nData report:")
+    # try:
+    #     for x in report.keys():
+    #         print(f"\n{x}")
+    #         for y, z in report[x].items():
+    #             print(f"   {y:16}{z}")
+    # except:
+    #     print("No data to show.")
+    # print()
 
 
 # negotiator = Negotiator()

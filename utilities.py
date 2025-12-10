@@ -1,4 +1,10 @@
-import json, os, shutil, msvcrt
+import json
+
+import os
+
+import shutil
+
+import msvcrt
 
 
 
@@ -6,9 +12,9 @@ class Archivist:
     def __init__(self, data_directory:str, settings_directory:str):
         """
         File and data actions for JSON and dictionary data. 
-
         Functions: reader, writer, confirm_action, backup, join_data
         """
+
         self.data_directory = data_directory
         self.settings_directory = settings_directory
 
@@ -33,7 +39,6 @@ class Archivist:
                     return json.load(f)
             except Exception as e:
                 print(f"\nFile at {file} could not be read:\n{e}")
-                # sys.exit()
 
 
 
@@ -59,7 +64,7 @@ class Archivist:
 
     def backup(self, file:str, backup_frequency:list[int], datatype:str):
         """
-        Automated backup in multiple files.
+        Automated backup in multiple files.  
         Returns: bool
 
         file : directory of file as string.  
@@ -77,21 +82,18 @@ class Archivist:
         try:    
             file_edit_count = edit_meta[file]
         except:
-            file_edit_count = 0
-            
-
+            file_edit_count = 0   
         backup_file = False
         
         # Check backup frequencies and set backup file path if any frequency condition is met and update edit meta
         for value in backup_frequency:
             if file_edit_count > 0 and file_edit_count % value == 0:
-                backup_file = os.path.join(self.data_directory, datatype.lower() + f"_backup_{value}.json")
+                backup_file = os.path.join(
+                    self.data_directory, 
+                    datatype.lower() + f"_backup_{value}.json")
                 break        
-
         edit_meta[file] = file_edit_count + 1
-        self.writer(meta_file, edit_meta)
-        
-
+        self.writer(meta_file, edit_meta)       
         try:
             file_length = len(self.reader(file))
         except:
@@ -101,7 +103,6 @@ class Archivist:
             backup_length = len(self.reader(backup_file))
         else:
             backup_length = 0
-
 
         # Compare contents of backup and current data
         if backup_length > file_length+2:
@@ -119,10 +120,10 @@ class Archivist:
             return False
         
 
-
     def join_data(self, file:str, new_data:dict, name:str, update=False, static=False):
         """
-        Update library with new or edited data. Returns: bool
+        Update library with new or edited data.  
+        Returns: bool
 
         file : directory of file as string.  
         new_data : data to be included in file.  
@@ -131,7 +132,6 @@ class Archivist:
         """
 
         data = self.reader(file)
-
         if type(data) is dict: 
             original_length = len(data) 
         else: 
@@ -153,21 +153,14 @@ class Archivist:
             
             return data
             
-
         # Add existing data to library
         if name in data.keys() and not static:
-            # update = False
-            # update = self.confirm_action("\nObject already exists in library.\nAdd anyway?")
             data.update(new_data)
-            
             if len(data) != original_length and not update: 
                 print("\nError occurred!\nLibrary update aborted.\n")
                 return False
-            # elif update:
-            #     return data
         else:
             data.update(new_data)
-        
         data = dict(sorted(data.items()))
         
         # Checking data validity depending on action. 
@@ -178,7 +171,6 @@ class Archivist:
             return data
         
 
-        
     def writer(self, file:str, data):
         """
         Write JSON to file. Returns: bool
@@ -189,7 +181,6 @@ class Archivist:
                 return True
         except Exception as e:
             print("Error occurred while attempting to write. Check file health and backups.")
-
 
 
 class Negotiator:
@@ -204,9 +195,11 @@ class Negotiator:
         self.separator = "-"*50
         self.indent = 3
 
+
     def request_key(self, options:list, enforced=False, return_string=False):
         """
-        General function for recording input with checks against conditions. Returns: int or str
+        General function for recording input with checks against conditions.  
+        Returns: int or str
 
         options : list of conditions.
         enforced : set True to demand input for critical actions or preventing loss of data.
@@ -234,14 +227,14 @@ class Negotiator:
         
     def request_numeral(self, message:str, lower_limit=False, upper_limit=False):
         """
-        Request a numerical value within limits (optional). Returns: int
+        Request a numerical value within limits (optional).  
+        Returns: int
 
         message : explanatory text
         lower_limit : lowest value allowed
         upper_limit : highest value allowed
         """
-        # print()
-        # print(message)
+
         lower_message, lower_switch = "", 0
         upper_message, upper_switch = "", 0
         if lower_limit: lower_message, lower_switch = " from ", 1
@@ -249,10 +242,6 @@ class Negotiator:
         message = message + f"{lower_message}{lower_limit}"*lower_switch + f"{upper_message}{upper_limit}"*upper_switch
 
         while True:
-            # print("Enter value: ")
-            
-            # print(f"Press {self.quit_key.upper()} to quit.")
-
             value = input(f"{message}: ")
             if value == self.quit_key.lower():
                 print("\nQuitting, good bye.\n")
@@ -271,10 +260,12 @@ class Negotiator:
                 if lower_limit >= upper_limit:
                     print("Lower limit value must be smaller than upper limit value.")
                     continue
+
             if type(lower_limit) == int:
                 if value < lower_limit:
                     print(f"\nValue must be at least {lower_limit}.")
                     continue
+
             if type(upper_limit) == int:
                 if value > upper_limit: 
                     print(f"\nValue cannot be higher than {upper_limit}.")
@@ -297,9 +288,7 @@ class Negotiator:
         for alternative in options:
             print(f"{" ":3}{str(counter):2} {alternative}")
             counter += 1
-
         string_selectors = [str(num) for num in range(1,len(options)+1)]
-
         selection = self.request_key(string_selectors)-1
 
         return options[selection]
@@ -307,7 +296,8 @@ class Negotiator:
 
     def auto_options(self, message:str, collection:dict, preset_values:dict=False):
         """
-        Cycles through categories and subcategories and requests input as value or alternative within list. Returns: dict 
+        Cycles through categories and subcategories and requests input as value or alternative within list.  
+        Returns: dict 
 
         message : explanatory text
         collection : dict with format *{category_key: input_options}*, where *input_options* should be either the exact string: "enter numeral", or a list.
@@ -316,37 +306,24 @@ class Negotiator:
         output = dict()
         print(message)
         for category in collection.keys():
-            
             selectable_options = dict()
-
-            # print(collection)
             numeral = True if collection[category] == "enter numeral" else False
             string = True if collection[category] == "enter string" else False
             preset = True if collection[category] == "enter preset" else False
             if preset and not preset_values:
                 print(f"Preset value for {collection} {category} missing.")
-            # if option == "enter numeral": print("Enter value:")
-                # numeral = True
-            # print(numeral, string, preset)
+                quit()
+
             if numeral: 
                 selection = self.request_numeral(f"Enter value for {category}")
             elif string: 
                 selection = input(f"Enter {category}: ")
             elif preset:
                 selection = preset_values[category]
-            # preset = True if collection[category] == "enter preset" else False
-            # while numeral:
-            #     print("Enter value:")
-            #     try:
-            #         selection = int(input())
-            #         break
-            #     except:
-            #         print("Enter valid number.")
 
             if numeral or preset:
                 output[category.capitalize()] = selection
             else:
-            # if not numeral and not preset:
                 print(f"\n{self.separator}")
                 print(f"Select {category} among:")
                 counter = 1
@@ -357,8 +334,5 @@ class Negotiator:
                 selection = self.request_key(selectable_options.keys(), return_string=True)
                 output[category.capitalize()] = selectable_options[selection]
                 print(f"\nSelection: {selectable_options[selection]}")
-            # else:
-            #     output[category.capitalize()] = selection
-            # print(type(selection))
 
         return output
