@@ -1,47 +1,190 @@
-import json
-
 import os
-
 import shutil
 
+import json
 import msvcrt
 
 
-
 class Archivist:
-    def __init__(self, data_directory:str, settings_directory:str):
+    def __init__(self, PATHWAYS:dict, file):
         """
         File and data actions for JSON and dictionary data. 
         Functions: reader, writer, confirm_action, backup, join_data
+
+        file : directory of file as string
+        PATHWAYS: dictionary with folder and file references
         """
+        self.file = file
+        self.data_directory = PATHWAYS["DataFolder"]
+        self.settings_directory = PATHWAYS["SettingsFolder"]
+        self.backup_directory = PATHWAYS["BackupFolder"]
+        self.backup_meta = PATHWAYS["BackupMetaFile"]
 
-        self.data_directory = data_directory
-        self.settings_directory = settings_directory
 
-    def reader(self, file:str, join="none"):
+    def reader(self, other_file=False, join="none"):
         """
         Read and return JSON file.
 
-        file : directory of file as string.
-        join : set to string "data" or "settings", if *file* is a located within of *self.data_directory* or *self.settings_directory*.
+        join : set to string "data" or "settings", if *file* is located within *self.data_directory* or *self.settings_directory*.
         """
 
+        save_file = self.file if not other_file else other_file
+
         if join == "data":
-            file = os.path.join(self.data_directory, file)
+            save_file = os.path.join(self.data_directory, save_file)
         elif join == "settings":
-            file = os.path.join(self.settings_directory, file)
+            save_file = os.path.join(self.settings_directory, save_file)
         elif join != "none":
             print("Invalid value of pathway indicator 'join'.")
 
-        if os.path.exists(file):
+        if os.path.exists(save_file):
             try:
-                with open(file, "r", encoding="utf-8") as f:
+                with open(save_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
-                print(f"\nFile at {file} could not be read:\n{e}")
+                print(f"\nFile at {save_file} could not be read:\n{e}")
 
 
+    def backup(self, backup_frequency:list[int], datatype:str):
+        """
+        Automated backup in multiple files.  
+        Returns: bool
 
+        backup_frequency : list length sets the number of backup files; integers specifies number of edits between every backup.
+        datatype : sets name prefix to specify identify of backup data.
+        """
+        
+        # Call file containing edit count info for all files
+        meta_file = os.path.join(self.settings_directory, self.backup_meta)
+        try:
+            edit_meta = self.reader(meta_file)
+        except:
+            edit_meta = dict()
+
+        try:    
+            file_edit_count = edit_meta[self.file]
+        except:
+            file_edit_count = 0   
+        backup_file = False
+        
+        # Check backup frequencies and set backup file path if any frequency condition is met and update edit meta
+        for value in backup_frequency:
+            if file_edit_count > 0 and file_edit_count % value == 0:
+                print(f"Performing backup for every {value} saves.")
+                backup_file = os.path.join(
+                    self.backup_directory, 
+                    datatype.lower() + f"_backup_{value}.json")
+                break
+        edit_meta[self.file] = file_edit_count + 1
+        self.writer(edit_meta, other_file=meta_file)       
+        try:
+            file_length = len(self.reader(self.file))
+        except:
+            file_length = 0
+
+        if backup_file and os.path.exists(backup_file):
+            backup_length = len(self.reader(backup_file))
+        else:
+            backup_length = 0
+
+        # Compare contents of backup and current data
+        if backup_length > file_length+2:
+            confirm_backup = self.confirm_action("\nWARNING!\nBackup datalength is larger than that of current file.\nIf you have not removed data entries: abort and check data health.\nBackup anyway?\n")
+        else:
+            confirm_backup = True
+
+        if not backup_file:
+            return True
+        elif confirm_backup:
+            shutil.copy(self.file, backup_file)
+            print("Data backup done.")
+            return True
+        else:
+            return False
+        
+
+    def join_data(self, new_data:dict, name:str, sort=True, update=False, static=False):
+        """
+        Update library with new or edited data.  
+        Returns: bool
+
+        new_data : data to be included in file.  
+        name : id of new data entry.  
+        static : marks files that are not expected to increase in length.
+        """
+
+        data = self.reader(self.file)
+        if type(data) is dict: 
+            original_length = len(data) 
+        else: 
+            original_length = 0
+            data = dict()
+
+        if name == "Remove":
+            print("\nRemoval requested. Enter name of item to remove.")
+            name = input("Name: ").title()
+            
+            try:
+                data.pop(name)
+            except:
+                print("\nError 0: No entry removed. Check spelling.\n")
+                return False
+            
+            if len(data) != original_length-1: 
+                print("\nError 1: Expected data length decrease.\nLibrary update aborted.\n")
+                return False
+
+            return data
+
+        # Add existing data to library
+        if name in data.keys() and not static:
+            data.update(new_data)
+            if len(data) != original_length and not update: 
+                print("\nError 2: Unexpected altered data length.\nLibrary update aborted.\n")
+                return False
+        else:
+            data.update(new_data)
+        if sort: data = dict(sorted(data.items()))
+        
+        # Checking data validity depending on action. 
+        if len(data) != original_length+1 and not update and not static:
+            print("\nError 3: Expected data length increase.\nLibrary update aborted.")
+            return False
+        else:
+            return data
+        
+
+    def writer(self, data, other_file=False):
+        """
+        Write JSON to file. Returns: bool
+        """
+
+        save_file = self.file if not other_file else other_file
+        try:
+            with open(save_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+                return True
+        except Exception as e:
+            print("Error 4: occurred while attempting to write. Check file health and backups.")
+
+
+    def save_report(self, data, report_name:str):
+        """
+        Write report as markdown
+
+        data: information as string formatted for markdown
+        report_name: string for file name without extension
+        """
+        file = os.path.join(self.data_directory, report_name+".md")
+        try:
+            with open(file, "w", encoding="utf-8") as f:
+                f.write(data)
+                return True
+        except Exception as e:
+            print(f"{e}\nError 5: occurred while attempting to write report.")
+
+
+    # TODO: move to Negotiator after it is moved to new file, and insert negotiator.confirm_action as argument
     def confirm_action(self, message:str):
             """
             Checkpoint to verify action. Returns: bool
@@ -61,128 +204,7 @@ class Archivist:
                         quit()    
 
 
-
-    def backup(self, file:str, backup_frequency:list[int], datatype:str):
-        """
-        Automated backup in multiple files.  
-        Returns: bool
-
-        file : directory of file as string.  
-        backup_frequency : list length sets the number of backup files; integers specifies number of edits between every backup.
-        datatype : sets name prefix to specify identify of backup data.
-        """
-        
-        # Call file containing edit count info for all files
-        meta_file = os.path.join(self.data_directory, "meta.json")
-        try:
-            edit_meta = self.reader(meta_file)
-        except:
-            edit_meta = dict()
-
-        try:    
-            file_edit_count = edit_meta[file]
-        except:
-            file_edit_count = 0   
-        backup_file = False
-        
-        # Check backup frequencies and set backup file path if any frequency condition is met and update edit meta
-        for value in backup_frequency:
-            if file_edit_count > 0 and file_edit_count % value == 0:
-                backup_file = os.path.join(
-                    self.data_directory, 
-                    datatype.lower() + f"_backup_{value}.json")
-                break        
-        edit_meta[file] = file_edit_count + 1
-        self.writer(meta_file, edit_meta)       
-        try:
-            file_length = len(self.reader(file))
-        except:
-            file_length = 0
-
-        if backup_file and os.path.exists(backup_file):
-            backup_length = len(self.reader(backup_file))
-        else:
-            backup_length = 0
-
-        # Compare contents of backup and current data
-        if backup_length > file_length+2:
-            confirm_backup = self.confirm_action("\nWARNING!\nBackup datalength is larger than that of current file.\nIf you have not removed data entries: abort and check data health.\nBackup anyway?\n")
-        else:
-            confirm_backup = True
-
-        if not backup_file:
-            return True
-        elif confirm_backup:
-            shutil.copy(file, backup_file)
-            print("\nData backup performed.")
-            return True
-        else:
-            return False
-        
-
-    def join_data(self, file:str, new_data:dict, name:str, update=False, static=False):
-        """
-        Update library with new or edited data.  
-        Returns: bool
-
-        file : directory of file as string.  
-        new_data : data to be included in file.  
-        name : id of new data entry.  
-        static : marks files that are not expected to increase in length.
-        """
-
-        data = self.reader(file)
-        if type(data) is dict: 
-            original_length = len(data) 
-        else: 
-            original_length = 0
-            data = dict()
-
-        if name == "Remove":
-            print("\nRemoval requested. Enter name of item to remove.")
-            name = input("Name: ")
-            
-            try:
-                data.pop(name)
-            except:
-                return False
-            
-            if len(data) != original_length-1: 
-                print("\nError occurred!\nLibrary update aborted.\n")
-                return False
-            
-            return data
-            
-        # Add existing data to library
-        if name in data.keys() and not static:
-            data.update(new_data)
-            if len(data) != original_length and not update: 
-                print("\nError occurred!\nLibrary update aborted.\n")
-                return False
-        else:
-            data.update(new_data)
-        data = dict(sorted(data.items()))
-        
-        # Checking data validity depending on action. 
-        if len(data) != original_length+1 and not update and not static:
-            print("\nError occurred!\n\nLibrary update aborted.")
-            return False
-        else:
-            return data
-        
-
-    def writer(self, file:str, data):
-        """
-        Write JSON to file. Returns: bool
-        """
-        try:
-            with open(file, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=4, ensure_ascii=False)
-                return True
-        except Exception as e:
-            print("Error occurred while attempting to write. Check file health and backups.")
-
-
+# TODO: move to separate file
 class Negotiator:
     def __init__(self):
         """
@@ -225,7 +247,7 @@ class Negotiator:
                     quit()
 
         
-    def request_numeral(self, message:str, lower_limit=False, upper_limit=False):
+    def request_numeral(self, message:str, lower_limit=None, upper_limit=None):
         """
         Request a numerical value within limits (optional).  
         Returns: int
@@ -237,9 +259,9 @@ class Negotiator:
 
         lower_message, lower_switch = "", 0
         upper_message, upper_switch = "", 0
-        if lower_limit: lower_message, lower_switch = " from ", 1
-        if upper_limit: upper_message, upper_switch = " up to ", 1
-        message = message + f"{lower_message}{lower_limit}"*lower_switch + f"{upper_message}{upper_limit}"*upper_switch
+        if lower_limit is not None: lower_message, lower_switch = " from ", 1
+        if upper_limit is not None: upper_message, upper_switch = " up to ", 1
+        message = message + f"\n{lower_message}{lower_limit}"*lower_switch + f"{upper_message}{upper_limit}"*upper_switch
 
         while True:
             value = input(f"{message}: ")

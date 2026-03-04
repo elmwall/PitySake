@@ -1,6 +1,4 @@
-import sys, os
 from utilities import Archivist, Negotiator
-
 from settings.config import PATHWAYS
 
 
@@ -61,6 +59,8 @@ class Mathematician:
         return event+1 if calc_current else event
 
 
+    def statistician(self):
+        pass
 
 # WIP
 

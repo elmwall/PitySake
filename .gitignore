@@ -1,8 +1,10 @@
 Notes/
-PitySake_Data/
+data/
 PitySake_Accessories/
+backup/
 settings/
 __pycache__/
 venv/
+ui/
 
 test.py
