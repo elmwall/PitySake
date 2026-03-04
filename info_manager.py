@@ -1,32 +1,40 @@
 import os
 import datetime
 
-from utilities import Archivist, Negotiator
 from settings.config import PATHWAYS, TERMS
 from event_calculator import Mathematician
 
 
 class Librarian:
-    def __init__(self):
-        pass
+    def __init__(self, arciv, negotiator):
+        """
+        Manager for collecting and organizing information for database.
+        Functions: collect_settings, enter_data, enter_event, reciter
+
+        arciv: class needed for file management
+        negotiator: class needed for collecting user input
+        """
+
+        self.arciv = arciv
+        self.negotiator = negotiator
     
 
-    def collect_settings(self, arciv, keywords:list):
+    def collect_settings(self, keywords:list):
         """
         Single reading of config file to return settings as list or single element.
         
         keywords : list of keys to locate settings.
         """
-        data_options = arciv.reader(
-            PATHWAYS["Options"], join="settings")
+        data_options = self.arciv.reader(
+            other_file=PATHWAYS["Options"], join="settings")
         settings = list()
         for key in keywords:
             settings.append(data_options[key])
 
         return settings if len(settings) > 1 else settings[0]
-    
 
-    def enter_data(self, negotiator, name:str, data_options):
+
+    def enter_data(self, name:str, data_options):
         """
         Collect basic info about new library entry.  
         Returns: single-entry dictionary.
@@ -36,7 +44,7 @@ class Librarian:
 
         # Enter object details
         new_object = dict()
-        new_object[name] = negotiator.auto_options(
+        new_object[name] = self.negotiator.auto_options(
             f"\nEnter details for {name}",
             data_options)
         
@@ -46,9 +54,9 @@ class Librarian:
             print(f"  {x:14} {y}")
 
         return new_object
-    
 
-    def enter_event(self, arciv, negotiator, file, name:str, event_options, misc_obj:bool):
+
+    def enter_event(self, name:str, event_options, misc_obj:bool):
         """
         Collect historical acquisition data for object in library.  
         Returns: single-entry dictionary with updated object.
@@ -60,7 +68,7 @@ class Librarian:
         
         updated_object = dict()
         try:
-            updated_object[name] = arciv.reader(file)[name]
+            updated_object[name] = self.arciv.reader()[name]
         except:
             print(f"\n{name} must be added to library before registering event.\n",
                 "Check library content or spelling.")
@@ -70,9 +78,10 @@ class Librarian:
         # Register single value and skip further collection
         if misc_obj:
             # event = TERMS["collection"]
-            updated_object[name][TERMS["Collection"]] = negotiator.listed_options(
-                f"\nEnter {TERMS["Collection"]} for {name}.",
-                event_options)
+            updated_object[name][TERMS["Collection"]] = self.negotiator.request_numeral(
+                f"\nEnter {TERMS["Collection"]} for {name}",
+                lower_limit=0,
+                upper_limit=6)
 
             return updated_object
         
@@ -121,7 +130,7 @@ class Librarian:
         method_calc = f"Calculate {attempt_term}"
         method_enter = f"Enter {attempt_term}"
         method_skip = f"No {attempt_term} - skip"
-        attempt_method = negotiator.listed_options(
+        attempt_method = self.negotiator.listed_options(
             "Select option", 
             [method_calc, method_enter, method_skip])
 
@@ -129,10 +138,10 @@ class Librarian:
             # Calculation assistant class called only if needed
             mathemate = Mathematician()
             attempt = mathemate.calculate_attempts(
-                negotiator, 
+                self.negotiator, 
                 event_term=TERMS["Event"])
         elif attempt_method == method_enter:
-            attempt = negotiator.request_numeral(
+            attempt = self.negotiator.request_numeral(
                 f"\nEnter value for {attempt_term}: ", 
                 lower_limit=0, 
                 upper_limit=90)
@@ -147,7 +156,7 @@ class Librarian:
         # Step 4: Define source
         # Adjust settings if standard event
         if not attempt_method == method_skip:
-            state_preset = negotiator.listed_options(
+            state_preset = self.negotiator.listed_options(
                 f"Was item received from {TERMS["Standard source"]}?",
                 ["Yes", "No"])
             if state_preset == "Yes":
@@ -157,7 +166,7 @@ class Librarian:
                 presets["State"] = False
         
         # Step 5: Create dictionary entry from above settings
-        updated_object[name][TERMS["Event"]][event_name] = negotiator.auto_options(
+        updated_object[name][TERMS["Event"]][event_name] = self.negotiator.auto_options(
             f"\nEnter details for {name} {TERMS["Event"]}",
             event_options, 
             preset_values=presets)
@@ -170,10 +179,9 @@ class Librarian:
         Print contents of library.
         Returns: print and return string structured as table, formatted suitable for markdown view.
         """
-
-        if type(library) is not dict:
-            print("\nI cannot read that.\n")
-            quit()
+        library = [1, 2]
+        if not isinstance(library, dict):
+            raise TypeError("Not dict.\nLibrarian.reciter: I cannot read that.\n")
             
         library = dict(sorted(library.items()))
         report = str()
