@@ -20,7 +20,7 @@ class Archivist:
         self.backup_meta = PATHWAYS["BackupMetaFile"]
 
 
-    def reader(self, other_file=False, join="none", allow_missing=False, allow_empty=False):
+    def reader(self, other_file=False, join="none", is_json=True, allow_missing=False, allow_empty=False):
         """
         Read and return JSON file.
 
@@ -36,20 +36,31 @@ class Archivist:
         elif join != "none":
             print("Invalid value of pathway indicator 'join'.")
 
-        try:
-            with open(read_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            if allow_missing:
-                return None
-            raise FileNotFoundError(f"{read_file} not found.")
-        except json.JSONDecodeError:
-            if allow_empty:
-                return None
-            raise json.JSONDecodeError(f"{read_file} could not be decoded as JSON.")
-        except Exception as e:
-            print(f"\nFile at {read_file} could not be read:\n{e}")
-            raise
+        if is_json:
+            try:
+                with open(read_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except FileNotFoundError:
+                if allow_missing:
+                    return None
+                raise FileNotFoundError(f"{read_file} not found.")
+            except json.JSONDecodeError:
+                if allow_empty:
+                    return None
+                raise json.JSONDecodeError(f"{read_file} could not be decoded as JSON.")
+            except Exception as e:
+                print(f"\nFile at {read_file} could not be read:\n{e}")
+                raise
+        else:
+            try:
+                with open(read_file, "r", encoding="utf-8") as f:
+                    return f.read()
+            except FileNotFoundError:
+                if allow_missing:
+                    return None
+            except Exception as e:
+                print(f"\nFile at {read_file} could not be read:\n{e}")
+                raise
 
 
     def backup(self, negotiator, backup_frequency:list[int], datatype:str):
@@ -178,12 +189,12 @@ class Archivist:
 
     def save_report(self, data, report_name:str):
         """
-        Write report as markdown
+        Write report as csv
 
-        data: information as string formatted for markdown
+        data: information as string formatted as csv table
         report_name: string for file name without extension
         """
-        file = os.path.join(self.data_directory, report_name+".md")
+        file = os.path.join(self.data_directory, report_name+".csv")
         try:
             with open(file, "w", encoding="utf-8") as f:
                 f.write(data)

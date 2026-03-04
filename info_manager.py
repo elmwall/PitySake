@@ -191,7 +191,7 @@ class Librarian:
             library_datewise = dict()
             data = []
             n = 1
-            row_indent = 22
+            row_indent = 0
             # Cycle through and collect nested dictionary data
             for entry in library.keys():
                 title = str()
@@ -203,30 +203,74 @@ class Librarian:
                         for detail in dict(sorted(info.items())).values():
                             if not detail: detail = "-"
                             if type(detail) is int: data.append(detail)
-                            space = 6 if len(str(detail)) < 5 else row_indent
-                            details += f"{str(detail):{space}}" 
+                            # space = 6 if len(str(detail)) < 5 else row_indent
+                            space = 0
+                            details += f",{detail:{space}}" 
                         # Re-structure info into new dictionary
-                        library_datewise.update({f"{title}-{str(n)}": f"{entry:{20}}{details}"})
+                        library_datewise.update({f"{title}-{str(n)}": f"{entry:}{details}"})
                         n += 1
                 else:
                     title = f"NoDate-{n}"
-                    library_datewise.update({title[:6]: f"{entry:{row_indent}}"})
+                    library_datewise.update({title: f"{entry:{row_indent}}"})
+                    n += 1
             library_datewise = dict(sorted(library_datewise.items()))
 
             # Generate final report format and print
             cutaway = 70
-            report += f"```"
-            report += f"\n{"Date":9}{"Name":{20}}{TERMS["Attempt"]:6}{"Source":{row_indent}}{"State"}\n"[:cutaway]
+            # report += f"```"
+            report += f"\n{"Date"},{"Name"},{TERMS["Attempt"]},{"Source":{row_indent}},{"State"}"[:cutaway]
             for event in library_datewise.keys():
-                report += f"\n{event[:6]:9}{library_datewise[event]}"[:cutaway]
-            report += f"\n```"
+                report += f"\n{event[:6]},{library_datewise[event]}"[:cutaway]
+            # report += f"\n```"
             print(report)
-            avg = sum(data)/len(data)
-            print(round(avg, 1))
+            # avg = sum(data)/len(data)
+            # print(round(avg, 1))
 
-            report += f"\n\nFile source: {file}"
+            # report += f"\n\nFile source: {file}"
             
             return report
+        
+
+        # if action_selection == "By date":
+        #     library_datewise = dict()
+        #     data = []
+        #     n = 1
+        #     row_indent = 22
+        #     # Cycle through and collect nested dictionary data
+        #     for entry in library.keys():
+        #         title = str()
+        #         if TERMS["Event"] in library[entry].keys():
+        #             events = library[entry][TERMS["Event"]]
+        #             for event, info in events.items():
+        #                 title = str(event[:6])
+        #                 details = str()
+        #                 for detail in dict(sorted(info.items())).values():
+        #                     if not detail: detail = "-"
+        #                     if type(detail) is int: data.append(detail)
+        #                     space = 6 if len(str(detail)) < 5 else row_indent
+        #                     details += f"{str(detail):{space}}" 
+        #                 # Re-structure info into new dictionary
+        #                 library_datewise.update({f"{title}-{str(n)}": f"{entry:{20}}{details}"})
+        #                 n += 1
+        #         else:
+        #             title = f"NoDate-{n}"
+        #             library_datewise.update({title[:6]: f"{entry:{row_indent}}"})
+        #     library_datewise = dict(sorted(library_datewise.items()))
+
+        #     # Generate final report format and print
+        #     cutaway = 70
+        #     report += f"```"
+        #     report += f"\n{"Date":9}{"Name":{20}}{TERMS["Attempt"]:6}{"Source":{row_indent}}{"State"}\n"[:cutaway]
+        #     for event in library_datewise.keys():
+        #         report += f"\n{event[:6]:9}{library_datewise[event]}"[:cutaway]
+        #     report += f"\n```"
+        #     print(report)
+        #     avg = sum(data)/len(data)
+        #     print(round(avg, 1))
+
+        #     report += f"\n\nFile source: {file}"
+            
+        #     return report
                 
 
         report = f"# {object_type.capitalize()} library\n\n"
