@@ -1,4 +1,3 @@
-import os
 import datetime
 
 from settings.config import PATHWAYS, TERMS
@@ -174,12 +173,12 @@ class Librarian:
         return updated_object
 
 
-    def reciter(self, library:dict, object_type, action_selection, indent=0, separation=1):
+    def reciter(self, library:dict, object_type, action_selection, file, indent=0, separation=1):
         """
         Print contents of library.
         Returns: print and return string structured as table, formatted suitable for markdown view.
         """
-        library = [1, 2]
+
         if not isinstance(library, dict):
             raise TypeError("Not dict.\nLibrarian.reciter: I cannot read that.\n")
             
@@ -224,6 +223,8 @@ class Librarian:
             print(report)
             avg = sum(data)/len(data)
             print(round(avg, 1))
+
+            report += f"\n\nFile source: {file}"
             
             return report
                 
@@ -256,7 +257,9 @@ class Librarian:
                 else:
                     print(f"{"":{indent}}{"":{sub_indent}}{key:10}{info}")
                     # report += f"{spacing}{info}"
-                    spacing = " | "
+                    # spacing = " | "
+                    
+        report += f"\n\nFile source: {file}"
 
         return report
     

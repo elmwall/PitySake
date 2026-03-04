@@ -2,7 +2,6 @@ import os
 import shutil
 
 import json
-import msvcrt
 
 
 class Archivist:
@@ -21,7 +20,7 @@ class Archivist:
         self.backup_meta = PATHWAYS["BackupMetaFile"]
 
 
-    def reader(self, other_file=False, join="none"):
+    def reader(self, other_file=False, join="none", allow_missing=False, allow_empty=False):
         """
         Read and return JSON file.
 
@@ -41,8 +40,12 @@ class Archivist:
             with open(read_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         except FileNotFoundError:
+            if allow_missing:
+                return None
             raise FileNotFoundError(f"{read_file} not found.")
         except json.JSONDecodeError:
+            if allow_empty:
+                return None
             raise json.JSONDecodeError(f"{read_file} could not be decoded as JSON.")
         except Exception as e:
             print(f"\nFile at {read_file} could not be read:\n{e}")
@@ -60,15 +63,11 @@ class Archivist:
         
         # Call file containing edit count info for all files
         meta_file = os.path.join(self.settings_directory, self.backup_meta)
-        try:
-            edit_meta = self.reader(meta_file)
-        except:
-            edit_meta = dict()
-
-        try:    
+        edit_meta = self.reader(meta_file)
+        if self.file in edit_meta.keys():
             file_edit_count = edit_meta[self.file]
-        except:
-            file_edit_count = 0   
+        else:
+            file_edit_count = 0 
         backup_file = False
         
         # Check backup frequencies and set backup file path if any frequency condition is met and update edit meta
@@ -80,11 +79,14 @@ class Archivist:
                     datatype.lower() + f"_backup_{value}.json")
                 break
         edit_meta[self.file] = file_edit_count + 1
-        self.writer(edit_meta, other_file=meta_file)       
-        try:
-            file_length = len(self.reader(self.file))
-        except:
-            file_length = 0
+        self.writer(edit_meta, other_file=meta_file)     
+        
+        data = self.reader(self.file, allow_missing=True, allow_empty=True)
+        if data:
+            file_length = len(data)
+        else:
+            if negotiator.confirm_action(f"{self.file} subject for backup does not return previous data. Do you wish to proceed?"):
+                file_length = 0
 
         if backup_file and os.path.exists(backup_file):
             backup_length = len(self.reader(backup_file))

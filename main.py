@@ -3,7 +3,7 @@ import os
 from file_manager import Archivist
 from settings.config import PATHWAYS, TERMS
 from info_manager import Librarian
-from input_manager import Negotiator
+from input_controller import Negotiator
 
 
 def main(object_type, datatype, data_options, update_check):
@@ -22,7 +22,7 @@ def main(object_type, datatype, data_options, update_check):
     if name == "Remove":
         new_object = None
     elif update_check:
-        new_object = librarian.enter_event(arciv, negotiator, name, data_options, object_type==TERMS["Misc"])
+        new_object = librarian.enter_event(name, data_options, object_type==TERMS["Misc"])
     else:
         library = arciv.reader()
         # Option to change entry info without removing events
@@ -31,9 +31,9 @@ def main(object_type, datatype, data_options, update_check):
                 f"{name} is already in library.\nDo you wish to update details for {name}?", 
                 ["Yes"])
             new_object = {name: library[name]}
-            new_object[name].update(librarian.enter_data(negotiator, name, data_options)[name])
+            new_object[name].update(librarian.enter_data(name, data_options)[name])
         else:
-            new_object = librarian.enter_data(negotiator, name, data_options)
+            new_object = librarian.enter_data(name, data_options)
 
     # Backup interval 
     # Number from biggest to smallest interval. Decides at which update interval backup is performed. E.g. [30, 10, 2] performs backups every 2nd, 10th, and 30th update.
@@ -87,7 +87,7 @@ if action_selection == check_lib:
         f"Select view option for printing data:", 
         [f"By {object_type}", "By date"])
     library = arciv.reader()
-    report = librarian.reciter(library, object_type, action_selection)
+    report = librarian.reciter(library, object_type, action_selection, file)
     if action_selection == f"By {object_type}":
         report_name = f"{object_type} report"
     else:
@@ -101,7 +101,7 @@ elif action_selection == update_check:
         option_list.append(TERMS["Event"])
     else:
         option_list.append(TERMS["Collection"])
-event_options = librarian.collect_settings(arciv, option_list)
+event_options = librarian.collect_settings(option_list)
 
 main(object_type, datatype, event_options, action_selection==update_check)
 
