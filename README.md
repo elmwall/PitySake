@@ -3,7 +3,7 @@
 A modular application for managing objects with related data and simple analysis, and provide a data report.
 
 ## Features:
-- Termal-based user input
+- Terminal-based user input
 - Simplifying use through calculations and providing selectable options
 - Input manager with data validation and error handling
 - Data transformation to-and-from JSON files
