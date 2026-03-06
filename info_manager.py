@@ -55,7 +55,7 @@ class Librarian:
         return new_object
 
 
-    def enter_event(self, name:str, event_options, misc_obj:bool):
+    def enter_event(self, name:str, event_options, misc_obj:bool, updated_object=False):
         """
         Collect historical acquisition data for object in library.  
         Returns: single-entry dictionary with updated object.
@@ -64,14 +64,15 @@ class Librarian:
         event_options : selectable opions as a list if simple object, or as a dict for detailed object.
         misc_object : switch for simple object (True) or detailed object (False).
         """
-        
-        updated_object = dict()
-        try:
-            updated_object[name] = self.arciv.reader()[name]
-        except:
-            print(f"\n{name} must be added to library before registering event.\n",
-                "Check library content or spelling.")
-            quit()
+        print(event_options)
+        if not updated_object:
+            updated_object = dict()
+            try:
+                updated_object[name] = self.arciv.reader()[name]
+            except:
+                print(f"\n{name} must be added to library before registering event.\n",
+                    "Check library content or spelling.")
+                quit()
 
         # Simple objects: 
         # Register single value and skip further collection
@@ -171,6 +172,41 @@ class Librarian:
             preset_values=presets)
 
         return updated_object
+    
+
+    def edit_data(self, name, library, object_type, data_options, action_selection):
+        """
+        ...
+        """
+        edited_object = {name: library[name]}
+        # print(edited_object[name][TERMS["Event"]].keys())
+        if action_selection == TERMS["Event"]:
+            print(2)
+            try:
+                change_options = list(edited_object[name][TERMS["Event"]].keys())
+            except:
+                print(f"No {TERMS["Event"]}s registered for {name}.\nQuitting, good bye.\n")
+                quit()
+            event = self.negotiator.listed_options(f"Select among {TERMS["Event"]}s", change_options)
+            event_change = self.negotiator.listed_options(f"What change to you wish to perform for {TERMS["Event"]}: {event}", ["Change", "Remove"])
+            
+            edited_object[name][TERMS["Event"]].pop(event)
+            if event_change == "Change":
+                edited_object = self.enter_event(name, data_options, object_type==TERMS["Misc"], updated_object=edited_object)
+            print("check!")
+        elif action_selection == "Basic info":
+            print(edited_object)
+            if TERMS["Event"] in edited_object[name].keys():
+                event_data = edited_object[name][TERMS["Event"]]
+            else:
+                event_data = False
+            edited_object = self.enter_data(name, data_options)
+            print(event_data)
+            if event_data: edited_object[name][TERMS["Event"]] = event_data
+            print(edited_object)
+            quit()
+
+        return edited_object
 
 
     def reciter(self, library:dict, object_type, action_selection, file, indent=0, separation=1):
@@ -228,58 +264,16 @@ class Librarian:
 
             # report += f"\n\nFile source: {file}"
             
-            return report
-        
+            return report  
 
-        # if action_selection == "By date":
-        #     library_datewise = dict()
-        #     data = []
-        #     n = 1
-        #     row_indent = 22
-        #     # Cycle through and collect nested dictionary data
-        #     for entry in library.keys():
-        #         title = str()
-        #         if TERMS["Event"] in library[entry].keys():
-        #             events = library[entry][TERMS["Event"]]
-        #             for event, info in events.items():
-        #                 title = str(event[:6])
-        #                 details = str()
-        #                 for detail in dict(sorted(info.items())).values():
-        #                     if not detail: detail = "-"
-        #                     if type(detail) is int: data.append(detail)
-        #                     space = 6 if len(str(detail)) < 5 else row_indent
-        #                     details += f"{str(detail):{space}}" 
-        #                 # Re-structure info into new dictionary
-        #                 library_datewise.update({f"{title}-{str(n)}": f"{entry:{20}}{details}"})
-        #                 n += 1
-        #         else:
-        #             title = f"NoDate-{n}"
-        #             library_datewise.update({title[:6]: f"{entry:{row_indent}}"})
-        #     library_datewise = dict(sorted(library_datewise.items()))
 
-        #     # Generate final report format and print
-        #     cutaway = 70
-        #     report += f"```"
-        #     report += f"\n{"Date":9}{"Name":{20}}{TERMS["Attempt"]:6}{"Source":{row_indent}}{"State"}\n"[:cutaway]
-        #     for event in library_datewise.keys():
-        #         report += f"\n{event[:6]:9}{library_datewise[event]}"[:cutaway]
-        #     report += f"\n```"
-        #     print(report)
-        #     avg = sum(data)/len(data)
-        #     print(round(avg, 1))
-
-        #     report += f"\n\nFile source: {file}"
-            
-        #     return report
-                
-
+        # Create report  from database sorted by entry
         report = f"# {object_type.capitalize()} library\n\n"
         sub_indent = 10
-        # Create report  from database sorted by entry
         for entry in library.keys():
             print(f"{"\n"*separation*2}{"":{indent}}{entry.upper():20}{"\n"*separation*0}")
             report += f"\n\n## {entry.capitalize()}\n\n"
-            # spacing = str()
+            spacing = str()
             # Cycle through and collect/print nested dictionary data
             for key, info in library[entry].items():
                 if not info:
@@ -300,8 +294,8 @@ class Librarian:
                     report += event_data+"```"
                 else:
                     print(f"{"":{indent}}{"":{sub_indent}}{key:10}{info}")
-                    # report += f"{spacing}{info}"
-                    # spacing = " | "
+                    report += f"{spacing}{info}"
+                    spacing = " | "
                     
         report += f"\n\nFile source: {file}"
 

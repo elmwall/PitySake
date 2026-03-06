@@ -13,38 +13,66 @@ def main(object_type, datatype, data_options, update_check):
     """
 
     print("-"*50)
-
-    # Specify name, the main key for locating its data later.
-    # Enter "remove" to delete previous entry.
-    name = input(f"Enter {object_type.lower()} name: ").title()
-
-    # Switch between remove, enter new object, or add event data to existing object
-    if name == "Remove":
+    # Specify keys for specifik actions:
+    # - enter remove/rename/correct to perform action on database entry
+    # - enter a unique name to create a new database entry
+    msg_remove, msg_change, msg_correction = "Remove", "Rename", "Correct"
+    if update_check:
+        user_prompt = f"Enter name of {object_type} to register new {TERMS["Event"].lower()}"
+    else:
+        space = 15
+        user_prompt = (f"Options for editing library\n"
+                       f"\nTo edit existing {object_type.lower()}, type:"
+                       f"\n  {msg_remove.lower():{space}} to remove an entry"
+                       f"\n  {msg_change.lower():{space}} to edit entry name"
+                       f"\n  {msg_correction.lower():{space}} to edit entry info\n"
+                       f"\nTo add new: type the name of the new {object_type.lower()}.")
+    # Specify modification action or name - the main key for locating its data later.
+    name = negotiator.request_word(user_prompt, "Enter selection").title()
+    delete_check, change_name, edit_info = [name == x for x in [msg_remove, msg_change, msg_correction]]
+    # If modification action: specify object for modification
+    if any([delete_check, change_name, edit_info]):
+        name = negotiator.request_word(
+            f"You requested to {name.lower()} an object in {object_type.lower()} database.", 
+            f"Enter EXISTING name in database to {name.upper()}").title()
+    
+    # Switch between remove, enter new object, or add/change data to existing object
+    if delete_check or change_name:
         new_object = None
+        if change_name:
+            change_name = negotiator.request_word(
+                f"To change name of {name}:", 
+                f"Enter NEW name").title()
     elif update_check:
-        new_object = librarian.enter_event(name, data_options, object_type==TERMS["Misc"])
+        is_misc = object_type==TERMS["Misc"]
+        new_object = librarian.enter_event(name, data_options, is_misc)
     else:
         library = arciv.reader()
         # Option to change entry info without removing events
-        if name in library.keys():
-            update_check = negotiator.listed_options(
-                f"{name} is already in library.\nDo you wish to update details for {name}?", 
-                ["Yes"])
-            new_object = {name: library[name]}
-            new_object[name].update(librarian.enter_data(name, data_options)[name])
-        else:
-            new_object = librarian.enter_data(name, data_options)
+        if edit_info:
+            option_list.clear()
+            option_list.append(TERMS["Event"])
+            data_options = librarian.collect_settings(option_list)
+            print(data_options)
+            # quit()
+            action_selection = negotiator.listed_options(
+                f"To edit details regarding {name} you need to re-enter part of the info.", 
+                [f"Basic info", f"{TERMS["Event"]}"])
+            new_object = librarian.edit_data(name, library, object_type, data_options, action_selection)
+            update_check = True
+        else: new_object = librarian.enter_data(name, data_options)
 
     # Backup interval 
     # Number from biggest to smallest interval. Decides at which update interval backup is performed. E.g. [30, 10, 2] performs backups every 2nd, 10th, and 30th update.
     backup_frequency = [30, 10, 2]
-
     # Performing backup and joining data with library data before writing to file
+    print(update_check)
     if arciv.backup(negotiator, backup_frequency, datatype): # Backup prior to file changes.
-        updated_library = arciv.join_data(new_object, name, update=update_check)
+        updated_library, action_performed = arciv.join_data(new_object, name, delete_check, change_name, update=update_check)
     if updated_library:
         arciv.writer(updated_library)
-        print(f"\nLibrary updated with {name}!\n")
+        print(f"\nLibrary updated, {action_performed}!\n")
+    
 
 
 # Class:
@@ -101,9 +129,9 @@ elif action_selection == update_check:
         option_list.append(TERMS["Event"])
     else:
         option_list.append(TERMS["Collection"])
-event_options = librarian.collect_settings(option_list)
+data_options = librarian.collect_settings(option_list)
 
-main(object_type, datatype, event_options, action_selection==update_check)
+main(object_type, datatype, data_options, action_selection==update_check)
 
 
 
