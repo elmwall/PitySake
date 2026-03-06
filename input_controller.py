@@ -1,37 +1,27 @@
 import msvcrt
+import re
 
 
 
 class Negotiator:
     def __init__(self):
         """
-        Functions for requesting and managing user input and listing options for checkpoints or data collection.
+        Requesting, validating and returning user input.
 
-        Functions: request_key, listed_options, auto_options
+        | Name            |  Application                      |
+        |:----------------|:----------------------------------|
+        | confirm_action  |: user input checkpoint            |
+        | request_key     |: require single key confirmation  |
+        | request_word    |: input text with valid symbols    |
+        | request_numeral |: input numerical within limits    |
+        | listed_options  |: select among numerical options   |
+        | auto_options    |: generate dictionary from options |
         """
 
         self.quit_key = "q"
         self.separator = "-"*50
         self.indent = 3
 
-
-    def confirm_action(self, message:str):
-            """
-            Checkpoint to verify action. Returns: bool
-
-            message : text for clarification or warning,
-            """
-            
-            print(message)
-            print("  Any: No\n  Y:   Yes")
-            while True:
-                if msvcrt.kbhit():
-                    selection = msvcrt.getch().decode("ASCII").lower()
-                    if selection == "y":
-                        return True
-                    else:
-                        print("\nAborted, good bye.\n")
-                        quit()    
 
 
     def request_key(self, options:list, enforced=False, return_string=False):
@@ -45,8 +35,7 @@ class Negotiator:
         """
 
         # Record keyboard input. Input not inlcuded among valid options will quit the script unless enforced, for critical options. 
-        quitting = self.quit_key.upper()
-        if not enforced: print(f"\n{" ":3}{quitting:2} Quit")
+        if not enforced: print(f"\n{" ":3}{self.quit_key.upper():2} Quit\n")
         while True:
             if msvcrt.kbhit():
                 try:
@@ -61,6 +50,57 @@ class Negotiator:
                 elif not enforced and key.lower() == self.quit_key:
                     print("\nQuitting, good bye.\n")
                     quit()
+
+
+    def confirm_action(self, message:str, abort=True):
+            """
+            Yes/No selection to verify critical action. Returns: bool or quits
+
+            message : text for clarification or warning
+            abort : set True to quit if negatory
+            """
+            
+            print(message, "\n  N: No\n  Y: Yes")
+            selection = self.request_key(["n", "N", "y", "Y"], enforced=True, return_string=True)
+            if selection.lower() == "y":
+                return True
+            elif abort:
+                print("\nAborted, good bye.\n")
+                quit()
+            else:
+                return False
+
+
+    def request_word(self, message:str, prompt:str, enforced=False):
+        """
+        Function for recording typed user input, checking for special characters or incorrect format.
+
+        message : explanatory text
+        prompt : user promt text, e.g. 'Enter key:'
+        """
+
+        print(f"\n{self.separator}")
+        print(f"\n{message}")
+        if not enforced: print(f"\n{self.quit_key.upper():2} Quit\n")
+        while True:
+            word = input(f"{prompt}: ")
+            if not word.isalnum():
+                for symbol in word:
+                    if not symbol.isalnum() and symbol not in ("-", " "): 
+                        print("Invalid characters detected.")
+                        word = False
+                        break
+            if not word: continue
+            
+            if not enforced and word.lower() == self.quit_key:
+                print("\nQuitting, good bye.\n")
+                quit()
+            elif "  " in word:
+                print("Multiple whitespaces in a row.")
+            elif len(word) > 40 or len(word) < 3 or len(set(word)) == 1:
+                print("Invalid format.")
+            else:
+                return word
 
         
     def request_numeral(self, message:str, lower_limit=None, upper_limit=None):

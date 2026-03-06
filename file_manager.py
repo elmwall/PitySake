@@ -8,7 +8,7 @@ class Archivist:
     def __init__(self, PATHWAYS:dict, file):
         """
         File and data actions for JSON and dictionary data. 
-        Functions: reader, writer, confirm_action, backup, join_data
+        Functions: reader, writer, backup, join_data
 
         file : directory of file as string
         PATHWAYS: dictionary with folder and file references
@@ -120,7 +120,7 @@ class Archivist:
             return False
         
 
-    def join_data(self, new_data:dict, name:str, sort=True, update=False, static=False):
+    def join_data(self, new_data:dict, name:str, delete_check, edit_name, sort=True, update=False, static=False):
         """
         Update library with new or edited data.  
         Returns: bool
@@ -130,6 +130,7 @@ class Archivist:
         static : marks files that are not expected to increase in length.
         """
 
+
         data = self.reader(self.file)
         if type(data) is dict: 
             original_length = len(data) 
@@ -137,37 +138,44 @@ class Archivist:
             original_length = 0
             data = dict()
 
-        if name == "Remove":
-            print("\nRemoval requested. Enter name of item to remove.")
-            name = input("Name: ").title()
-            
+        if edit_name:
+            new_data = dict()
+            try:
+                new_data[edit_name] = data[name]
+                update = delete_check = True
+            except:
+                raise KeyError(f"Key '{name}' is absent from data. Check spelling and database content.")
+
+        if delete_check:          
             try:
                 data.pop(name)
             except KeyError:
-                raise KeyError(f"{name} not in data.\nArchivist.join_data: Did you spell correct? Have you removed {name} already?")
+                raise KeyError(f"Key '{name}' is absent from data. Check spelling and database content.")
             
             if len(data) != original_length-1: 
-                print("\nError 1: Expected data length decrease.\nLibrary update aborted.\n")
-                return False
-
-            return data
+                raise ValueError(f"Expected a data length decrease after removing {name}.")
+            
+            if not edit_name:
+                return data, f"{name} was removed"
+            else:
+                name = edit_name
 
         # Add existing data to library
         if name in data.keys() and not static:
             data.update(new_data)
+            action_performed = f"{name} was updated"
             if len(data) != original_length and not update: 
-                print("\nError 2: Unexpected altered data length.\nLibrary update aborted.\n")
-                return False
+                raise ValueError(f"Data length was altered unexpectedly. Library update aborted.")
         else:
             data.update(new_data)
+            action_performed = f"{name} was added"
         if sort: data = dict(sorted(data.items()))
         
         # Checking data validity depending on action. 
         if len(data) != original_length+1 and not update and not static:
-            print("\nError 3: Expected data length increase.\nLibrary update aborted.")
-            return False
+            raise ValueError(f"Expected data length increase. Library update aborted.")
         else:
-            return data
+            return data, action_performed
         
 
     def writer(self, data, other_file=False):
@@ -183,8 +191,7 @@ class Archivist:
         except json.JSONDecodeError:
             raise json.JSONDecodeError(f"Could not decode data to save in {save_file}.")
         except Exception as e:
-            print(f"{e}\nError 4: occurred while attempting to write to {save_file}. Check file health and backups.")
-            raise
+            raise RuntimeError(f"Error from {e} occurred while attempting to write to {save_file}. Check file health and backups.")
 
 
     def save_report(self, data, report_name:str):
@@ -200,7 +207,6 @@ class Archivist:
                 f.write(data)
                 return True
         except Exception as e:
-            print(f"{e}\nError 5: occurred while attempting to write report {report_name} to {file}.")
-            raise
+            raise RuntimeError(f"Error from {e} occurredwhile attempting to write report {report_name} to {file}.")
 
 
