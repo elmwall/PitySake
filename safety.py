@@ -34,6 +34,14 @@ class Errorer:
     def __init__(self):
         pass
 
-    
-dr = Doctor()
-dr.file_health_check()
+
+
+class Debugger:
+    def __init__(self):
+        pass
+
+    def checkpoint(value, stop=True):
+        print()
+        print("Testvalue:")
+        print(value)
+        if stop: quit()

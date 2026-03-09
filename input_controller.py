@@ -185,7 +185,7 @@ class Negotiator:
         print(message)
         for category in collection.keys():
             selectable_options = dict()
-            numeral = True if collection[category] == "enter numeral" else False
+            numeral = True if "enter numeral" in collection[category] else False
             string = True if collection[category] == "enter string" else False
             preset = True if collection[category] == "enter preset" else False
             if preset and not preset_values:
@@ -193,7 +193,14 @@ class Negotiator:
                 quit()
 
             if numeral: 
-                selection = self.request_numeral(f"Enter value for {category}")
+                limits = collection[category].split("|")
+                try:
+                    min_value, max_value = int(limits[1]), int(limits[2])
+                except ValueError:
+                    raise ValueError(f"Could not convert string limit number to integer. Check data options file.")
+                selection = self.request_numeral(
+                    f"Enter value for {category}",
+                    lower_limit=min_value, upper_limit=max_value)
             elif string: 
                 selection = input(f"Enter {category}: ")
             elif preset:

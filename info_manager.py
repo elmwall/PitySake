@@ -16,21 +16,26 @@ class Librarian:
 
         self.arciv = arciv
         self.negotiator = negotiator
+        self.eventref = TERMS["Event"]
     
 
-    def collect_settings(self, keywords:list):
+    def collect_settings(self, keywords):
         """
         Single reading of config file to return settings as list or single element.
         
         keywords : list of keys to locate settings.
         """
         data_options = self.arciv.reader(
-            other_file=PATHWAYS["Options"], join="settings")
-        settings = list()
-        for key in keywords:
-            settings.append(data_options[key])
-
-        return settings if len(settings) > 1 else settings[0]
+            other_file=PATHWAYS["Options"], 
+            join="settings")
+        
+        if keywords is list:
+            settings = list()
+            for key in keywords:
+                settings.append(data_options[key])
+            return settings
+        else:
+            return data_options[keywords]
 
 
     def enter_data(self, name:str, data_options):
@@ -55,7 +60,7 @@ class Librarian:
         return new_object
 
 
-    def enter_event(self, name:str, event_options, misc_obj:bool, updated_object=False):
+    def enter_event(self, name:str, event_options, object_type, event_term, updated_object=False):
         """
         Collect historical acquisition data for object in library.  
         Returns: single-entry dictionary with updated object.
@@ -64,22 +69,22 @@ class Librarian:
         event_options : selectable opions as a list if simple object, or as a dict for detailed object.
         misc_object : switch for simple object (True) or detailed object (False).
         """
-        print(event_options)
+
         if not updated_object:
             updated_object = dict()
             try:
                 updated_object[name] = self.arciv.reader()[name]
             except:
-                print(f"\n{name} must be added to library before registering event.\n",
-                    "Check library content or spelling.")
+                print(f"\n{name} must be added to library before registering event.",
+                    "\nCheck library content or spelling.")
                 quit()
 
         # Simple objects: 
         # Register single value and skip further collection
-        if misc_obj:
+        if object_type==TERMS["Misc"]:
             # event = TERMS["collection"]
-            updated_object[name][TERMS["Collection"]] = self.negotiator.request_numeral(
-                f"\nEnter {TERMS["Collection"]} for {name}",
+            updated_object[name][event_term] = self.negotiator.request_numeral(
+                f"\nEnter {event_term} for {name}",
                 lower_limit=0,
                 upper_limit=6)
 
@@ -113,11 +118,11 @@ class Librarian:
 
         # Step 2: Check content of previous data and create dict if needed
         # Create an event ID numeral
-        if not TERMS["Event"] in updated_object[name].keys():
-            updated_object[name][TERMS["Event"]] = dict()
+        if not self.eventref in updated_object[name].keys():
+            updated_object[name][self.eventref] = dict()
             event_count = 0
         else:
-            event_count = len(updated_object[name][TERMS["Event"]].keys())
+            event_count = len(updated_object[name][self.eventref].keys())
         event_name = f"{event_date}-{event_count}"
         
         # Step 3: Determine attempts during event to reach acquisition
@@ -139,7 +144,7 @@ class Librarian:
             mathemate = Mathematician()
             attempt = mathemate.calculate_attempts(
                 self.negotiator, 
-                event_term=TERMS["Event"])
+                event_term=self.eventref)
         elif attempt_method == method_enter:
             attempt = self.negotiator.request_numeral(
                 f"\nEnter value for {attempt_term}: ", 
@@ -166,45 +171,45 @@ class Librarian:
                 presets["State"] = False
         
         # Step 5: Create dictionary entry from above settings
-        updated_object[name][TERMS["Event"]][event_name] = self.negotiator.auto_options(
-            f"\nEnter details for {name} {TERMS["Event"]}",
+        updated_object[name][self.eventref][event_name] = self.negotiator.auto_options(
+            f"\nEnter details for {name} {self.eventref}",
             event_options, 
             preset_values=presets)
 
         return updated_object
     
 
-    def edit_data(self, name, library, object_type, data_options, action_selection):
+    def edit_data(self, name, library, object_type, data_options, action_selection, event_term):
         """
         ...
         """
         edited_object = {name: library[name]}
-        # print(edited_object[name][TERMS["Event"]].keys())
-        if action_selection == TERMS["Event"]:
+        # print(edited_object[name][self.eventref].keys())
+        if action_selection == self.eventref:
             print(2)
             try:
-                change_options = list(edited_object[name][TERMS["Event"]].keys())
+                change_options = list(edited_object[name][self.eventref].keys())
             except:
-                print(f"No {TERMS["Event"]}s registered for {name}.\nQuitting, good bye.\n")
+                print(f"No {self.eventref}s registered for {name}.\nQuitting, good bye.\n")
                 quit()
-            event = self.negotiator.listed_options(f"Select among {TERMS["Event"]}s", change_options)
-            event_change = self.negotiator.listed_options(f"What change to you wish to perform for {TERMS["Event"]}: {event}", ["Change", "Remove"])
+            event = self.negotiator.listed_options(f"Select among {self.eventref}s", change_options)
+            event_change = self.negotiator.listed_options(f"What change to you wish to perform for {self.eventref}: {event}", ["Change", "Remove"])
             
-            edited_object[name][TERMS["Event"]].pop(event)
+            edited_object[name][self.eventref].pop(event)
             if event_change == "Change":
-                edited_object = self.enter_event(name, data_options, object_type==TERMS["Misc"], updated_object=edited_object)
+                edited_object = self.enter_event(name, data_options, object_type, event_term, updated_object=edited_object)
             print("check!")
         elif action_selection == "Basic info":
             print(edited_object)
-            if TERMS["Event"] in edited_object[name].keys():
-                event_data = edited_object[name][TERMS["Event"]]
+            if self.eventref in edited_object[name].keys():
+                event_data = edited_object[name][self.eventref]
             else:
                 event_data = False
             edited_object = self.enter_data(name, data_options)
-            print(event_data)
-            if event_data: edited_object[name][TERMS["Event"]] = event_data
-            print(edited_object)
-            quit()
+            # print(event_data)
+            if event_data: edited_object[name][self.eventref] = event_data
+            # print(edited_object)
+            # quit()
 
         return edited_object
 
@@ -231,8 +236,8 @@ class Librarian:
             # Cycle through and collect nested dictionary data
             for entry in library.keys():
                 title = str()
-                if TERMS["Event"] in library[entry].keys():
-                    events = library[entry][TERMS["Event"]]
+                if self.eventref in library[entry].keys():
+                    events = library[entry][self.eventref]
                     for event, info in events.items():
                         title = str(event[:6])
                         details = str()

@@ -3,6 +3,8 @@ import shutil
 
 import json
 
+from safety import Debugger as dg
+
 
 class Archivist:
     def __init__(self, PATHWAYS:dict, file):
@@ -63,13 +65,13 @@ class Archivist:
                 raise
 
 
-    def backup(self, negotiator, backup_frequency:list[int], datatype:str):
+    def backup(self, negotiator, backup_frequency:list[int], object_type:str):
         """
         Automated backup in multiple files.  
         Returns: bool
 
         backup_frequency : list length sets the number of backup files; integers specifies number of edits between every backup.
-        datatype : sets name prefix to specify identify of backup data.
+        object_type : sets name prefix to specify identify of backup data.
         """
         
         # Call file containing edit count info for all files
@@ -87,7 +89,7 @@ class Archivist:
                 print(f"Performing backup for every {value} saves.")
                 backup_file = os.path.join(
                     self.backup_directory, 
-                    datatype.lower() + f"_backup_{value}.json")
+                    object_type.lower() + f"_backup_{value}.json")
                 break
         edit_meta[self.file] = file_edit_count + 1
         self.writer(edit_meta, other_file=meta_file)     
@@ -120,7 +122,7 @@ class Archivist:
             return False
         
 
-    def join_data(self, new_data:dict, name:str, delete_check, edit_name, sort=True, update=False, static=False):
+    def join_data(self, new_data:dict, name:str, delete_check, edit_name, sort=True, static=False):
         """
         Update library with new or edited data.  
         Returns: bool
@@ -142,7 +144,7 @@ class Archivist:
             new_data = dict()
             try:
                 new_data[edit_name] = data[name]
-                update = delete_check = True
+                static = delete_check = True
             except:
                 raise KeyError(f"Key '{name}' is absent from data. Check spelling and database content.")
 
@@ -151,6 +153,8 @@ class Archivist:
                 data.pop(name)
             except KeyError:
                 raise KeyError(f"Key '{name}' is absent from data. Check spelling and database content.")
+            except TypeError:
+                raise TypeError(f"Unable to remove {name}. Check format.")
             
             if len(data) != original_length-1: 
                 raise ValueError(f"Expected a data length decrease after removing {name}.")
@@ -164,15 +168,21 @@ class Archivist:
         if name in data.keys() and not static:
             data.update(new_data)
             action_performed = f"{name} was updated"
-            if len(data) != original_length and not update: 
+            if len(data) != original_length and static: 
                 raise ValueError(f"Data length was altered unexpectedly. Library update aborted.")
         else:
-            data.update(new_data)
+            try:
+                data.update(new_data)
+            except ValueError:
+                raise ValueError(f"Unable to update")
             action_performed = f"{name} was added"
         if sort: data = dict(sorted(data.items()))
-        
-        # Checking data validity depending on action. 
-        if len(data) != original_length+1 and not update and not static:
+        static
+
+        # Checking data validity depending on previous action. 
+        if name not in data.keys():
+            raise KeyError(f"Key '{name}' is absent from data. Check database content.")
+        elif len(data) != original_length+1 and not static:
             raise ValueError(f"Expected data length increase. Library update aborted.")
         else:
             return data, action_performed
