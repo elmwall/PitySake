@@ -57,7 +57,7 @@ def main(library, object_type, action_selection, event_term):
         edit_selection = negotiator.listed_options(
             f"To edit details regarding {name} you need to re-enter part of the info.", 
             ["Basic info", event_term])
-        data_option_key = event_term if edit_selection==event_term else object_type       
+        data_option_key = event_term if edit_selection==event_term else object_type
     elif action_selection==reg_event: data_option_key = event_term
     data_options = librarian.collect_settings(data_option_key)
 
@@ -98,18 +98,35 @@ def main(library, object_type, action_selection, event_term):
     
 # Library print/report generator
 def review(library, file, object_type):
+    """
+    Generate readable print and report file, or generate CSV file for importing to other systems.
+    """
+
     action_selection = negotiator.listed_options(
         f"Select view option for printing data:", 
         [f"By {object_type}", "By date"])
-    
-    # TODO: add option to select file format
     report = librarian.reciter(library, object_type, action_selection, file)
     if action_selection == f"By {object_type}":
         report_name = f"{object_type} report"
+        file_format = ".md"
     else:
         report_name = f"{object_type} report date"
-    arciv.save_report(report, report_name)
+        file_format = ".csv"
+    arciv.save_report(report, report_name, file_format)
     quit()
+
+
+def status_checker(object_type):
+    """
+    Track progress by registering/viewing data across different categories.
+    """
+
+    progress_data, updated_category, attempt, state = librarian.status(object_type)
+    arciv.writer(progress_data, other_file=PATHWAYS["Progress"], join="data")
+    print(
+        f"\nCurrent {updated_category} {TERMS["Attempt"]}: {attempt}.", 
+        f"\nNext {TERMS["Event"]} is {state}:"
+    )
 
 
 # Class:
@@ -135,10 +152,10 @@ arciv = Archivist(PATHWAYS, file)
 # Information collection and management
 librarian = Librarian(arciv, negotiator)
 
-read_lib, edit_lib, reg_event = "Check library", "Edit library", "Register event"
+read_lib, edit_lib, reg_event, status_check = "Check library", "Edit library", "Register event", "Check status"
 action_selection = negotiator.listed_options(
     "Select action among:",
-    [read_lib, edit_lib, reg_event])
+    [read_lib, edit_lib, reg_event, status_check])
 option_list = list()
 library = arciv.reader()
 
@@ -146,6 +163,8 @@ library = arciv.reader()
 # or prepare function configurations for data collection
 if action_selection == read_lib:
     review(library, file, object_type)
+elif action_selection == status_check:
+    status_checker(object_type)
 else:
     main(library, object_type, action_selection, event_term)
 

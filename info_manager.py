@@ -28,8 +28,8 @@ class Librarian:
         data_options = self.arciv.reader(
             other_file=PATHWAYS["Options"], 
             join="settings")
-        
-        if keywords is list:
+
+        if type(keywords) is list:
             settings = list()
             for key in keywords:
                 settings.append(data_options[key])
@@ -125,7 +125,7 @@ class Librarian:
             event_count = len(updated_object[name][self.eventref].keys())
         event_name = f"{event_date}-{event_count}"
         
-        # Step 3: Determine attempts during event to reach acquisition
+        # Step 3: Determine source and attempts during event to reach acquisition
         # Calls calculator if needed
         # Adjust settings if no attempts (received through other means)
         attempt_term = TERMS["Attempt"]
@@ -139,38 +139,43 @@ class Librarian:
             "Select option", 
             [method_calc, method_enter, method_skip])
 
+        # Define source
+        # Adjust settings if standard event
+        if not attempt_method == method_skip:
+            limit_data, source_options = self.collect_settings(["Limit", "Source"])
+            state_preset = self.negotiator.listed_options(
+                f"Was item received from {TERMS["Standard source"]}?",
+                ["Yes", "No"])
+            if state_preset == "Yes":
+                # event_options["Source"] = "enter preset"
+                presets["Source"] = TERMS["Standard source"]
+                event_options["State"] = "enter preset"
+                presets["State"] = False
+                limit = limit_data["Standard"]
+            else:
+                presets["Source"] = self.negotiator.listed_options("Select source", source_options)
+                limit = limit_data[object_type][presets["Source"]]
+
+        # Define attempts
         if attempt_method == method_calc:
             # Calculation assistant class called only if needed
             mathemate = Mathematician()
-            attempt = mathemate.calculate_attempts(
-                self.negotiator, 
-                event_term=self.eventref)
+            attempt = mathemate.calculate_attempts(self.negotiator, max_value=limit, event_term=self.eventref)
         elif attempt_method == method_enter:
             attempt = self.negotiator.request_numeral(
                 f"\nEnter value for {attempt_term}: ", 
                 lower_limit=0, 
-                upper_limit=90)
-        else:
-            event_options[TERMS["Event name"]] = "enter preset"
-            presets[TERMS["Event name"]] = TERMS["Gift"]
+                upper_limit=limit)
+        elif attempt_method == method_skip:
+            # event_options["Source"] = "enter preset"
+            presets["Source"] = TERMS["Gift"]
             event_options["State"] = "enter preset"
             presets["State"] = False
 
         presets[attempt_term] = attempt
 
-        # Step 4: Define source
-        # Adjust settings if standard event
-        if not attempt_method == method_skip:
-            state_preset = self.negotiator.listed_options(
-                f"Was item received from {TERMS["Standard source"]}?",
-                ["Yes", "No"])
-            if state_preset == "Yes":
-                event_options["Source"] = "enter preset"
-                presets["Source"] = TERMS["Standard source"]
-                event_options["State"] = "enter preset"
-                presets["State"] = False
         
-        # Step 5: Create dictionary entry from above settings
+        # Step 4: Create dictionary entry from above settings
         updated_object[name][self.eventref][event_name] = self.negotiator.auto_options(
             f"\nEnter details for {name} {self.eventref}",
             event_options, 
@@ -183,10 +188,9 @@ class Librarian:
         """
         ...
         """
+
         edited_object = {name: library[name]}
-        # print(edited_object[name][self.eventref].keys())
         if action_selection == self.eventref:
-            print(2)
             try:
                 change_options = list(edited_object[name][self.eventref].keys())
             except:
@@ -198,18 +202,14 @@ class Librarian:
             edited_object[name][self.eventref].pop(event)
             if event_change == "Change":
                 edited_object = self.enter_event(name, data_options, object_type, event_term, updated_object=edited_object)
-            print("check!")
         elif action_selection == "Basic info":
-            print(edited_object)
             if self.eventref in edited_object[name].keys():
                 event_data = edited_object[name][self.eventref]
             else:
                 event_data = False
             edited_object = self.enter_data(name, data_options)
-            # print(event_data)
+
             if event_data: edited_object[name][self.eventref] = event_data
-            # print(edited_object)
-            # quit()
 
         return edited_object
 
@@ -232,7 +232,8 @@ class Librarian:
             library_datewise = dict()
             data = []
             n = 1
-            row_indent = 0
+            row_indent = 20
+            space = 20
             # Cycle through and collect nested dictionary data
             for entry in library.keys():
                 title = str()
@@ -245,23 +246,24 @@ class Librarian:
                             if not detail: detail = "-"
                             if type(detail) is int: data.append(detail)
                             # space = 6 if len(str(detail)) < 5 else row_indent
-                            space = 0
-                            details += f",{detail:{space}}" 
+                            
+                            details += f", {detail:<{space}}" 
                         # Re-structure info into new dictionary
-                        library_datewise.update({f"{title}-{str(n)}": f"{entry:}{details}"})
+                        library_datewise.update({f"{title}-{str(n)}": f"{entry:<{row_indent}}{details}"})
                         n += 1
                 else:
                     title = f"NoDate-{n}"
-                    library_datewise.update({title: f"{entry:{row_indent}}"})
+                    library_datewise.update({title: f"{entry:<{row_indent}}"})
                     n += 1
             library_datewise = dict(sorted(library_datewise.items()))
 
             # Generate final report format and print
             cutaway = 70
+            row_indent = 20
             # report += f"```"
-            report += f"\n{"Date"},{"Name"},{TERMS["Attempt"]},{"Source":{row_indent}},{"State"}"[:cutaway]
+            report += f"\n{"Date":6}, {"Name":<{space}}, {TERMS["Attempt"]:<{space}}, {"Source":<{space}}, {"State"}"
             for event in library_datewise.keys():
-                report += f"\n{event[:6]},{library_datewise[event]}"[:cutaway]
+                report += f"\n{event[:6]}, {library_datewise[event]}"
             # report += f"\n```"
             print(report)
             # avg = sum(data)/len(data)
@@ -307,5 +309,89 @@ class Librarian:
         return report
     
 
-    def status(self):
-        pass
+    def status(self, object_type):
+        """
+        Check and update progress data, with assistant systems for calculation and keeping progress within limits.
+        """
+
+        # Collect progress data and options
+        progress_data = self.arciv.reader(other_file=PATHWAYS["Progress"], join="data", allow_missing=True)
+        limit_data, source_options, state_options = self.collect_settings(["Limit", "Source", "Current state"])
+
+        # Display previous progress data
+        if not progress_data or len(progress_data) == 0: 
+            progress_data = dict()
+            print("No previous data.")
+        else:
+            print(f"{TERMS["Source"]:25}{TERMS["Attempt"]:6}State")
+            for title, info in progress_data.items():
+                output = f"{title:25}"
+                for detail in info.values():
+                    output += f"{detail:<6}"
+                print(output)
+        
+        # User input to choose source
+        # Adapt settings depending on choice
+        source_options.append("Standard")
+        updated_category = self.negotiator.listed_options(
+            f"To update status, select {TERMS["Source"]}:",
+            source_options
+        )
+        if updated_category == "Standard":
+            limit = limit_data["Standard"]
+        else:
+            limit = limit_data[object_type][updated_category]
+            if updated_category == TERMS["Temp"]:
+                updated_category = f"Character {updated_category.lower()}" if object_type==TERMS["Character"] else f"{TERMS["Tool"]} {updated_category}"
+        attempt_term = TERMS["Attempt"]
+
+        # Define selectable editing options
+        auto_add_low, auto_add_high = 1, 10
+        method_calc, method_enter, add_low, add_high = f"Calculate {attempt_term}", f"Enter {attempt_term}", f"Add {auto_add_low}", f"Add {auto_add_high}"
+        if updated_category in progress_data.keys():
+            option_list = [method_calc, method_enter, add_low, add_high]
+        else:
+            option_list = [method_calc, method_enter]
+
+        # Select editing option
+        # Call methods for collecting data within set limit
+        attempt_method = self.negotiator.listed_options(
+            "Select option", 
+            option_list)
+        # Use calculator
+        if attempt_method == method_calc:
+            mathemate = Mathematician()
+            attempt = mathemate.calculate_attempts(self.negotiator, max_value=limit, event_term=self.eventref, calc_current=True)
+        # Enter numeral directly
+        elif attempt_method == method_enter:
+            attempt = self.negotiator.request_numeral(
+                f"\nEnter value for {attempt_term}: ", 
+                lower_limit=0, 
+                upper_limit=limit)
+        # Add a predefined number one or more times
+        elif attempt_method == add_low or attempt_method == add_high:
+            added_value = auto_add_low if attempt_method == add_low else auto_add_high
+            attempt = progress_data[updated_category][TERMS["Attempt"]]
+            repeat = True
+            while repeat:
+                attempt += added_value
+                # When close to limit
+                if attempt + added_value > limit:
+                    # Decrease increment...
+                    if added_value == auto_add_high:
+                        added_value = auto_add_low
+                        print(f"Can't add more {auto_add_high}s.")
+                    # ... or break when limit reached
+                    elif added_value == auto_add_low:
+                        break
+                repeat = self.negotiator.confirm_action(f"\nCurrent {TERMS["Attempt"]}: {attempt}\nAdd another {added_value}?", abort=False)
+
+        # Organize data, create dictionary if there is none
+        if not updated_category in progress_data.keys():
+                progress_data[updated_category] = dict()
+        progress_data[updated_category][TERMS["Attempt"]] = attempt
+        if attempt_method == method_calc or attempt_method == method_enter:
+            progress_data[updated_category]["State"] = self.negotiator.listed_options("Set current state", state_options)
+
+        return progress_data, updated_category, progress_data[updated_category][TERMS["Attempt"]], progress_data[updated_category]["State"]
+   

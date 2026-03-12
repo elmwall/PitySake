@@ -60,15 +60,18 @@ class Negotiator:
             abort : set True to quit if negatory
             """
             
-            print(message, "\n  N: No\n  Y: Yes")
-            selection = self.request_key(["n", "N", "y", "Y"], enforced=True, return_string=True)
-            if selection.lower() == "y":
-                return True
-            elif abort:
-                print("\nAborted, good bye.\n")
-                quit()
-            else:
-                return False
+            while True:
+                print(message, "\n  N: No\n  Y: Yes")
+                selection = self.request_key(["n", "N", "y", "Y"], enforced=True, return_string=True)
+                if selection.lower() == "y":
+                    return True
+                elif abort and selection.lower() == "n":
+                    print("\nAborted, good bye.\n")
+                    quit()
+                elif selection.lower() == "n":
+                    return False
+                else:
+                    print("Select one.")
 
 
     def request_word(self, message:str, prompt:str, enforced=False):
@@ -160,7 +163,7 @@ class Negotiator:
         options : listed as option and also returned as values
         """
         
-        print(f"\n{self.separator}")
+        print(f"{self.separator}")
         print(message)
         counter = 1
         for alternative in options:

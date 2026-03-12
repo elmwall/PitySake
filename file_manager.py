@@ -28,7 +28,7 @@ class Archivist:
 
         join : set to string "data" or "settings", if *file* is located within *self.data_directory* or *self.settings_directory*.
         """
-
+        
         read_file = self.file if not other_file else other_file
 
         if join == "data":
@@ -188,12 +188,20 @@ class Archivist:
             return data, action_performed
         
 
-    def writer(self, data, other_file=False):
+    def writer(self, data, other_file=False, join="none"):
         """
         Write JSON to file. Returns: bool
         """
 
         save_file = self.file if not other_file else other_file
+
+        if join == "data":
+            save_file = os.path.join(self.data_directory, other_file)
+        elif join == "settings":
+            save_file = os.path.join(self.settings_directory, other_file)
+        elif join != "none":
+            print(f"Invalid value of pathway switch 'join': {join}")
+
         try:
             with open(save_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
@@ -204,14 +212,16 @@ class Archivist:
             raise RuntimeError(f"Error from {e} occurred while attempting to write to {save_file}. Check file health and backups.")
 
 
-    def save_report(self, data, report_name:str):
+    def save_report(self, data, report_name:str, format:str):
         """
         Write report as csv
 
         data: information as string formatted as csv table
         report_name: string for file name without extension
+        format: define file type
         """
-        file = os.path.join(self.data_directory, report_name+".csv")
+
+        file = os.path.join(self.data_directory, report_name+format)
         try:
             with open(file, "w", encoding="utf-8") as f:
                 f.write(data)
