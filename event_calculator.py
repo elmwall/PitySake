@@ -8,7 +8,7 @@ class Mathematician:
         pass
 
 
-    def calculate_attempts(self, negotiator, event_term="Win", calc_current=False, max_value=90):
+    def calculate_attempts(self, negotiator, max_value, event_term="Win", calc_current=False):
         # event_term = data_options["Term"]["Event"]
         # Assist with calculating event occurrence depending on page and row, with 5 rows presented per page
         
