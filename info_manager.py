@@ -1,11 +1,10 @@
 import datetime
 
-from settings.config import PATHWAYS, TERMS
 from event_calculator import Mathematician
 
 
 class Librarian:
-    def __init__(self, arciv, negotiator):
+    def __init__(self, DATAPATH, SETTINGS, TERMS, arciv, negotiator):
         """
         Manager for collecting and organizing information for database.
         Functions: collect_settings, enter_data, enter_event, reciter
@@ -14,9 +13,13 @@ class Librarian:
         negotiator: class needed for collecting user input
         """
 
+        self.datapath = DATAPATH
+        self.settings = SETTINGS
+        self.terms = TERMS
         self.arciv = arciv
         self.negotiator = negotiator
-        self.eventref = TERMS["Event"]
+        
+        self.eventref = self.terms["Event"]
     
 
     def collect_settings(self, keywords):
@@ -26,8 +29,8 @@ class Librarian:
         keywords : list of keys to locate settings.
         """
         data_options = self.arciv.reader(
-            other_file=PATHWAYS["Options"], 
-            join="settings")
+            other_file=self.settings["Options"], 
+            join_path="settings")
 
         if type(keywords) is list:
             settings = list()
@@ -81,7 +84,7 @@ class Librarian:
 
         # Simple objects: 
         # Register single value and skip further collection
-        if object_type==TERMS["Misc"]:
+        if object_type == self.terms["Misc"]:
             # event = TERMS["collection"]
             updated_object[name][event_term] = self.negotiator.request_numeral(
                 f"\nEnter {event_term} for {name}",
@@ -128,7 +131,7 @@ class Librarian:
         # Step 3: Determine source and attempts during event to reach acquisition
         # Calls calculator if needed
         # Adjust settings if no attempts (received through other means)
-        attempt_term = TERMS["Attempt"]
+        attempt_term = self.terms["Attempt"]
         attempt = False
         presets = dict()
 
@@ -144,11 +147,11 @@ class Librarian:
         if not attempt_method == method_skip:
             limit_data, source_options = self.collect_settings(["Limit", "Source"])
             state_preset = self.negotiator.listed_options(
-                f"Was item received from {TERMS["Standard source"]}?",
+                f"Was item received from {self.terms["Standard source"]}?",
                 ["Yes", "No"])
             if state_preset == "Yes":
                 # event_options["Source"] = "enter preset"
-                presets["Source"] = TERMS["Standard source"]
+                presets["Source"] = self.terms["Standard source"]
                 event_options["State"] = "enter preset"
                 presets["State"] = False
                 limit = limit_data["Standard"]
@@ -168,13 +171,12 @@ class Librarian:
                 upper_limit=limit)
         elif attempt_method == method_skip:
             # event_options["Source"] = "enter preset"
-            presets["Source"] = TERMS["Gift"]
+            presets["Source"] = self.terms["Gift"]
             event_options["State"] = "enter preset"
             presets["State"] = False
 
         presets[attempt_term] = attempt
 
-        
         # Step 4: Create dictionary entry from above settings
         updated_object[name][self.eventref][event_name] = self.negotiator.auto_options(
             f"\nEnter details for {name} {self.eventref}",
@@ -261,7 +263,7 @@ class Librarian:
             cutaway = 70
             row_indent = 20
             # report += f"```"
-            report += f"\n{"Date":6}, {"Name":<{space}}, {TERMS["Attempt"]:<{space}}, {"Source":<{space}}, {"State"}"
+            report += f"\n{"Date":6}, {"Name":<{space}}, {self.terms["Attempt"]:<{space}}, {"Source":<{space}}, {"State"}"
             for event in library_datewise.keys():
                 report += f"\n{event[:6]}, {library_datewise[event]}"
             # report += f"\n```"
@@ -315,7 +317,7 @@ class Librarian:
         """
 
         # Collect progress data and options
-        progress_data = self.arciv.reader(other_file=PATHWAYS["Progress"], join="data", allow_missing=True)
+        progress_data = self.arciv.reader(other_file=self.datapath["Progress"], join_path="data", allow_missing=True)
         limit_data, source_options, state_options = self.collect_settings(["Limit", "Source", "Current state"])
 
         # Display previous progress data
@@ -323,7 +325,7 @@ class Librarian:
             progress_data = dict()
             print("No previous data.")
         else:
-            print(f"{TERMS["Source"]:25}{TERMS["Attempt"]:6}State")
+            print(f"{self.terms["Source"]:25}{self.terms["Attempt"]:6}State")
             for title, info in progress_data.items():
                 output = f"{title:25}"
                 for detail in info.values():
@@ -334,20 +336,20 @@ class Librarian:
         # Adapt settings depending on choice
         source_options.append("Standard")
         updated_category = self.negotiator.listed_options(
-            f"To update status, select {TERMS["Source"]}:",
+            f"To update status, select {self.terms["Source"]}:",
             source_options
         )
         if updated_category == "Standard":
             limit = limit_data["Standard"]
         else:
             limit = limit_data[object_type][updated_category]
-            if updated_category == TERMS["Temp"]:
-                updated_category = f"Character {updated_category.lower()}" if object_type==TERMS["Character"] else f"{TERMS["Tool"]} {updated_category}"
-        attempt_term = TERMS["Attempt"]
+            if updated_category == self.terms["Temp"]:
+                updated_category = f"Character {updated_category.lower()}" if object_type==self.terms["Character"] else f"{self.terms["Tool"]} {updated_category}"
+        attempt_term = self.terms["Attempt"]
 
         # Define selectable editing options
-        auto_add_low, auto_add_high = 1, 10
-        method_calc, method_enter, add_low, add_high = f"Calculate {attempt_term}", f"Enter {attempt_term}", f"Add {auto_add_low}", f"Add {auto_add_high}"
+        low_value, high_value = 1, 10
+        method_calc, method_enter, add_low, add_high = f"Calculate {attempt_term}", f"Enter {attempt_term}", f"Add {low_value}", f"Add {high_value}"
         if updated_category in progress_data.keys():
             option_list = [method_calc, method_enter, add_low, add_high]
         else:
@@ -370,28 +372,28 @@ class Librarian:
                 upper_limit=limit)
         # Add a predefined number one or more times
         elif attempt_method == add_low or attempt_method == add_high:
-            added_value = auto_add_low if attempt_method == add_low else auto_add_high
-            attempt = progress_data[updated_category][TERMS["Attempt"]]
+            added_value = low_value if attempt_method == add_low else high_value
+            attempt = progress_data[updated_category][self.terms["Attempt"]]
             repeat = True
             while repeat:
                 attempt += added_value
                 # When close to limit
                 if attempt + added_value > limit:
                     # Decrease increment...
-                    if added_value == auto_add_high:
-                        added_value = auto_add_low
-                        print(f"Can't add more {auto_add_high}s.")
+                    if added_value == high_value:
+                        added_value = low_value
+                        print(f"Can't add more {high_value}s.")
                     # ... or break when limit reached
-                    elif added_value == auto_add_low:
+                    elif added_value == low_value:
                         break
-                repeat = self.negotiator.confirm_action(f"\nCurrent {TERMS["Attempt"]}: {attempt}\nAdd another {added_value}?", abort=False)
+                repeat = self.negotiator.confirm_action(f"\nCurrent {self.terms["Attempt"]}: {attempt}\nAdd another {added_value}?", is_enforced=True)
 
         # Organize data, create dictionary if there is none
         if not updated_category in progress_data.keys():
                 progress_data[updated_category] = dict()
-        progress_data[updated_category][TERMS["Attempt"]] = attempt
+        progress_data[updated_category][self.terms["Attempt"]] = attempt
         if attempt_method == method_calc or attempt_method == method_enter:
             progress_data[updated_category]["State"] = self.negotiator.listed_options("Set current state", state_options)
 
-        return progress_data, updated_category, progress_data[updated_category][TERMS["Attempt"]], progress_data[updated_category]["State"]
+        return progress_data, updated_category, progress_data[updated_category][self.terms["Attempt"]], progress_data[updated_category]["State"]
    

@@ -3,40 +3,37 @@ import shutil
 
 import json
 
-from safety import Debugger as dg
-
 
 class Archivist:
-    def __init__(self, PATHWAYS:dict, file):
+    def __init__(self, DIRECTORIES, SETTINGS, file):
         """
         File and data actions for JSON and dictionary data. 
         Functions: reader, writer, backup, join_data
 
         file : directory of file as string
-        PATHWAYS: dictionary with folder and file references
         """
         self.file = file
-        self.data_directory = PATHWAYS["DataFolder"]
-        self.settings_directory = PATHWAYS["SettingsFolder"]
-        self.backup_directory = PATHWAYS["BackupFolder"]
-        self.backup_meta = PATHWAYS["BackupMetaFile"]
+        self.data_directory = DIRECTORIES["DataFolder"]
+        self.settings_directory = DIRECTORIES["SettingsFolder"]
+        self.backup_directory = DIRECTORIES["BackupFolder"]
+        self.backup_meta = SETTINGS["BackupMetaFile"]
 
 
-    def reader(self, other_file=False, join="none", is_json=True, allow_missing=False, allow_empty=False):
+    def reader(self, other_file=False, join_path="none", is_json=True, allow_missing=False, allow_empty=False):
         """
         Read and return JSON file.
 
-        join : set to string "data" or "settings", if *file* is located within *self.data_directory* or *self.settings_directory*.
+        join_path : set to string "data" or "settings", if *file* is located within *self.data_directory* or *self.settings_directory*.
         """
         
         read_file = self.file if not other_file else other_file
 
-        if join == "data":
+        if join_path == "data":
             read_file = os.path.join(self.data_directory, read_file)
-        elif join == "settings":
+        elif join_path == "settings":
             read_file = os.path.join(self.settings_directory, read_file)
-        elif join != "none":
-            print("Invalid value of pathway indicator 'join'.")
+        elif join_path != "none":
+            print("Invalid value of pathway indicator 'join_path'.")
 
         if is_json:
             try:
@@ -70,7 +67,7 @@ class Archivist:
         Automated backup in multiple files.  
         Returns: bool
 
-        backup_frequency : list length sets the number of backup files; integers specifies number of edits between every backup.
+        backup_frequency : list of integers largest-to-smallest; list length sets the number of backup files; integers specifies number of edits between every backup.
         object_type : sets name prefix to specify identify of backup data.
         """
         
@@ -122,14 +119,14 @@ class Archivist:
             return False
         
 
-    def join_data(self, new_data:dict, name:str, delete_check, edit_name, sort=True, static=False):
+    def join_data(self, new_data:dict, name:str, for_deletion, for_renaming, need_sorting=True, is_static=False):
         """
         Update library with new or edited data.  
         Returns: bool
 
         new_data : data to be included in file.  
         name : id of new data entry.  
-        static : marks files that are not expected to increase in length.
+        is_static : marks files that are not expected to increase in length.
         """
 
 
@@ -140,15 +137,15 @@ class Archivist:
             original_length = 0
             data = dict()
 
-        if edit_name:
+        if for_renaming:
             new_data = dict()
             try:
-                new_data[edit_name] = data[name]
-                static = delete_check = True
+                new_data[for_renaming] = data[name]
+                is_static = for_deletion = True
             except:
                 raise KeyError(f"Key '{name}' is absent from data. Check spelling and database content.")
 
-        if delete_check:          
+        if for_deletion:          
             try:
                 data.pop(name)
             except KeyError:
@@ -159,48 +156,48 @@ class Archivist:
             if len(data) != original_length-1: 
                 raise ValueError(f"Expected a data length decrease after removing {name}.")
             
-            if not edit_name:
+            if not for_renaming:
                 return data, f"{name} was removed"
             else:
-                name = edit_name
+                name = for_renaming
 
         # Add existing data to library
-        if name in data.keys() and not static:
+        if name in data.keys() and not is_static:
             data.update(new_data)
-            action_performed = f"{name} was updated"
-            if len(data) != original_length and static: 
+            action_verification = f"{name} was updated"
+            if len(data) != original_length and is_static: 
                 raise ValueError(f"Data length was altered unexpectedly. Library update aborted.")
         else:
             try:
                 data.update(new_data)
             except ValueError:
                 raise ValueError(f"Unable to update")
-            action_performed = f"{name} was added"
-        if sort: data = dict(sorted(data.items()))
-        static
+            action_verification = f"{name} was added"
+        if need_sorting: data = dict(sorted(data.items()))
+        is_static
 
         # Checking data validity depending on previous action. 
         if name not in data.keys():
             raise KeyError(f"Key '{name}' is absent from data. Check database content.")
-        elif len(data) != original_length+1 and not static:
+        elif len(data) != original_length+1 and not is_static:
             raise ValueError(f"Expected data length increase. Library update aborted.")
         else:
-            return data, action_performed
+            return data, action_verification
         
 
-    def writer(self, data, other_file=False, join="none"):
+    def writer(self, data, other_file=False, join_path="none"):
         """
         Write JSON to file. Returns: bool
         """
 
         save_file = self.file if not other_file else other_file
 
-        if join == "data":
+        if join_path == "data":
             save_file = os.path.join(self.data_directory, other_file)
-        elif join == "settings":
+        elif join_path == "settings":
             save_file = os.path.join(self.settings_directory, other_file)
-        elif join != "none":
-            print(f"Invalid value of pathway switch 'join': {join}")
+        elif join_path != "none":
+            print(f"Invalid value of pathway switch 'join_path': {join_path}")
 
         try:
             with open(save_file, "w", encoding="utf-8") as f:
