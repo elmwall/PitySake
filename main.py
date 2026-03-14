@@ -1,9 +1,10 @@
 import os
 
 from file_manager import Archivist
-from settings.config import PATHWAYS, TERMS
+from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
 from info_manager import Librarian
 from input_controller import Negotiator
+from system import Administrator
 
 
 
@@ -13,14 +14,14 @@ def main(library, object_type, action_selection, event_term):
     Calls functions for backup, to add updated info to previous data and to save file.
     """
     
-    static_check = False
+    is_static_data = False
     data_option_key = object_type
     print("-"*50)
     # Specify keys for specifik actions:
     # - enter remove/rename/correct to perform action on database entry
     # - enter a unique name to create a new database entry
     msg_remove, msg_change, msg_correction = "Remove", "Rename", "Correct"
-    if action_selection==reg_event:
+    if action_selection == "Register event":
         user_prompt = f"Enter name of {object_type} to register new {TERMS["Event"].lower()}"
     else:
         space = 15
@@ -28,21 +29,21 @@ def main(library, object_type, action_selection, event_term):
                        f"\nTo edit existing {object_type.lower()}, type:"
                        f"\n  {msg_remove.lower():{space}} to remove an entry"
                        f"\n  {msg_change.lower():{space}} to edit entry name"
-                       f"\n  {msg_correction.lower():{space}} to edit entry info\n"
+                       f"\n  {msg_correction.lower():{space}} to correct entry info\n"
                        f"\nTo add new: type the name of the new {object_type.lower()}.")
         
     # Specify modification action or name - the main key for locating its data later.
     while True:
         name = negotiator.request_word(user_prompt, "Enter selection").title()
-        delete_check, change_name, edit_info = [name == x for x in [msg_remove, msg_change, msg_correction]]
-        if action_selection==reg_event:
+        for_deletion, for_renaming, for_correction = [name == x for x in [msg_remove, msg_change, msg_correction]]
+        if action_selection == "Register event":
             break
         elif name in library.keys(): 
             user_prompt += f"\n{name} is already in library."
         else:
             break
     # Specifications regarding object and details to edit
-    if any([delete_check, change_name, edit_info]):
+    if any([for_deletion, for_renaming, for_correction]):
         message = str()
         while True:
             rename = negotiator.request_word(
@@ -53,49 +54,50 @@ def main(library, object_type, action_selection, event_term):
             else:
                 name = rename
                 break
-    if edit_info:
+    if for_correction:
         edit_selection = negotiator.listed_options(
             f"To edit details regarding {name} you need to re-enter part of the info.", 
             ["Basic info", event_term])
         data_option_key = event_term if edit_selection==event_term else object_type
-    elif action_selection==reg_event: data_option_key = event_term
+    elif action_selection == "Register event": data_option_key = event_term
     data_options = librarian.collect_settings(data_option_key)
 
     # Data gathering
     # Switch between remove, enter new object, or add/change data to existing object
-    if delete_check or change_name:
+    if for_deletion or for_renaming:
         new_object = None
-        if change_name:
+        if for_renaming:
             message = str()
             while True:
-                change_name = negotiator.request_word(
+                for_renaming = negotiator.request_word(
                     f"Renaming {name}\n{message}", 
                     f"Enter NEW name").title()
-                if change_name in library.keys():
-                    message += f"\nThe name {change_name} is already taken."
+                if for_renaming in library.keys():
+                    message += f"\nThe name {for_renaming} is already taken."
                 else:
                     break
-    elif action_selection==reg_event:
+    elif action_selection == "Register event":
         new_object = librarian.enter_event(name, data_options, object_type, event_term)
     else:
         # Option to change entry info without removing events
-        if edit_info:
+        if for_correction:
             new_object = librarian.edit_data(name, library, object_type, data_options, edit_selection, event_term)
-            static_check = True
+            is_static_data = True
         else: new_object = librarian.enter_data(name, data_options)
 
     # Backup interval. E.g. [30, 10, 2] performs backups every 2nd, 10th, and 30th update.
     backup_frequency = [30, 10, 2]
-    
-    if action_selection==reg_event or edit_info: static_check = True
+    # Datalength not expected to change for adding event to object ==> set static for data validation
+    if action_selection == "Register event" or for_correction: is_static_data = True
     
     # Performing backup and joining data with library data before writing to file
     if arciv.backup(negotiator, backup_frequency, object_type[:6]+"_data"): 
-        updated_library, action_performed = arciv.join_data(new_object, name, delete_check, change_name, static=static_check)
+        updated_library, action_verification = arciv.join_data(new_object, name, for_deletion, for_renaming, is_static=is_static_data)
     if updated_library:
         arciv.writer(updated_library)
-        print(f"\nLibrary updated, {action_performed}!\n")
+        print(f"\nLibrary updated, {action_verification}!\n")
     
+
 # Library print/report generator
 def review(library, file, object_type):
     """
@@ -116,17 +118,46 @@ def review(library, file, object_type):
     quit()
 
 
+#
 def status_checker(object_type):
     """
     Track progress by registering/viewing data across different categories.
     """
 
     progress_data, updated_category, attempt, state = librarian.status(object_type)
-    arciv.writer(progress_data, other_file=PATHWAYS["Progress"], join="data")
+    arciv.writer(progress_data, other_file=DATAPATH["Progress"], join_path="data")
     print(
         f"\nCurrent {updated_category} {TERMS["Attempt"]}: {attempt}.", 
         f"\nNext {TERMS["Event"]} is {state}:"
     )
+    quit()
+
+
+#
+def systems_update(admin, negotiator, arciv, filepath, review_switch=True):
+    """
+    ...
+    """
+    
+    data_options = arciv.reader()
+    data_validation = arciv.reader(other_file=SETTINGS["Validation"], join_path="settings")
+    data_options = admin.edit_options(negotiator, data_options, data_validation)
+    print()
+    if review_switch:
+        for x, y in data_options.items():
+            if type(y) is dict:
+                print(x)
+                for v, w in y.items():
+                    print(f"{" ":17}{v:17}{w}")
+            else:
+                print(f"{x:17}{y}")
+
+            print(f"{"....."*25}")
+    
+    filename, extension = os.path.splitext(filepath)
+    arciv.backup(negotiator, [10, 8, 6, 4, 2, 1], filename)
+    arciv.writer(data_options)
+    quit()
 
 
 # Class:
@@ -134,36 +165,44 @@ def status_checker(object_type):
 negotiator = Negotiator()
 
 # User input for program selection:
-# Select object type and action ==> Load settings and file via configuration data
+# Select object type and action 
+# ==> Load settings and file via configuration data
 char = TERMS["Character"]
 tool = TERMS["Tool"]
 misc = TERMS["Misc"]
 types = [char, tool, misc]
 object_type = negotiator.listed_options(
     "Select object type", 
-    [char, misc, tool])
-event_term = TERMS[f"{object_type} event"]
-filepath = PATHWAYS[object_type]
-file = os.path.join(PATHWAYS["DataFolder"], filepath)
+    [char, misc, tool],
+    allow_systems=True)
+if not object_type == "systems":
+    event_term = TERMS[f"{object_type} event"]
+    filepath = DATAPATH[object_type]
+    file = os.path.join(DIRECTORIES["DataFolder"], filepath)
+else:
+    admin = Administrator()
+    filepath = SETTINGS["Options"]
+    file = os.path.join(DIRECTORIES["SettingsFolder"], filepath)
 
 # Class:
 # File/backup management
-arciv = Archivist(PATHWAYS, file)
+arciv = Archivist(DIRECTORIES, SETTINGS, file)
 # Information collection and management
-librarian = Librarian(arciv, negotiator)
+librarian = Librarian(DATAPATH, SETTINGS, TERMS, arciv, negotiator)
 
+if object_type == "systems": systems_update(admin, negotiator, arciv, filepath)
+# Set options and selection, read library and run program: 
+# - Read and print library 
+# - Check and update progress data 
+# - Update library
 read_lib, edit_lib, reg_event, status_check = "Check library", "Edit library", "Register event", "Check status"
 action_selection = negotiator.listed_options(
     "Select action among:",
-    [read_lib, edit_lib, reg_event, status_check])
-option_list = list()
+    ["Check library", "Edit library", "Register event", "Check status"])
 library = arciv.reader()
-
-# Check library and quit, 
-# or prepare function configurations for data collection
-if action_selection == read_lib:
+if action_selection == "Check library":
     review(library, file, object_type)
-elif action_selection == status_check:
+elif action_selection == "Check status":
     status_checker(object_type)
 else:
     main(library, object_type, action_selection, event_term)
