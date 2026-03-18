@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from settings.config import PATHWAYS
-from file_manager import Archivist
+from app import Archivist
 
 
 settings_file = os.path.join(PATHWAYS["UIFolder"], PATHWAYS["UISettings"])

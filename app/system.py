@@ -6,35 +6,41 @@ class Administrator:
 
     def edit_options(self, negotiator, data_options, data_validation):
         """
-        ...
+        Function for performing permitted editing of options and meta in data options accessory file, regulated via a separate validation file.
         """
 
+        # Select main category for editing
         selectable_options = str()
         for category, info in data_validation.items():
             selectable_options += f"{category:18}- {info["editable"]}\n"
         option_type = negotiator.listed_options(
             f"Select option type to edit among:\n{selectable_options}",
-            list(data_validation.keys())
-        )
+            list(data_validation.keys()))
 
-        # Data with structure data_options[option_type][attribute][detail_list]
+        # Verify type of data structure and perform applicable changes.
+        # Most default data are "standard" and cannot be altered.
+
+        # Basic data type:
+        # - structure: data_options[option_type][attribute][detail_list]
         if data_validation[option_type]["can_change"]["category"]:
+            # Create list of editable option excluding defaults
             selectable_options = list(data_options[option_type].keys())
-            for x in data_validation[option_type]["standard_categories"].keys():
-                if not data_validation[option_type]["standard_categories"][x]: selectable_options.remove(x)
+            for att in data_validation[option_type]["standard_categories"].keys():
+                if not data_validation[option_type]["standard_categories"][att]: selectable_options.remove(att)
             selectable_options.extend(["Add attribute", "Remove attribute"])
             attribute = negotiator.listed_options(
                 f"Select category to change, or add/remove category:",
-                selectable_options
-            )
+                selectable_options)
 
             if attribute == "Add attribute":
                 new_attribute = negotiator.request_word("Name new category", "Name")
                 min_details = 2
                 message = f"The category need at least {min_details} options"
-                new_attribute_details, new_detail = self._expand_list(negotiator, message, min_additions=min_details)
+                new_attribute_details, new_detail = self._expand_list(
+                    negotiator, message, min_additions=min_details)
 
                 data_options[option_type][new_attribute] = new_attribute_details
+
             elif attribute == "Remove attribute":
                 attributes = list(data_options[option_type].keys())
                 for att in data_validation[option_type]["standard_categories"].keys():
@@ -42,20 +48,47 @@ class Administrator:
                 if len(attributes) == 0:
                     print("No removable categories.")
                     quit()
-                remove_attribute = negotiator.listed_options("Select attribute to remove", attributes)
+                remove_attribute = negotiator.listed_options(
+                    "Select attribute to remove", attributes)
+
                 data_options[option_type].pop(remove_attribute)
+
             else:
-                data_options[option_type][attribute], new_detail = self._list_manager(negotiator, data_options[option_type], data_validation[option_type], subcategory=attribute)
-                resolved_dependece, resolved_data = self._resolve_dependence(negotiator, data_options, data_validation, option_type, data_options[option_type][attribute], selection=attribute)
+                data_options[option_type][attribute], new_detail = self._list_manager(
+                    negotiator, 
+                    data_options[option_type], 
+                    data_validation[option_type], 
+                    subcategory=attribute)
+
+                # Check for data which should share properties with altered objects and synchronize changes
+                resolved_dependece, resolved_data = self._resolve_dependence(
+                    negotiator, 
+                    data_options, 
+                    data_validation, 
+                    option_type, 
+                    data_options[option_type][attribute], 
+                    selection=attribute)
                 if resolved_dependece: data_options = resolved_data
 
-        # Data with structure data_options[option_type][detail_list]
+        # Event-related data type
+        # - structure: data_options[option_type][detail_list]
         elif data_validation[option_type]["can_change"]["list"]:
-            data_options[option_type], new_detail = self._list_manager(negotiator, data_options[option_type], data_validation[option_type], add_multiple=False)
-            resolved_dependece, resolved_data = self._resolve_dependence(negotiator, data_options, data_validation, option_type, new_detail)
+            data_options[option_type], new_detail = self._list_manager(
+                negotiator, 
+                data_options[option_type], 
+                data_validation[option_type], 
+                add_multiple=False)
+
+            resolved_dependece, resolved_data = self._resolve_dependence(
+                negotiator, 
+                data_options, 
+                data_validation, 
+                option_type, 
+                new_detail)
             if resolved_dependece: data_options = resolved_data
-  
-        # Data with structure data_options[option_type][sub_category][detail]
+
+        # Meta/regulatory data type:
+        # - structure: data_options[option_type][sub_category][detail]
         elif data_validation[option_type]["can_change"]["subcategory"]:
             selectable_options = list()
             # Arrange data as [option_type, sub_category, detail]
@@ -95,10 +128,12 @@ class Administrator:
         for target_cat in option_type_dep.keys():
             if selection:
                 if not selection in option_type_dep[target_cat].keys(): continue
+            # Basic data type case
             if option_type_dep[target_cat]["method"] == "copy":
                 translation = option_type_dep[target_cat][selection]
                 data_options[target_cat][translation] = new_value
                 is_altered = True
+            # Meta data type case
             elif option_type_dep[target_cat]["method"] == "set_subcats":
                 if new_value[:7] == "remove_":
                     for x, y in data_options[target_cat].items():
@@ -117,6 +152,7 @@ class Administrator:
                         upper_limit=200
                     )
                     is_altered = True
+                    
         return is_altered, data_options
 
 
@@ -125,22 +161,33 @@ class Administrator:
         if selection == "Add new detail":
             message = "Add addional option"
             detail_list = category[subcategory].copy() if subcategory else category
-            output_list, new_detail = self._expand_list(negotiator, message, details=detail_list, ask_for_more=add_multiple)
+            output_list, new_detail = self._expand_list(
+                negotiator, 
+                message, 
+                details=detail_list, 
+                ask_for_more=add_multiple)
+                
             return output_list, new_detail
+        
         else:
             details = category[subcategory].copy() if subcategory else category.copy()
-            valid_info = validate["standard_categories"][subcategory] if subcategory else validate["standard_categories"]
+            if subcategory:
+                valid_info = validate["standard_categories"][subcategory] 
+            else: 
+                validate["standard_categories"]
             for det in valid_info:
                 if det in details: details.remove(det)
             if len(details) == 0:
                 print("No removable details.")
                 quit()
+
             remove_detail = negotiator.listed_options("Select detail to remove", details)
             if subcategory:
                 category[subcategory].remove(remove_detail)
             else:
                 category.remove(remove_detail)
             print(category)
+
             if subcategory:
                 return category[subcategory], f"remove_{remove_detail}" 
             else:
@@ -152,6 +199,7 @@ class Administrator:
         if min_additions < 1:
             print("Invalid value")
             quit()
+
         while True:
             new_detail = negotiator.request_word(message, "Name").title()
             print()

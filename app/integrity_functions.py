@@ -3,6 +3,12 @@ import os
 from settings.config import PATHWAYS
 
 
+# Under development
+# - check file integrity
+# - validate data structure
+# - error log
+# - debugging functions
+
 class Doctor:
     def __init__(self):
         pass

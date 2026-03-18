@@ -1,10 +1,7 @@
 import os
 
-from file_manager import Archivist
+from app import Administrator, Archivist, Librarian, Mathematician, Negotiator
 from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
-from info_manager import Librarian
-from input_controller import Negotiator
-from system import Administrator
 
 
 
@@ -81,9 +78,9 @@ def main(library, object_type, action_selection, event_term):
     else:
         # Option to change entry info without removing events
         if for_correction:
-            new_object = librarian.edit_data(name, library, object_type, data_options, edit_selection, event_term)
+            new_object = librarian.edit_data(mathemate, name, library, object_type, data_options, edit_selection, event_term)
             is_static_data = True
-        else: new_object = librarian.enter_data(name, data_options)
+        else: new_object = librarian.enter_data(mathemate, name, data_options)
 
     # Backup interval. E.g. [30, 10, 2] performs backups every 2nd, 10th, and 30th update.
     backup_frequency = [30, 10, 2]
@@ -124,7 +121,7 @@ def status_checker(object_type):
     Track progress by registering/viewing data across different categories.
     """
 
-    progress_data, updated_category, attempt, state = librarian.status(object_type)
+    progress_data, updated_category, attempt, state = librarian.status(mathemate, object_type)
     arciv.writer(progress_data, other_file=DATAPATH["Progress"], join_path="data")
     print(
         f"\nCurrent {updated_category} {TERMS["Attempt"]}: {attempt}.", 
@@ -189,6 +186,8 @@ else:
 arciv = Archivist(DIRECTORIES, SETTINGS, file)
 # Information collection and management
 librarian = Librarian(DATAPATH, SETTINGS, TERMS, arciv, negotiator)
+# Calculations
+mathemate = Mathematician()
 
 if object_type == "systems": systems_update(admin, negotiator, arciv, filepath)
 # Set options and selection, read library and run program: 
