@@ -1,7 +1,5 @@
 import datetime
 
-from event_calculator import Mathematician
-
 
 class Librarian:
     def __init__(self, DATAPATH, SETTINGS, TERMS, arciv, negotiator):
@@ -63,12 +61,12 @@ class Librarian:
         return new_object
 
 
-    def enter_event(self, name:str, event_options, object_type, event_term, updated_object=False):
+    def enter_event(self, mathemate, name:str, event_options:list, object_type, event_term, updated_object=False):
         """
         Collect historical acquisition data for object in library.  
         Returns: single-entry dictionary with updated object.
 
-        name : str, identifier for object in library.
+        name : str, identifier for object in library.  
         event_options : selectable opions as a list if simple object, or as a dict for detailed object.
         misc_object : switch for simple object (True) or detailed object (False).
         """
@@ -162,7 +160,6 @@ class Librarian:
         # Define attempts
         if attempt_method == method_calc:
             # Calculation assistant class called only if needed
-            mathemate = Mathematician()
             attempt = mathemate.calculate_attempts(self.negotiator, max_value=limit, event_term=self.eventref)
         elif attempt_method == method_enter:
             attempt = self.negotiator.request_numeral(
@@ -186,7 +183,7 @@ class Librarian:
         return updated_object
     
 
-    def edit_data(self, name, library, object_type, data_options, action_selection, event_term):
+    def edit_data(self, mathemate:classmethod, name:str, library:dict, object_type:str, data_options:dict, action_selection:str, event_term:str):
         """
         ...
         """
@@ -203,7 +200,7 @@ class Librarian:
             
             edited_object[name][self.eventref].pop(event)
             if event_change == "Change":
-                edited_object = self.enter_event(name, data_options, object_type, event_term, updated_object=edited_object)
+                edited_object = self.enter_event(mathemate, name, data_options, object_type, event_term, updated_object=edited_object)
         elif action_selection == "Basic info":
             if self.eventref in edited_object[name].keys():
                 event_data = edited_object[name][self.eventref]
@@ -216,7 +213,7 @@ class Librarian:
         return edited_object
 
 
-    def reciter(self, library:dict, object_type, action_selection, file, indent=0, separation=1):
+    def reciter(self, library:dict, object_type:str, action_selection:str, file:str, indent:int=0, separation:int=1):
         """
         Print contents of library.
         Returns: print and return string structured as table, formatted suitable for markdown view.
@@ -311,7 +308,7 @@ class Librarian:
         return report
     
 
-    def status(self, object_type):
+    def status(self, mathemate, object_type:str):
         """
         Check and update progress data, with assistant systems for calculation and keeping progress within limits.
         """
@@ -362,7 +359,6 @@ class Librarian:
             option_list)
         # Use calculator
         if attempt_method == method_calc:
-            mathemate = Mathematician()
             attempt = mathemate.calculate_attempts(self.negotiator, max_value=limit, event_term=self.eventref, calc_current=True)
         # Enter numeral directly
         elif attempt_method == method_enter:
