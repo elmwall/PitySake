@@ -1,0 +1,77 @@
+{
+    "Character": {
+        "Origin": [
+            "Level 1",
+            "Level 2",
+            "Unknown"
+        ],
+        "Attribute": [
+            "First",
+            "Second"
+        ],
+        "Tool": [
+            "Type 1",
+            "Type 2"
+        ]
+    },
+    "Collectible": {
+        "Origin": [
+            "Level 1",
+            "Level 2",
+            "Unknown"
+        ],
+        "Attribute": [
+            "First",
+            "Second"
+        ],
+        "Tool": [
+            "Type 1",
+            "Type 2"
+        ],
+        "Multiple": "enter numeral|0|8"
+    },
+    "Tool": {
+        "Type": [
+            "Type 1",
+            "Type 2"
+        ]
+    },
+    "Win": {
+        "Attempt": "enter preset",
+        "Source": "enter preset",
+        "State": [
+            "Success",
+            "Fail"
+        ]
+    },
+    "Source": [
+        "Temporary",
+        "Other"
+    ],
+    "Current state": [
+        "Unknown",
+        "Set"
+    ],
+    "Multiples": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+    ],
+    "Limit": {
+        "Character": {
+            "Temporary": 100,
+            "Other": 100
+        },
+        "Tool": {
+            "Temporary": 80,
+            "Other": 100
+        },
+        "Continuous": 100
+    }
+}

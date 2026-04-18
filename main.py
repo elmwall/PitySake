@@ -1,7 +1,32 @@
 import os
+import json
 
 from app import Administrator, Archivist, Librarian, Mathematician, Negotiator
-from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
+# from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
+
+is_demo = True
+if is_demo:
+    from demo_settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
+else:
+    from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
+
+
+
+def initialize():
+    if not os.path.exists(DIRECTORIES["DataFolder"]): os.makedirs(os.path.dirname(DIRECTORIES["DataFolder"]), exist_ok=True)
+    for path in DATAPATH.keys():
+        datafile = os.path.join(DIRECTORIES["DataFolder"], DATAPATH[path])
+        if not os.path.exists(datafile):
+            ext = os.path.splitext(datafile)[1]
+            if ext == ".json":
+                with open(datafile, "w", encoding="utf-8") as f:
+                    json.dump({}, f, indent=4)
+                print(f"{datafile} created.")
+            elif ext == ".csv":
+                with open(datafile, "w", newline="", encoding="utf-8") as f:
+                    pass
+                print(f"{datafile} created")
+    print("Initialized!\n")
 
 
 
@@ -109,7 +134,7 @@ def review(library, file, object_type):
         report_name = f"{object_type} report"
         file_format = ".md"
     else:
-        report_name = f"{object_type} report date"
+        report_name = f"{object_type.replace(" ", "_")}_date"
         file_format = ".csv"
     arciv.save_report(report, report_name, file_format)
     quit()
@@ -157,9 +182,11 @@ def systems_update(admin, negotiator, arciv, filepath, review_switch=True):
     quit()
 
 
-# Class:
-# Option displayer/collector
+# Initialize system
+# Class: Option displayer/collector
 negotiator = Negotiator()
+# Check database structure, create missing files
+initialize()
 
 # User input for program selection:
 # Select object type and action 
@@ -183,7 +210,7 @@ else:
 
 # Class:
 # File/backup management
-arciv = Archivist(DIRECTORIES, SETTINGS, file)
+arciv = Archivist(DIRECTORIES, DATAPATH, file)
 # Information collection and management
 librarian = Librarian(DATAPATH, SETTINGS, TERMS, arciv, negotiator)
 # Calculations
