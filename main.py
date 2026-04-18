@@ -1,5 +1,6 @@
 import os
 import json
+import csv
 
 from app import Administrator, Archivist, Librarian, Mathematician, Negotiator
 # from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
@@ -24,7 +25,8 @@ def initialize():
                 print(f"{datafile} created.")
             elif ext == ".csv":
                 with open(datafile, "w", newline="", encoding="utf-8") as f:
-                    pass
+                    writer = csv.writer(f)
+                    writer.writerow(["none"])
                 print(f"{datafile} created")
     print("Initialized!\n")
 
