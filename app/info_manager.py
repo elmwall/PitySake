@@ -231,8 +231,8 @@ class Librarian:
             library_datewise = dict()
             data = []
             n = 1
-            row_indent = 20
-            space = 20
+            row_indent = 0
+            space = 0
             # Cycle through and collect nested dictionary data
             for entry in library.keys():
                 title = str()
@@ -246,7 +246,7 @@ class Librarian:
                             if type(detail) is int: data.append(detail)
                             # space = 6 if len(str(detail)) < 5 else row_indent
                             
-                            details += f", {detail:<{space}}" 
+                            details += f",{detail:<{space}}" 
                         # Re-structure info into new dictionary
                         library_datewise.update({f"{title}-{str(n)}": f"{entry:<{row_indent}}{details}"})
                         n += 1
@@ -260,9 +260,9 @@ class Librarian:
             cutaway = 70
             row_indent = 20
             # report += f"```"
-            report += f"\n{"Date":6}, {"Name":<{space}}, {self.terms["Attempt"]:<{space}}, {"Source":<{space}}, {"State"}"
+            report += f"\n{"Date":6},{"Name":<{space}}, {self.terms["Attempt"]:<{space}}, {"Source":<{space}}, {"State"}"
             for event in library_datewise.keys():
-                report += f"\n{event[:6]}, {library_datewise[event]}"
+                report += f"\n{event[:6]},{library_datewise[event]}"
             # report += f"\n```"
             print(report)
             # avg = sum(data)/len(data)

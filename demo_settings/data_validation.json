@@ -1,0 +1,103 @@
+{
+    "Character": {
+        "editable": "add new options for basic facts",
+        "can_change": {"category": true, "subcategory": false, "list": false},
+        "min_categories": 3,
+        "standard_categories": {
+            "Origin": ["Level 1", "Level 2", "Unknown"],
+            "Attribute": ["First", "Second"],
+            "Tool": ["Type 1", "Type 2"]
+        },
+        "dependence": {
+            "Collectible": {
+                "method": "copy",
+                "Origin": "Origin",
+                "Attribute": "Attribute",
+                "Tool": "Tool"
+            },
+            "Tool": {
+                "method": "copy",
+                "Tool": "Type"
+            }
+        }
+    },
+    "Collectible": {
+        "editable": "add new options for basic facts",
+        "can_change": {"category": true, "subcategory": false, "list": false},
+        "min_categories": 4,
+        "standard_categories": {
+            "Origin": ["Level 1", "Level 2", "Unknown"],
+            "Attribute": ["First", "Second"],
+            "Tool": ["Type 1", "Type 2"],
+            "Multiple": "string"
+        },
+        "dependence": {
+            "Character": {
+                "method": "copy",
+                "Origin": "Origin",
+                "Attribute": "Attribute",
+                "Tool": "Tool"
+            },
+            "Tool": {
+                "method": "copy",
+                "Tool": "Type"
+            }
+        }
+    },
+    "Tool": {
+        "editable": "add new options for basic facts",
+        "can_change": {"category": true, "subcategory": false, "list": false},
+        "min_categories": 1,
+        "standard_categories": {
+            "Type": ["Type 1", "Type 2"]
+        },
+        "dependence": {
+            "Character": {
+                "method": "copy",
+                "Type": "Tool"
+            },
+            "Collectible": {
+                "method": "copy",
+                "Type": "Tool"
+            }
+        }
+    },
+    "Win": {
+        "editable": "add additional states",
+        "can_change": {"category": true, "subcategory": false, "list": false},
+        "min_categories": 3,
+        "standard_categories": {
+            "Attempt": false,
+            "Source": false,
+            "State": ["Success", "Fail"]
+        }
+    },
+    "Source": {
+        "editable": "add new source",
+        "can_change": {"category": false, "subcategory": false, "list": true},
+        "min_categories": 2,
+        "standard_categories": ["Temporary", "Other"],
+        "dependence": {
+            "Limit": {
+                "method": "set_subcats",
+                "Character": "ask",
+                "Tool": "ask"
+            } 
+        }
+    },
+    "Current state": {
+        "editable": "add additional states",
+        "can_change": {"category": false, "subcategory": false, "list": true},
+        "min_categories": 2,
+        "standard_categories": ["Unknown", "Set"]
+    },
+    "Limit": {
+        "editable": "change attempt limit for sources",
+        "can_change": {"category": false, "subcategory": true, "list": false},
+        "standard_categories": {
+            "Character": ["Temporary", "Other"],
+            "Tool": ["Temporary", "Other"],
+            "Continuous": null
+        }
+    }
+}

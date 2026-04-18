@@ -5,7 +5,7 @@ import json
 
 
 class Archivist:
-    def __init__(self, DIRECTORIES, SETTINGS, file):
+    def __init__(self, DIRECTORIES, DATAPATH, file):
         """
         File and data actions for JSON and dictionary data. 
         Functions: reader, writer, backup, join_data
@@ -16,7 +16,7 @@ class Archivist:
         self.data_directory = DIRECTORIES["DataFolder"]
         self.settings_directory = DIRECTORIES["SettingsFolder"]
         self.backup_directory = DIRECTORIES["BackupFolder"]
-        self.backup_meta = SETTINGS["BackupMetaFile"]
+        self.backup_meta = DATAPATH["BackupMetaFile"]
 
 
     def reader(self, other_file=False, join_path="none", is_json=True, allow_missing=False, allow_empty=False):
@@ -72,7 +72,7 @@ class Archivist:
         """
         
         # Call file containing edit count info for all files
-        meta_file = os.path.join(self.settings_directory, self.backup_meta)
+        meta_file = os.path.join(self.data_directory, self.backup_meta)
         edit_meta = self.reader(meta_file)
         if self.file in edit_meta.keys():
             file_edit_count = edit_meta[self.file]
