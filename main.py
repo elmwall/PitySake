@@ -5,7 +5,7 @@ import csv
 from app import Administrator, Archivist, Librarian, Mathematician, Negotiator
 # from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
 
-is_demo = True
+is_demo = False
 if is_demo:
     from demo_settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
 else:

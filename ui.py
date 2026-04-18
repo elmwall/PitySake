@@ -6,7 +6,7 @@ import streamlit as st
 # from settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
 # from app import Archivist  
 
-is_demo = True
+is_demo = False
 if is_demo:
     from demo_settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
 else:
