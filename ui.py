@@ -3,9 +3,14 @@ import os
 import pandas as pd
 import streamlit as st
 
-from settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
-from app import Archivist
+# from settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
+# from app import Archivist  
 
+is_demo = True
+if is_demo:
+    from demo_settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
+else:
+    from settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
 
 settings_file = os.path.join(DIRECTORIES["UIFolder"], SETTINGS["UISettings"])
 # arciv = Archivist(DIRECTORIES, SETTINGS, settings_file)
