@@ -62,7 +62,7 @@ class Archivist:
                 raise
 
 
-    def backup(self, negotiator, backup_frequency:list[int], object_type:str):
+    def backup(self, negotiator, backup_frequency:list[int], object_type:str, other_file=False):
         """
         Automated backup in multiple files.  
         Returns: bool
@@ -70,12 +70,17 @@ class Archivist:
         backup_frequency : list of integers largest-to-smallest; list length sets the number of backup files; integers specifies number of edits between every backup.
         object_type : sets name prefix to specify identify of backup data.
         """
-        
+
+        if not other_file:
+            file = self.file 
+        else:
+            file = os.path.join(self.data_directory, other_file)
+
         # Call file containing edit count info for all files
         meta_file = os.path.join(self.data_directory, self.backup_meta)
         edit_meta = self.reader(meta_file)
-        if self.file in edit_meta.keys():
-            file_edit_count = edit_meta[self.file]
+        if file in edit_meta.keys():
+            file_edit_count = edit_meta[file]
         else:
             file_edit_count = 0 
         backup_file = False
@@ -88,14 +93,14 @@ class Archivist:
                     self.backup_directory, 
                     object_type.lower() + f"_backup_{value}.json")
                 break
-        edit_meta[self.file] = file_edit_count + 1
+        edit_meta[file] = file_edit_count + 1
         self.writer(edit_meta, other_file=meta_file)     
         
-        data = self.reader(self.file, allow_missing=True, allow_empty=True)
+        data = self.reader(file, allow_missing=True, allow_empty=True)
         if data:
             file_length = len(data)
         else:
-            if negotiator.confirm_action(f"{self.file} subject for backup does not return previous data. Do you wish to proceed?"):
+            if negotiator.confirm_action(f"{file} subject for backup does not return previous data. Do you wish to proceed?"):
                 file_length = 0
 
         if backup_file and os.path.exists(backup_file):
@@ -112,7 +117,7 @@ class Archivist:
         if not backup_file:
             return True
         elif confirm_backup:
-            shutil.copy(self.file, backup_file)
+            shutil.copy(file, backup_file)
             print("Data backup done.")
             return True
         else:
