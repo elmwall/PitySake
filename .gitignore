@@ -10,3 +10,4 @@ ui/
 test.py
 test.ipynb
 users.py
+init_demo.py

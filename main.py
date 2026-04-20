@@ -15,13 +15,18 @@ else:
 
 def initialize():
     if not os.path.exists(DIRECTORIES["DataFolder"]): os.makedirs(os.path.dirname(DIRECTORIES["DataFolder"]), exist_ok=True)
+    presets = None
     for path in DATAPATH.keys():
         datafile = os.path.join(DIRECTORIES["DataFolder"], DATAPATH[path])
         if not os.path.exists(datafile):
             ext = os.path.splitext(datafile)[1]
             if ext == ".json":
+                preset_file = os.path.join(DIRECTORIES["SettingsFolder"], SETTINGS["Presets"])
+                with open(preset_file, "r", encoding="utf-8") as f:
+                    presets = json.load(f)
+                value = presets[path] if presets[path] else {}
                 with open(datafile, "w", encoding="utf-8") as f:
-                    json.dump({}, f, indent=4)
+                    json.dump(value, f, indent=4)
                 print(f"{datafile} created.")
             elif ext == ".csv":
                 with open(datafile, "w", newline="", encoding="utf-8") as f:
@@ -149,11 +154,10 @@ def status_checker(object_type):
     """
 
     progress_data, updated_category, attempt, state = librarian.status(mathemate, object_type)
-    arciv.writer(progress_data, other_file=DATAPATH["Progress"], join_path="data")
-    print(
-        f"\nCurrent {updated_category} {TERMS["Attempt"]}: {attempt}.", 
-        f"\nNext {TERMS["Event"]} is {state}:"
-    )
+    if arciv.backup(negotiator, [30, 10, 2], "progress_data", other_file=DATAPATH["Progress"]):
+        arciv.writer(progress_data, other_file=DATAPATH["Progress"], join_path="data")
+    print(f"\nCurrent {updated_category} {TERMS["Attempt"]}: {attempt}.")
+    if state: print(f"\nNext {TERMS["Event"]} is {state}:")
     quit()
 
 

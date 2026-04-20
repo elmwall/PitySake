@@ -326,7 +326,10 @@ class Librarian:
             for title, info in progress_data.items():
                 output = f"{title:25}"
                 for detail in info.values():
-                    output += f"{detail:<6}"
+                    if detail:
+                        output += f"{detail:<6}"
+                    else:
+                        output += str(detail)
                 print(output)
         
         # User input to choose source
@@ -341,7 +344,7 @@ class Librarian:
         else:
             limit = limit_data[object_type][updated_category]
             if updated_category == self.terms["Temp"]:
-                updated_category = f"Character {updated_category.lower()}" if object_type==self.terms["Character"] else f"{self.terms["Tool"]} {updated_category}"
+                updated_category = f"Character {updated_category}" if object_type==self.terms["Character"] else f"{self.terms["Tool"]} {updated_category}"
         attempt_term = self.terms["Attempt"]
 
         # Define selectable editing options
@@ -388,8 +391,10 @@ class Librarian:
         if not updated_category in progress_data.keys():
                 progress_data[updated_category] = dict()
         progress_data[updated_category][self.terms["Attempt"]] = attempt
-        if attempt_method == method_calc or attempt_method == method_enter:
+        if attempt_method == method_calc or attempt_method == method_enter and updated_category != "Standard":
             progress_data[updated_category]["State"] = self.negotiator.listed_options("Set current state", state_options)
+        elif updated_category == "Standard":
+            progress_data[updated_category]["State"] = None
 
         return progress_data, updated_category, progress_data[updated_category][self.terms["Attempt"]], progress_data[updated_category]["State"]
    
