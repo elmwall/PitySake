@@ -124,7 +124,7 @@ class Archivist:
             return False
         
 
-    def join_data(self, new_data:dict, name:str, for_deletion, for_renaming, need_sorting=True, is_static=False):
+    def join_data(self, new_data:dict, name:str, for_deletion, for_renaming, other_file=False, join_path="none", need_sorting=True, is_static=False):
         """
         Update library with new or edited data.  
         Returns: bool
@@ -133,28 +133,35 @@ class Archivist:
         name : id of new data entry.  
         is_static : marks files that are not expected to increase in length.
         """
+        read_file = self.file if not other_file else other_file
 
+        if join_path == "data":
+            read_file = os.path.join(self.data_directory, read_file)
+        elif join_path == "settings":
+            read_file = os.path.join(self.settings_directory, read_file)
+        elif join_path != "none":
+            print("Invalid value of pathway indicator 'join_path'.")
 
-        data = self.reader(self.file)
+        data = self.reader(read_file)
         if type(data) is dict: 
             original_length = len(data) 
         else: 
             original_length = 0
             data = dict()
-
+        
         if for_renaming:
             new_data = dict()
             try:
                 new_data[for_renaming] = data[name]
                 is_static = for_deletion = True
             except:
-                raise KeyError(f"Key '{name}' is absent from data. Check spelling and database content.")
+                raise KeyError(f"Key '{name}' is absent from {read_file}. Check spelling and database content.")
 
         if for_deletion:          
             try:
                 data.pop(name)
             except KeyError:
-                raise KeyError(f"Key '{name}' is absent from data. Check spelling and database content.")
+                raise KeyError(f"Key '{name}' is absent from {read_file}. Check spelling and database content.")
             except TypeError:
                 raise TypeError(f"Unable to remove {name}. Check format.")
             
@@ -180,7 +187,11 @@ class Archivist:
             action_verification = f"{name} was added"
         if need_sorting: data = dict(sorted(data.items()))
         is_static
-
+        # print()
+        # print(data)
+        # print(name)
+        # print(new_data)
+        # print(read_file)
         # Checking data validity depending on previous action. 
         if name not in data.keys():
             raise KeyError(f"Key '{name}' is absent from data. Check database content.")
