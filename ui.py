@@ -6,7 +6,8 @@ import streamlit as st
 # # from settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
 from app import Archivist, Negotiator
 from app.ui_progress_tracker import progress_meter
-from app.ui_object_recorder import register_object
+# from app.ui_object_recorder import register_object
+import app.ui_object_recorder as ore
 
 is_demo = False
 if is_demo:
@@ -23,6 +24,9 @@ st.markdown("<style> .block-container {padding-top: 2rem; padding-bottom: 0rem; 
 
 st.title(f"*{UITERMS["title"]}*", text_alignment="center")
 
+# def popinput(string_val):
+#     st.popover(string_val)
+
 
 attempts = arciv.reader(other_file="progress_data.json", join_path="data")
 data_options = arciv.reader(other_file="data_options.json", join_path="settings")
@@ -30,7 +34,7 @@ data_options = arciv.reader(other_file="data_options.json", join_path="settings"
 # col_main1, col_main2 = st.columns(2)
 
 
-register_object(arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts)
+ore.register_object(arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts)
 # print(data_options)
 # st.divider()
 progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts)

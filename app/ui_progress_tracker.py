@@ -39,7 +39,7 @@ def progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts):
         return st.columns([0.07, 0.22, 0.15, 0.07, 0.42, 0.08], gap="xxsmall", vertical_alignment="center")
 
     # with col_main1:
-    with st.container(width=935, height=340):
+    with st.container(width=1000, height=340):
         st.subheader(f"{TERMS["Attempt"]}", text_alignment="center")
         init_values = list()
         for i, category in enumerate(attempts.keys()):
@@ -55,9 +55,14 @@ def progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts):
             
             
             init_values.append(attempts[category][TERMS["Attempt"]])
-            if shared_key not in st.session_state: st.session_state[shared_key] = init_values[i]
-            if num_key not in st.session_state: st.session_state[num_key] = st.session_state[shared_key]
-            if slider_key not in st.session_state: st.session_state[slider_key] = st.session_state[shared_key]
+            for x in [shared_key, num_key, slider_key]:
+                if x not in st.session_state: 
+                    st.session_state[x] = init_values[i]
+                elif st.session_state[x] is None:
+                    st.session_state[x] = init_values[i]
+            # if shared_key not in st.session_state: st.session_state[shared_key] = init_values[i]
+            # if num_key not in st.session_state: st.session_state[num_key] = st.session_state[shared_key]
+            # if slider_key not in st.session_state: st.session_state[slider_key] = st.session_state[shared_key]
 
             def sync_from_num(idx=i):
                 new_val = st.session_state[f"num_{idx}"]
