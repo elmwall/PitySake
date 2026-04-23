@@ -185,13 +185,8 @@ class Archivist:
             except ValueError:
                 raise ValueError(f"Unable to update")
             action_verification = f"{name} was added"
-        if need_sorting: data = dict(sorted(data.items()))
-        is_static
-        # print()
-        # print(data)
-        # print(name)
-        # print(new_data)
-        # print(read_file)
+        if need_sorting: data = dict(sorted(data.items(), key=lambda item:str(item[0])))
+        
         # Checking data validity depending on previous action. 
         if name not in data.keys():
             raise KeyError(f"Key '{name}' is absent from data. Check database content.")
