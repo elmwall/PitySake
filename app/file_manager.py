@@ -124,7 +124,7 @@ class Archivist:
             return False
         
 
-    def join_data(self, new_data:dict, name:str, for_deletion, for_renaming, other_file=False, join_path="none", need_sorting=True, is_static=False):
+    def join_data(self, new_data:dict, name:str, for_deletion, for_editing, other_file=False, join_path="none", need_sorting=True, is_static=False):
         """
         Update library with new or edited data.  
         Returns: bool
@@ -149,15 +149,16 @@ class Archivist:
             original_length = 0
             data = dict()
         
-        if for_renaming:
-            new_data = dict()
+        if for_editing:
+            edited_data = dict()
             try:
-                new_data[for_renaming] = data[name]
+                edited_data[for_editing] = new_data[name]
+                new_data = edited_data
                 is_static = for_deletion = True
             except:
-                raise KeyError(f"Key '{name}' is absent from {read_file}. Check spelling and database content.")
+                raise KeyError(f"Replacing '{name}' in {read_file} could not be performed.")
 
-        if for_deletion:          
+        if for_deletion:
             try:
                 data.pop(name)
             except KeyError:
@@ -165,20 +166,20 @@ class Archivist:
             except TypeError:
                 raise TypeError(f"Unable to remove {name}. Check format.")
             
-            if len(data) != original_length-1: 
+            if len(data) != original_length-1 and not for_editing: 
                 raise ValueError(f"Expected a data length decrease after removing {name}.")
             
-            if not for_renaming:
+            if not for_editing:
                 return data, f"{name} was removed"
             else:
-                name = for_renaming
+                name = for_editing
 
-        # Add existing data to library
+        # Add data to library
         if name in data.keys() and not is_static:
             data.update(new_data)
-            action_verification = f"{name} was updated"
-            if len(data) != original_length and is_static: 
-                raise ValueError(f"Data length was altered unexpectedly. Library update aborted.")
+            action_verification = f"{name} was added"
+        elif len(data) != original_length and is_static and not for_deletion: 
+            raise ValueError(f"Data length was altered unexpectedly. Library update aborted.")
         else:
             try:
                 data.update(new_data)
@@ -186,7 +187,7 @@ class Archivist:
                 raise ValueError(f"Unable to update")
             action_verification = f"{name} was added"
         if need_sorting: data = dict(sorted(data.items(), key=lambda item:str(item[0])))
-        
+
         # Checking data validity depending on previous action. 
         if name not in data.keys():
             raise KeyError(f"Key '{name}' is absent from data. Check database content.")

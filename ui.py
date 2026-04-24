@@ -3,10 +3,8 @@ import os
 import pandas as pd
 import streamlit as st
 
-# # from settings.config import UITERMS, DIRECTORIES, DATAPATH, SETTINGS
 from app import Archivist, Negotiator
-from app.ui_progress_tracker import progress_meter
-# from app.ui_object_recorder import register_object
+import app.ui_progress_tracker as prog
 import app.ui_object_recorder as ore
 
 is_demo = False
@@ -15,29 +13,31 @@ if is_demo:
 else:
     from settings.config import TERMS, UITERMS, DIRECTORIES, DATAPATH, SETTINGS
 
-settings_file = os.path.join(DIRECTORIES["UIFolder"], SETTINGS["UISettings"])
-arciv = Archivist(DIRECTORIES, DATAPATH, settings_file)
+
+# Set directory and file
+placeholder = os.path.join(DIRECTORIES["UIFolder"], SETTINGS["UISettings"])
+arciv = Archivist(DIRECTORIES, DATAPATH, placeholder)
 negotiator = Negotiator()
-
-st.set_page_config(layout="wide")
-st.markdown("<style> .block-container {padding-top: 2rem; padding-bottom: 0rem; padding-left: 5rem; padding-right: 5rem;}</style>", unsafe_allow_html=True)
-
-st.title(f"*{UITERMS["title"]}*", text_alignment="center")
-
-# def popinput(string_val):
-#     st.popover(string_val)
-
-
+# Import data files
 attempts = arciv.reader(other_file="progress_data.json", join_path="data")
 data_options = arciv.reader(other_file="data_options.json", join_path="settings")
-# print(settings_file)
-# col_main1, col_main2 = st.columns(2)
+
+# Set page style and references
+st.set_page_config(layout="wide")
+st.markdown("<style> .block-container {padding-top: 2rem; padding-bottom: 0rem; padding-left: 5rem; padding-right: 5rem;}</style>", unsafe_allow_html=True)
+html_setting = "<style> .st-key-REF {background-color: #340b3e} </style>"
+key_reg_obj, key_progress = "reg_object", "progress"
+key_list = [key_reg_obj, key_progress]
+for x in key_list:
+    style = html_setting.replace("REF", x)
+    st.html(style)
 
 
-ore.register_object(arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts)
-# print(data_options)
-# st.divider()
-progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts)
+st.title(f"*{UITERMS["title"]}*", text_alignment="center")
+# Features
+ore.register_object(key_reg_obj, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts)
+prog.progress_meter(key_progress, arciv, negotiator, DATAPATH, TERMS, attempts)
+
 
 # DRAFTS
 
