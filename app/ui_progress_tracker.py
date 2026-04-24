@@ -1,6 +1,6 @@
 import streamlit as st
 
-def progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts):
+def progress_meter(component_key, arciv, negotiator, DATAPATH, TERMS, attempts):
     st.markdown("""
         <style>
         [data-testid="stVerticalBlock"] > div {
@@ -31,19 +31,18 @@ def progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts):
             attempts[category][TERMS["Attempt"]] = value
         elif option == TERMS["State"]:
             attempts[category][TERMS["State"]] = value
-        # print(attempts)
+
         if arciv.backup(negotiator, [101, 47, 19, 7], "progress_data", other_file=DATAPATH["Progress"]):
             arciv.writer(attempts, other_file=DATAPATH["Progress"], join_path="data")
             
     def columns():
         return st.columns([0.07, 0.22, 0.15, 0.07, 0.42, 0.08], gap="xxsmall", vertical_alignment="center")
 
-    # with col_main1:
-    with st.container(width=1000, height=340):
-        st.subheader(f"{TERMS["Attempt"]}", text_alignment="center")
+    with st.container(border=True, key=component_key, width=1000, height=340):
+        st.subheader(f"*{TERMS["Attempt"]}meter*", text_alignment="center")
         init_values = list()
         for i, category in enumerate(attempts.keys()):
-            # print(i, category)
+            init_values.append(attempts[category][TERMS["Attempt"]])
 
             label_key = f"label_{i}"
             state_key = f"state_{i}"
@@ -54,15 +53,13 @@ def progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts):
             add10_key = f"add10_{i}"
             
             
-            init_values.append(attempts[category][TERMS["Attempt"]])
-            for x in [shared_key, num_key, slider_key]:
-                if x not in st.session_state: 
-                    st.session_state[x] = init_values[i]
-                elif st.session_state[x] is None:
-                    st.session_state[x] = init_values[i]
-            # if shared_key not in st.session_state: st.session_state[shared_key] = init_values[i]
-            # if num_key not in st.session_state: st.session_state[num_key] = st.session_state[shared_key]
-            # if slider_key not in st.session_state: st.session_state[slider_key] = st.session_state[shared_key]
+            init_value = attempts[category][TERMS["Attempt"]]
+            st.session_state[shared_key] = init_value
+            # for x in [shared_key, num_key, slider_key]:
+                # if x not in st.session_state: 
+                #     st.session_state[x] = init_values[i]
+                # elif st.session_state[x] is None:
+                #     st.session_state[x] = init_values[i]
 
             def sync_from_num(idx=i):
                 new_val = st.session_state[f"num_{idx}"]
@@ -79,19 +76,16 @@ def progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts):
                 st.session_state[f"num_{idx}"] += increment_value 
                 st.session_state[f"slider_{idx}"] += increment_value 
 
-            
             def reset(idx=i):
-                for i, category in enumerate(attempts.keys()):
+                for i in range(len(attempts.keys())):
                     st.session_state[f"val_{i}"], st.session_state[f"num_{i}"], st.session_state[f"slider_{i}"] = [init_values[i]]*3
-
-
 
             css = instr.replace("XXX", label_key)
             st.markdown(css, unsafe_allow_html=True)
             col_state, col_cat, col_number, col_10, col_slider, col_apply = columns()
             limit = attempts[category]["Limit"]
+            
             with col_state:
-                
                 if attempts[category]["State"]:
                     is_static = False
                     if attempts[category]["State"] == TERMS["StateRand"]:
@@ -108,25 +102,43 @@ def progress_meter(arciv, negotiator, DATAPATH, TERMS, attempts):
                     symbol = ["**⦸**"]
                     state_values = (None,)
                 st.pills("state", options=symbol, default=is_active, key=state_key, width="stretch", on_change=update_progress, args=state_values, disabled=is_static, label_visibility="collapsed")
+            
             with col_cat:
                 st.button(category, key=label_key)
+            
             with col_number:
-                st.number_input("Number", min_value=0, max_value=limit, key=num_key, on_change=sync_from_num, label_visibility="collapsed")
+                st.number_input("Number", min_value=0, max_value=limit, value=init_value, key=num_key, on_change=sync_from_num, label_visibility="collapsed")
+            
             with col_10:
-                if st.session_state[shared_key] < limit-10:
+                if st.session_state[num_key] < limit-10:
                     st.button("**+ 10**", key=add10_key, width="stretch", on_click=increment_counter)
                 else:
                     st.button("**+ 10**", key=add10_key, width="stretch")
+            
             with col_slider:
-                st.slider("Slider", min_value=0, max_value=limit, key=slider_key, on_change=sync_from_slider, label_visibility="collapsed")
+                st.slider("Slider", min_value=0, max_value=limit, value=init_value, key=slider_key, on_change=sync_from_slider, label_visibility="collapsed")
+
             with col_apply:
-                if st.session_state[shared_key] != init_values[i]:
+                if st.session_state[shared_key] != init_value:
                     st.button(f"Save", key=button_key, type="primary", on_click=update_progress, args=(category, st.session_state[shared_key], TERMS["Attempt"]), width="stretch")
                 else:
                     st.button(f"Save", key=button_key, type="secondary", width="stretch")
+
+            # n = 1
+            # if n > 0:
+            #     reset()
+            #     test_values = list()
+            #     for i in range(len(attempts.keys())):
+            #         print(st.session_state[f"slider_{i}"])
+            #         test_values.append(not st.session_state[f"slider_{i}"])
+            #     print("test", test_values)
+            #     if all(test_values): reset()
+            #     n = 0
+            
         reset_key = f"reset_key"
         col_apply = columns()[5]
         
         with col_apply:
             st.markdown("")
             st.button(f"**:green[Reset]**", key=reset_key, type="secondary", on_click=reset, width="stretch")
+        
