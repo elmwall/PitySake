@@ -1,11 +1,120 @@
 import streamlit as st
 import datetime
 
-def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
 
-    with st.container(border=True, key=component_key, width=1000, height="content"):
+class Secretary:
+    def __init__(self, arciv, negotiator, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys):
+        """
+        Collection of all tools needed for accessing files and data necessary for editing object library.
+        """
+
+        self.arciv = arciv
+        self.nestor = negotiator
+        self.paths = DATAPATH
+        self.terms = TERMS
+        self.options = data_options
+        self.attempts = attempts
+        self.key = component_key
+        self.subkeys = sub_keys
+    
+    def _initiate(self):
+        presets = {
+            "tool": None,
+            "attribute": None,
+            "origin": None,
+            "name": None,
+            "type": "Character",
+            "state": self.options["State alternatives"][0],
+            "source": self.terms["Temp"],
+            "attempt": self.attempts[f"Character {self.terms["Temp"]}"][self.terms["Attempt"]],
+            "date": datetime.date.today()
+        }
+        return presets
+
+    def _settings(self, data_type):
+        object_database = self._collect_database(data_type)
+        options_tool = self.options[self.terms["Character"]][self.terms["Tool"]]
+        options_object = object_database.keys()
+        options_attribute = self.options[self.terms["Character"]][self.terms["Attribute"]]
+        options_origin = self.options[self.terms["Character"]][self.terms["Origin"]]
+        options_type = ["Character", self.terms["Tool"]]
+        options_source = self.options["Source"]
+        
+        options_reg = dict()
+        add_new, options_reg[add_new] = "Add completely new", [False, False, False]
+        add_event, options_reg[add_event] = f"New {self.terms["Event"].lower()} of old", [True, False, False]
+        del_entry, options_reg[del_entry] = "Delete entry", [False, True, False]
+        edit_entry, options_reg[edit_entry] = "Edit details", [False, False, True]
+        del_event, options_reg[del_event] = f"Delete {self.terms["Event"].lower()}", [True, False, False]
+
+        return object_database, options_tool, options_object, options_attribute, options_origin, options_type, options_source, options_reg 
+    
+    def _collect_object_info(self, object_database, reg_setting, options_reg):
+        # Predefined settings collected from object details in library
+        name, data_type = st.session_state["name"], st.session_state["type"]
+        if name not in object_database.keys():
+            pass
+        elif name and not reg_setting == list(options_reg.keys())[0]:
+            settings = object_database[name]
+            if data_type == "Character":
+                st.session_state["tool"] = settings[self.terms["Tool"]]
+                st.session_state["attribute"] = settings[self.terms["Attribute"]]
+                st.session_state["origin"] = settings[self.terms["Origin"]]
+            else:
+                st.session_state["tool"] = settings["Type"]
+
+    def _collect_database(self, set_type):
+        if set_type == "Character":
+            data_reference = self.terms["Character"]
+        else:
+            data_reference = set_type
+        datafile = self.paths[data_reference]
+        object_database = self.arciv.reader(datafile, join_path="data")
+        return object_database
+    
+    @st.dialog(f"Editing library entry")
+    def _rename(self, name, object_type, new_data, reg_setting):
+        st.write(f"You are editing {name}")
+        new_name = name
+        keep_name = st.checkbox("Keep previous name", value=True)
+        name_update = st.text_input("Rename", placeholder="Enter name", disabled=keep_name, label_visibility="collapsed")
+        if not name_update and not keep_name:
+            not_updated, appearance, new_name = True, "secondary", None
+        elif keep_name:
+            not_updated, appearance, new_name = False, "primary", name
+        else:
+            not_updated, appearance, new_name = False, "primary", name_update
+        if st.button("Confirm", type=appearance, disabled=not_updated):
+            self._update_object(name, object_type, new_data, reg_setting, new_name.title())
+            # Reload the update the list of objects and auto-close dialog box
+            st.rerun()
+
+    def _update_object(self, name, object_type, new_data, edit_setting, new_name):
+        is_static, for_deletion, for_renaming = edit_setting
+        # Rename truth-check also carries new name, define as new_name from _rename
+        if for_renaming: for_renaming = new_name
+        datafile = self.paths[object_type]
+        backup_frequency = [101, 31, 11, 2]
+        if self.arciv.backup(self.nestor, backup_frequency, object_type[:6]+"_data"): 
+            updated_library, action_verification = self.arciv.join_data(new_data, name, for_deletion, for_renaming, other_file=datafile, join_path="data", need_sorting=True, is_static=is_static)
+        if updated_library:
+            self.arciv.writer(updated_library, other_file=datafile, join_path="data")
+            print(f"\nLibrary updated, {action_verification}!\n")
+            # Reload the update the list of objects
+            st.rerun()
+    
+
+def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
+    _feature_style(component_key)
+    secretary = Secretary(arciv, negotiator, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys)
+
+    # Header
+    with st.container(key=f"{component_key}_head", width=1000, height=35):
+        st.markdown("#### *Update library*",  text_alignment="left")
+    # Main container
+    with st.container(border=True, key=f"{component_key}_main", width=1000, height="content"):
         # Collect presets and initiate session states
-        presets = _initiate(data_options, TERMS, attempts)
+        presets = secretary._initiate()
         for x, y in presets.items():
             if x not in st.session_state:
                 st.session_state[x] = y
@@ -13,25 +122,21 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                 st.session_state[x] = y
 
         # Define all initial features settings, options and limits
-        object_database, options_tool, options_object, options_attribute, options_origin, options_type, options_source, options_reg = _settings(arciv, TERMS, DATAPATH, data_options, st.session_state["type"])
+        object_database, options_tool, options_object, options_attribute, options_origin, options_type, options_source, options_reg = secretary._settings(st.session_state["type"])
         disable_extras = False
 
-        # Collect style settings
-        form_column_size, selector_column_size, target_column_size, pill_group_height = _style()
-
-        # Start layout
-        st.subheader("*Update library*", text_alignment="center")
-        col_object_info, col_save_and_event = st.columns(form_column_size, vertical_alignment="top")
+        # Build widgets
+        col_object_info, col_save_and_event = _style_form()
+        pill_group_height = 60
         with col_object_info:
-            
             # Action selector field - what to do with the data
-            with st.container(width="stretch", height=pill_group_height, vertical_alignment="center"):
-                col_label, col_options = st.columns(selector_column_size, vertical_alignment="center")
+            with st.container(key=sub_keys[0], width="stretch", height=pill_group_height, vertical_alignment="center"):
+                col_label, col_options = _style_selector()
                 col_label.markdown("TO DO")
                 reg_setting = col_options.pills("Registration setting", list(options_reg.keys()), default=list(options_reg.keys())[0], key="regset", label_visibility="collapsed")
             
             # Target selector field - name and type of object
-            col_name, col_type = st.columns(target_column_size, vertical_alignment="center")
+            col_name, col_type = _style_target()
             with col_name:
                 # For new object --> enter name
                 if reg_setting == list(options_reg.keys())[0]:
@@ -48,7 +153,7 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                         options_object, index=None, 
                         placeholder=f"Select {st.session_state["type"].lower()}", 
                         key="name", 
-                        on_change=_collect_object_info, 
+                        on_change=secretary._collect_object_info, 
                         args=(TERMS, object_database, reg_setting, options_reg), 
                         label_visibility="collapsed"
                     )
@@ -59,8 +164,8 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                 disable_extras = type_selected == TERMS["Tool"]
             
             # Object details - "tool" utilitarian object disables extras i.e. "attribute" and "origin"
-            with st.container(width="stretch", height=pill_group_height, vertical_alignment="center"):
-                col_label, col_options = st.columns(selector_column_size, vertical_alignment="center")
+            with st.container(key=sub_keys[1], width="stretch", height=pill_group_height, vertical_alignment="center"):
+                col_label, col_options = _style_selector()
                 col_label.markdown(TERMS["Tool"])
                 col_options.pills(
                     "Tool", 
@@ -69,8 +174,8 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                     label_visibility="collapsed", 
                     width="stretch"
                 )  
-            with st.container(width="stretch", height=pill_group_height, vertical_alignment="center"):
-                col_label, col_options = st.columns(selector_column_size, vertical_alignment="center")
+            with st.container(key=sub_keys[2], width="stretch", height=pill_group_height, vertical_alignment="center"):
+                col_label, col_options = _style_selector()
                 col_label.markdown(TERMS["Attribute"])
                 col_options.pills(
                     "Attribute", 
@@ -80,8 +185,8 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                     label_visibility="collapsed", 
                     width="stretch"
                 )
-            with st.container(width="stretch", height=pill_group_height, vertical_alignment="center"):
-                col_label, col_options = st.columns(selector_column_size, vertical_alignment="center")
+            with st.container(key=sub_keys[3], width="stretch", height=pill_group_height, vertical_alignment="center"):
+                col_label, col_options = _style_selector()
                 col_label.markdown(TERMS["Origin"])
                 col_options.pills(
                     "Origin", 
@@ -92,9 +197,7 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                     width="stretch"
                 )
 
-       
         with col_save_and_event:
-
             # Save button - validate, compile and save
             # 1. Collect state values
             values = dict()
@@ -106,7 +209,7 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                 values["date"] = st.session_state["date"].strftime("%y%m%d")
             if st.session_state["source"] == TERMS["Standard source"]: values["state"] = None
             if st.session_state["source"] == TERMS["Gift"]: values["attempt"] = None
-            object_database = _collect_database(arciv, TERMS, DATAPATH, st.session_state["type"])
+            object_database = secretary._collect_database(st.session_state["type"])
 
             # 2. Checks for proper data setup
             object_testvalue, event_testvalue, old_event_data = [None]*3
@@ -122,12 +225,12 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
             if data_is_collected: 
                 object_type = TERMS[f"CLI{st.session_state["type"]}"]
                 new_data = _adjust_event_data(TERMS, name, new_data, options_reg, old_event_data, new_event, event_date)
-                # Save the data. For editing data, ask for renaming in dialog box
-                if st.session_state["regset"] == list(options_reg.keys())[3]:
-                    _rename(arciv, negotiator, DATAPATH, name, object_type, new_data, options_reg[reg_setting])
-                else:
-                    _update_object(arciv, negotiator, DATAPATH, name, object_type, new_data, options_reg[reg_setting], None)
 
+                # 4. Save the data. For editing data, ask for renaming in dialog box
+                if st.session_state["regset"] == list(options_reg.keys())[3]:
+                    secretary._rename(name, object_type, new_data, options_reg[reg_setting])
+                else:
+                    secretary._update_object(arciv, negotiator, DATAPATH, name, object_type, new_data, options_reg[reg_setting], None)
 
             # Info about how and when object was collected
             # Date collector/viewer
@@ -136,7 +239,7 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                 options_dates = object_database[st.session_state["name"]][TERMS["Event"]].keys()
             # else:
             #     options_dates = None
-            _date_viewer(TERMS, data_options, options_reg, options_dates)
+            _date_viewer(data_options, options_reg, options_dates)
             
             # Source selector
             st.selectbox(
@@ -173,53 +276,17 @@ def register_object(component_key, arciv, negotiator, DIRECTORIES, DATAPATH, dat
                 st.number_input(f"{TERMS["Attempt"]}", min_value=0, max_value=limit, key="attempt", disabled=True)
                 
 
+def _feature_style(component_key):
+    st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
+def _style_form():
+    return st.columns([0.8, 0.2], vertical_alignment="center")
+def _style_selector():
+    return st.columns([0.1, 0.9], vertical_alignment="center")
+def _style_target():
+    return st.columns([5, 5], vertical_alignment="center")
 
 
-def _initiate(data_options, TERMS, attempts):
-    presets = {
-        "tool": None,
-        "attribute": None,
-        "origin": None,
-        "name": None,
-        "type": "Character",
-        "state": data_options["State alternatives"][0],
-        "source": TERMS["Temp"],
-        "attempt": attempts[f"Character {TERMS["Temp"]}"][TERMS["Attempt"]],
-        "date": datetime.date.today()
-    }
-    return presets
-
-
-def _settings(arciv, TERMS, DATAPATH, data_options, data_type):
-    object_database = _collect_database(arciv, TERMS, DATAPATH, data_type)
-    options_tool = data_options[TERMS["Character"]][TERMS["Tool"]]
-    options_object = object_database.keys()
-    options_attribute = data_options[TERMS["Character"]][TERMS["Attribute"]]
-    options_origin = data_options[TERMS["Character"]][TERMS["Origin"]]
-    options_type = ["Character", TERMS["Tool"]]
-    options_source = data_options["Source"]
-    
-    options_reg = dict()
-    add_new, options_reg[add_new] = "Add completely new", [False, False, False]
-    add_event, options_reg[add_event] = f"New {TERMS["Event"].lower()} of old", [True, False, False]
-    del_entry, options_reg[del_entry] = "Delete entry", [False, True, False]
-    edit_entry, options_reg[edit_entry] = "Edit details", [False, False, True]
-    del_event, options_reg[del_event] = f"Delete {TERMS["Event"].lower()}", [True, False, False]
-
-    return object_database, options_tool, options_object, options_attribute, options_origin, options_type, options_source, options_reg 
-
-
-def _style():
-    form_column_size = [0.8, 0.2]
-    selector_column_size = [0.1, 0.9]
-    target_column_size = [5, 5]
-
-    pill_group_height = 60
-
-    return form_column_size, selector_column_size, target_column_size, pill_group_height
-
-
-def _date_viewer(TERMS, data_options, options_reg, options_dates):
+def _date_viewer(data_options, options_reg, options_dates):
     # Preset earliest date defined in options file, and latest as today
     date_min = data_options["Value limits"]["Date"][0]
     date_min = datetime.datetime(
@@ -253,21 +320,6 @@ def _date_viewer(TERMS, data_options, options_reg, options_dates):
         )    
 
 
-def _collect_object_info(TERMS, object_database, reg_setting, options_reg):
-    # Predefined settings collected from object details in library
-    name, data_type = st.session_state["name"], st.session_state["type"]
-    if name not in object_database.keys():
-        pass
-    elif name and not reg_setting == list(options_reg.keys())[0]:
-        settings = object_database[name]
-        if data_type == "Character":
-            st.session_state["tool"] = settings[TERMS["Tool"]]
-            st.session_state["attribute"] = settings[TERMS["Attribute"]]
-            st.session_state["origin"] = settings[TERMS["Origin"]]
-        else:
-            st.session_state["tool"] = settings["Type"]
-
-
 def _update_source_state(TERMS, attempts, data_type):
     source = _translate_source(TERMS, data_type, st.session_state["source"])
     if not source == TERMS["Gift"]: 
@@ -281,16 +333,6 @@ def _translate_source(TERMS, data_type, source):
     elif source == TERMS["Standard source"]:
         st.session_state["state"] = None
     return source
-
-
-def _collect_database(arciv, TERMS, DATAPATH, set_type):
-    if set_type == "Character":
-        data_reference = TERMS["Character"]
-    else:
-        data_reference = set_type
-    datafile = DATAPATH[data_reference]
-    object_database = arciv.reader(datafile, join_path="data")
-    return object_database
 
 
 def _data_validation(TERMS, options_reg, values, reg_setting, object_testvalue, event_testvalue):
@@ -375,34 +417,3 @@ def _adjust_event_data(TERMS, name, new_data, options_reg, old_event_data, new_e
     return new_data
 
 
-@st.dialog(f"Editing library entry")
-def _rename(arciv, negotiator, DATAPATH, name, object_type, new_data, reg_setting):
-    st.write(f"You are editing {name}")
-    new_name = name
-    keep_name = st.checkbox("Keep previous name", value=True)
-    name_update = st.text_input("Rename", placeholder="Enter name", disabled=keep_name, label_visibility="collapsed")
-    if not name_update and not keep_name:
-        not_updated, appearance, new_name = True, "secondary", None
-    elif keep_name:
-        not_updated, appearance, new_name = False, "primary", name
-    else:
-        not_updated, appearance, new_name = False, "primary", name_update
-    if st.button("Confirm", type=appearance, disabled=not_updated):
-        _update_object(arciv, negotiator, DATAPATH, name, object_type, new_data, reg_setting, new_name.title())
-        # Reload the update the list of objects and auto-close dialog box
-        st.rerun()
-
-
-def _update_object(arciv, negotiator, DATAPATH, name, object_type, new_data, edit_setting, new_name):
-    is_static, for_deletion, for_renaming = edit_setting
-    # Rename truth-check also carries new name, define as new_name from _rename
-    if for_renaming: for_renaming = new_name
-    datafile = DATAPATH[object_type]
-    backup_frequency = [101, 31, 11, 2]
-    if arciv.backup(negotiator, backup_frequency, object_type[:6]+"_data"): 
-        updated_library, action_verification = arciv.join_data(new_data, name, for_deletion, for_renaming, other_file=datafile, join_path="data", need_sorting=True, is_static=is_static)
-    if updated_library:
-        arciv.writer(updated_library, other_file=datafile, join_path="data")
-        print(f"\nLibrary updated, {action_verification}!\n")
-        # Reload the update the list of objects
-        st.rerun()
