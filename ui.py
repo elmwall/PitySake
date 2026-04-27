@@ -26,7 +26,7 @@ attempts = arciv.reader(other_file="progress_data.json", join_path="data")
 data_options = arciv.reader(other_file="data_options.json", join_path="settings")
 
 # Set page style and references
-st.set_page_config(page_title='PitySake', page_icon = "spiralwindow-luxia.ico", layout="wide")
+st.set_page_config(page_title='PitySake', page_icon = "icon1.ico", layout="wide")
 st.markdown("<style> .block-container {padding: 2rem;}</style>", unsafe_allow_html=True)
 # Feature - Progressmeter
 
