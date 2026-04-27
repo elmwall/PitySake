@@ -3,24 +3,25 @@ import streamlit as st
 def calculator(limit, component_key, height):
     _initiate()
     # Header
-    with st.container(key=f"{component_key}_head", height=35):
-        st.markdown("#### *Calculate*", text_alignment="left")
+    with st.container(key=f"{component_key}_head", height="content"):
+        st.markdown("##### *Calculate*", text_alignment="left")
     # Main container
     with st.container(border=True, key=f"{component_key}_main", height="stretch"):
-        curr_valid, prev_valid, msg = _validation(limit)
+        curr_valid, prev_valid, msg, tip_last, tip_prev = _validation(limit)
         st.markdown("")
         # Input field, UI structured as left for latest and right for previous
-        with st.container():
-            num_columns = [3, 3, 3]
+        with st.container(horizontal_alignment="center",):
+            num_columns = [3, 7, 7]
+            num_width = 250
             # Group labels
-            with st.container():
+            with st.container(width=num_width):
                 col_label, col_left, col_right = st.columns(num_columns)
                 with col_left:
                     st.markdown("*Last*", text_alignment="center")
                 with col_right:
                     st.markdown("*Previous*", text_alignment="center")
             # Input page for latest and previous
-            with st.container(vertical_alignment="center"):
+            with st.container(width=num_width):
                 col_label, col_left, col_right = st.columns(num_columns)
                 with col_label:
                     st.button("*Page*", key="page_label", type="tertiary")
@@ -30,12 +31,14 @@ def calculator(limit, component_key, height):
                     st.selectbox("*Previous event*", options=range(250)[1:], key="prev_page", label_visibility="collapsed")
             st.markdown("")
             # Input data row for latest and previous
-            with st.container(vertical_alignment="center"):
+            with st.container(width=num_width):
+                curr_opt = range(6) if int(st.session_state["curr_page"]) == 1 else range(6)[1:]
+                print(curr_opt)
                 col_label, col_left, col_right = st.columns(num_columns)
                 with col_label:
                     st.button("*Row*", key="row_label", type="tertiary")
                 with col_left:
-                    st.selectbox("Last event row", options=range(6)[1:], key="curr_row", label_visibility="collapsed")
+                    st.selectbox("Last event row", options=curr_opt, key="curr_row", label_visibility="collapsed")
                 with col_right:
                     st.selectbox("Previous event row", options=range(6)[1:], key="prev_row", label_visibility="collapsed")      
                     st.markdown(f"")
@@ -61,21 +64,43 @@ def calculator(limit, component_key, height):
                         invalid
                     )
             # Output viewer field - views tip for correcting data or result of calculation
-            if st.session_state["calculation"] is not None:
-                left, mid, right = st.columns(calc_columns)
-                if st.session_state["calculation"]:
-                    st.latex(f"{st.session_state["calculation"]-1}", width="stretch")
-                else:
-                    st.latex(f"{3}", width="stretch")
-            else:
-                with mid:
-                    st.button(f"{st.session_state["message"]}", key="display_msg", type="tertiary", width="stretch")
+            # st.html("<style> .st-key-result_disp {margin: 0 0; padding: 0} .st-key-result_disp * {margin: 0; padding: 0; text-align: center} </style>")
+            st.space("xxsmall")
+            left, mid, right = st.columns(calc_columns)
+            with mid:
+                with st.container(border=True, key="result_disp", width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
+                    html_output = "<div style='font-size: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
+                    if st.session_state["calculation"] is not None:
+                        result_output = f"-"
+                        if st.session_state["calculation"]:
+                            # with st.container():
+                            result_output = f"{st.session_state["calculation"]-1}"
+                            # st.markdown()
+                            # st.html(html_output.replace("REF", result_output))
+                            # st.latex(f"{st.session_state["calculation"]-1}", width="stretch")
+                        # else:
+                        #     result_output = f"-"
+                            # st.latex("", width="stretch")
+                        st.html(html_output.replace("REF", result_output))
+                    else:
+                        # with mid:
+                        # tip = ""
+                        if tip_last: 
+                            # tip = tip_last
+                            st.markdown(f"{tip_last}", text_alignment="center")
+                        elif tip_prev: 
+                            # tip = tip_prev
+                            st.markdown(f"{tip_prev}", text_alignment="center")
+                        else:
+                            st.html(html_output.replace("REF", "-"))
+                            
+                            # st.button(f"{tip}", key="display_msg", type="tertiary", width="stretch")
 
 
 def _initiate():
     init_values = {
         "curr_page": 1, 
-        "curr_row": 1, 
+        "curr_row": 0, 
         "prev_page": 1, 
         "prev_row": 2,
         "message": "",
@@ -93,6 +118,8 @@ def _validation(limit):
     Checks data for incompatible values and adjusts message, highlighting and control bools
     """
     msg = "Calculate"
+    tip_last = None
+    tip_prev = None
     curr_valid = False
     # Conditions for latest data
     if int(st.session_state["curr_row"]) == 5: 
@@ -103,17 +130,18 @@ def _validation(limit):
     if int(st.session_state["prev_page"]) < prev_page_min: 
         st.html("<style> .st-key-curr_page * {color: red} </style>")
         st.html("<style> .st-key-curr_row * {color: red} </style>")
-        msg, st.session_state["message"] = "Out of range", "Page of new must come after the previous"
+        msg, tip_last = "Out of range", "Page of last must be lower"
     elif int(st.session_state["curr_page"]) == int(st.session_state["prev_page"]): 
         if st.session_state["curr_row"] >= st.session_state["prev_row"]:
             st.html("<style> .st-key-curr_row * {color: red} </style>")
-            msg, st.session_state["message"] = "Out of range", "Row of new must come after the previous"
+            msg, tip_last = "Out of range", "Row of last must be lower"
         else:
             curr_valid = True,
-            st.session_state["message"] = ""
+            tip_last = None
     else:
         curr_valid = True
-        st.session_state["message"] = ""
+        tip_last = None
+    # if int(st.session_state["curr_page"]) 
     prev_valid = False
     # A general limit is utilized, exceptions rare
     max_value = limit
@@ -124,18 +152,18 @@ def _validation(limit):
         if int(st.session_state["prev_page"]) > max_page:
             st.html("<style> .st-key-prev_page * {color: red} </style>")
             st.html("<style> .st-key-prev_row * {color: red} </style>")
-            msg, st.session_state["message"] = "Out of range", "Page of previous event is too high"
+            msg, tip_prev = "Out of range", "Page of previous too high"
         elif int(st.session_state["prev_page"]) == max_page:
             if st.session_state["curr_row"] < st.session_state["prev_row"]:
                 st.html("<style> .st-key-prev_row * {color: red} </style>")
-                msg, st.session_state["message"] = "Out of range", "Row of previous event is too high"
+                msg, tip_prev = "Out of range", "Row of previous too high"
             else:
                 curr_valid = True
-                st.session_state["message"] = ""
+                tip_prev = None
         else:
             prev_valid = True
-            st.session_state["message"] = ""
-    return curr_valid, prev_valid, msg
+            tip_prev = None
+    return curr_valid, prev_valid, msg, tip_last, tip_prev
 
 
 def _submit(prev_page, curr_page, prev_row, curr_row, invalid):

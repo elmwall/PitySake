@@ -104,15 +104,15 @@ class Secretary:
             st.rerun()
     
 
-def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
+def register_object(component_key, sub_keys, feature_size_left, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
     _feature_style(component_key)
     secretary = Secretary(arciv, negotiator, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys)
 
     # Header
-    with st.container(key=f"{component_key}_head", width=1000, height=35):
-        st.markdown("#### *Update library*",  text_alignment="left")
+    with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
+        st.markdown("##### *Update library*",  text_alignment="left")
     # Main container
-    with st.container(border=True, key=f"{component_key}_main", width=1000, height="content"):
+    with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height="stretch"):
         # Collect presets and initiate session states
         presets = secretary._initiate()
         for x, y in presets.items():
@@ -127,10 +127,10 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
 
         # Build widgets
         col_object_info, col_save_and_event = _style_form()
-        pill_group_height = 60
+        pill_group_height = "stretch"
         with col_object_info:
             # Action selector field - what to do with the data
-            with st.container(key=sub_keys[0], width="stretch", height=pill_group_height, vertical_alignment="center"):
+            with st.container(border=True, key=sub_keys[0], width="stretch", height=pill_group_height, vertical_alignment="center"):
                 col_label, col_options = _style_selector()
                 col_label.markdown("TO DO")
                 reg_setting = col_options.pills("Registration setting", list(options_reg.keys()), default=list(options_reg.keys())[0], key="regset", label_visibility="collapsed")
@@ -154,7 +154,7 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
                         placeholder=f"Select {st.session_state["type"].lower()}", 
                         key="name", 
                         on_change=secretary._collect_object_info, 
-                        args=(TERMS, object_database, reg_setting, options_reg), 
+                        args=(object_database, reg_setting, options_reg), 
                         label_visibility="collapsed"
                     )
             with col_type:
@@ -164,7 +164,7 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
                 disable_extras = type_selected == TERMS["Tool"]
             
             # Object details - "tool" utilitarian object disables extras i.e. "attribute" and "origin"
-            with st.container(key=sub_keys[1], width="stretch", height=pill_group_height, vertical_alignment="center"):
+            with st.container(border=True, key=sub_keys[1], width="stretch", height=pill_group_height, vertical_alignment="center"):
                 col_label, col_options = _style_selector()
                 col_label.markdown(TERMS["Tool"])
                 col_options.pills(
@@ -174,7 +174,7 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
                     label_visibility="collapsed", 
                     width="stretch"
                 )  
-            with st.container(key=sub_keys[2], width="stretch", height=pill_group_height, vertical_alignment="center"):
+            with st.container(border=True, key=sub_keys[2], width="stretch", height=pill_group_height, vertical_alignment="center"):
                 col_label, col_options = _style_selector()
                 col_label.markdown(TERMS["Attribute"])
                 col_options.pills(
@@ -185,7 +185,7 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
                     label_visibility="collapsed", 
                     width="stretch"
                 )
-            with st.container(key=sub_keys[3], width="stretch", height=pill_group_height, vertical_alignment="center"):
+            with st.container(border=True, key=sub_keys[3], width="stretch", height=pill_group_height, vertical_alignment="center"):
                 col_label, col_options = _style_selector()
                 col_label.markdown(TERMS["Origin"])
                 col_options.pills(
@@ -207,7 +207,7 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
                 values["date"] = st.session_state["date"]
             else:
                 values["date"] = st.session_state["date"].strftime("%y%m%d")
-            if st.session_state["source"] == TERMS["Standard source"]: values["state"] = None
+            if st.session_state["source"] in [TERMS["Standard source"], TERMS["Gift"]]: values["state"] = None
             if st.session_state["source"] == TERMS["Gift"]: values["attempt"] = None
             object_database = secretary._collect_database(st.session_state["type"])
 
@@ -230,7 +230,7 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
                 if st.session_state["regset"] == list(options_reg.keys())[3]:
                     secretary._rename(name, object_type, new_data, options_reg[reg_setting])
                 else:
-                    secretary._update_object(arciv, negotiator, DATAPATH, name, object_type, new_data, options_reg[reg_setting], None)
+                    secretary._update_object(name, object_type, new_data, options_reg[reg_setting], None)
 
             # Info about how and when object was collected
             # Date collector/viewer
@@ -256,7 +256,7 @@ def register_object(component_key, sub_keys, arciv, negotiator, DIRECTORIES, DAT
             source = _translate_source(TERMS, st.session_state["type"], st.session_state["source"])
             options_state = data_options["State alternatives"]
             single_state = False
-            if st.session_state["source"] == TERMS["Standard source"] or st.session_state["source"] == TERMS["Gift"]: single_state = True
+            if st.session_state["source"] in [TERMS["Standard source"], TERMS["Gift"]]: single_state = True
             st.selectbox(
                 "Success", 
                 options_state, 
@@ -371,7 +371,7 @@ def _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool):
         else:
             attribute_done, origin_done = True, True
         if not values["state"]:
-            if values["source"] == TERMS["Standard source"]: state_done = True
+            if values["source"] == TERMS["Standard source"] or values["source"] == TERMS["Gift"]: state_done = True
         else:
             state_done = True
     # When finished, build data dictionary
@@ -403,16 +403,21 @@ def _adjust_event_data(TERMS, name, new_data, options_reg, old_event_data, new_e
     elif st.session_state["regset"] in [list(options_reg.keys())[0], list(options_reg.keys())[1], list(options_reg.keys())[4]]:
         event_data = dict() if st.session_state["regset"] == list(options_reg.keys())[0] else old_event_data
         if st.session_state["regset"] != list(options_reg.keys())[4]: 
-            event_data[f"{event_date}-new"] = new_event
+            now = datetime.datetime.now()
+            hhmm = now.strftime("%H%M")
+            event_data[f"{event_date}-{hhmm}"] = new_event
+            # event_data[f"{event_date}-new"] = new_event
         else:
             event_data.pop(event_date)
-        adjusted_data = dict()
-        event_data = dict(sorted(event_data.items()))
-        n = 0
-        for x, y in event_data.items():
-            adjusted_data[f"{x[:6]}-{n}"] = y
-            n += 1
-        new_data[name][TERMS["Event"]] = adjusted_data
+        # adjusted_data = dict()
+        if len(event_data) > 0: 
+            event_data = dict(sorted(event_data.items()))
+        # n = 0
+        # for x, y in event_data.items():
+        #     adjusted_data[f"{x[:6]}-{n}"] = y
+        #     n += 1
+        new_data[name][TERMS["Event"]] = event_data
+        print(new_data)
     
     return new_data
 

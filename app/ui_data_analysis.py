@@ -2,8 +2,8 @@ import streamlit as st
 import statistics 
 
 def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
-    with st.container(key=f"{component_key}_head", height=35):
-        st.markdown("#### *Character statistics*", text_alignment="left")
+    with st.container(key=f"{component_key}_head", height="content"):
+        st.markdown("##### *Character statistics*", text_alignment="left")
     with st.container(border=True, key=f"{component_key}_main", height="stretch"):
         st.markdown("")
 
@@ -13,6 +13,11 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
 
         attempt_list = list()
         att_date = dict()
+        success_rate = {
+            "Win": 0,
+            "Loss": 0,
+            "Rate": 0
+        }
         n = 0
         lowest = 100
         highest = 0
@@ -34,6 +39,8 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
                 # print(x, y, z)
                 counts[x][f"{z}"] = 0
 
+
+
         for ch_data in object_database.values():
             for cat, rec in counts.items():
                 rec[ch_data[cat]] += 1
@@ -41,10 +48,20 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
                 att = ev_data[TERMS["Attempt"]]
                 if att: 
                     attempt_list.append(att)
-                    att_date[f"{date[:6]}_{n}"] = att
-                    n += 1
+                    att_date[f"{date}"] = att
+                    # n += 1
                     if att < lowest: lowest = att
                     if att > highest: highest = att
+                state = ev_data[TERMS["State"]]
+                if state:
+                    if state == TERMS["StateWin"]: success_rate["Win"] += 1
+                    elif state == TERMS["StateLoss"]: success_rate["Loss"] += 1
+        tot = success_rate["Win"] + success_rate["Loss"]
+        if tot > 0:
+            ratio = 100 * success_rate["Win"] / tot
+            success_rate["Rate"] = str("%.f" % ratio)
+
+        # print(success_rate)
             # ch_attempts = [x for x in ch_data if ]
             # attempt_list.extend()
             # for ev_data in ch_data[TERMS["Event"]].values():
@@ -53,8 +70,12 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
         
         attempt_list.sort()
         att_date = dict(sorted(att_date.items(), key=lambda item:str(item[0])))
+        last10 = list(att_date.values())[:10]
+        last10.reverse()
+        # print("t", att_date)
+        # print("s", last10[:10])
 
-        catlist = list(counts.keys())
+        # catlist = list(counts.keys())
         # last = att_date[datelist[len(datelist)-1]]
         # table_coll = dict()
         # for x, y in counts.items():
@@ -87,50 +108,148 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
 
         att_median = statistics.median(attempt_list)
         att_mean = statistics.mean(attempt_list)
+        att_mode = statistics.mode(attempt_list)
         datelist = list(att_date.keys())
         last = att_date[datelist[len(datelist)-1]]
+        last10_med = statistics.median(last10)
+        last10_mean = statistics.mean(last10)
+
         # lowest = 
 
         # print(att_median, "%.1f" % att_mean)
         # col_1, col_2, col_3, col_4 = st.columns([0.2, 0.2, 0.2, 0.2])
-        col_1, col_2 = st.columns([0.4, 0.6])
+        if last < att_median: 
+            green_vis, red_vis = "green", "transparent"
+        elif last > att_median: 
+            green_vis, red_vis = "transparent", "red"
+        else:
+            green_vis, red_vis = "transparent", "transparent"
+        # if last < att_median: sym = ":green[⏶]"
+        # elif last > att_median: sym = ":red[⏷]"
+        # else:
+        #     sym = ""
+        col_1, col_m, col_2 = st.columns([12, 1, 17])
         with col_1:
-            # st.markdown("### Stats")
-            if last < att_median: sym = ":green[⏶]"
-            elif last > att_median: sym = ":red[⏷]"
-            else:
-                sym = ""
-            st.markdown(f"""
-                |Stat||
-                |-|-:|
-                |Average| {"%.1f" % att_mean}|
-                |Median| {att_median}|
-                |Lowest| {lowest}|
-                |Highest| {highest}|
-                |Last| {last}{sym}|
-            """)
-        with col_2:
-            # st.markdown(table_coll[TERMS["Origin"]])
-            st.markdown("### Most collected")
-            num, entries = [str()]*2
-            for x, y in top[TERMS["Origin"]].items():
-                num = x
-                for z in y:
-                    entries += f"{z} "
-            st.markdown(f"{TERMS["Origin"]}s: {num} in {entries}")
-            num, entries = [str()]*2
-            for x, y in top[TERMS["Attribute"]].items():
-                num = x
-                for z in y:
-                    entries += f"{z} "
-            st.markdown(f"{TERMS["Attribute"]}s: {num} of {entries}")
-            num, entries = [str()]*2
-            for x, y in top[TERMS["Tool"]].items():
-                num = x
-                for z in y:
-                    entries += f"{z} "
-            st.markdown(f"{TERMS["Tool"]}s: {num} with {entries}")
+            col_left, col_mid, col_right = st.columns([1, 9, 7])
+            with col_mid:
+                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+                    st.html("<div style='font-size: 50px; margin: -1rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏶</div>".replace("REF", red_vis))
+                with st.container(border=True, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+                    html_output = "<div style='font-size: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
+                    # st.markdown("### Stats")
+                    result_output = f"{last}"
+                    st.html(html_output.replace("REF", result_output))
+                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+                    st.html("<div style='font-size: 50px; margin: -1.5rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏷</div>".replace("REF", green_vis))
+            with col_right:
+                with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
+                    # st.space("xsmall")
+                    label_last = f"Last {TERMS["Event"]}"
+                    st.html("<div style='font-size: 22px; margin: 1.0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
+        
+        with col_1:
+            col_left, col_mid, col_right = st.columns([1, 9, 7])
+            with col_mid:
+                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+                    st.html("<div style='font-size: 50px; margin: -1rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏶</div>".replace("REF", red_vis))
+                with st.container(border=True, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+                    html_output = "<div style='font-size: 50px; height: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
+                    # st.markdown("### Stats")
+                    result_output = f"{success_rate["Rate"]}"
+                    st.html(html_output.replace("REF", result_output))
+                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+                    st.html("<div style='font-size: 50px; margin: -1.5rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏷</div>".replace("REF", green_vis))
+            with col_right:
+                with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
+                    # st.space("xsmall")
+                    label_last = f"%"
+                    st.html("<div style='font-size: 40px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
+                    st.html("<div style='font-size: 20px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 0; text-align: left;'>REF</div>".replace("REF", "win rate"))
 
+            # col_3.markdown("Median")
+            # col_4.markdown(f"{att_median}")
+            # col_3.markdown("")
+            # col_4.markdown(f"{att_median}")
+            
+            # st.markdown(f"""
+            #     |Stat||
+            #     |-|-:|
+            #     |Average| {"%.1f" % att_mean}|
+            #     |Median| {att_median}|
+            #     |Lowest| {lowest}|
+            #     |Highest| {highest}|
+            #     |Last| {last}{sym}|
+            # """)
+        with col_2:
+            # st.space("xsmall")
+            st.markdown(" ")
+            col_3, col_4, col_5 = st.columns([5, 11, 10])
+            st.markdown(" ")
+            col_3.markdown(f"""
+                {"%.1f" % att_mean}  
+                {att_median}  
+                {att_mode}  
+                {lowest}-{highest}    
+            """)
+            col_4.markdown(f"""
+                Average  
+                Half below  
+                Most occuring  
+                Lowest-Highest  
+            """)
+            col_5.markdown(f"""
+10 last: {"%.1f" % last10_mean}
+10 last: {"%.0f" % last10_med}
+""")
+            # st.markdown(table_coll[TERMS["Origin"]])
+            
+            def count_occurrence(category):
+                space = ""
+                num, entries = [str()]*2
+                
+                for x, y in top[TERMS[category]].items():
+                    num = x
+                    for z in y:
+                        if len(y) > 4:
+                            entries += f"{space}{z[:2]}"
+                            space = "/"
+                        elif len(y) > 1:
+                            entries += f"{space}{z[:3]}"
+                            space = "/"
+                        else:
+                            # print(top[TERMS[category]])
+                            entries = z
+
+                return num, entries
+            
+            num_origin, entries_origin = count_occurrence("Origin")
+            num_attribute, entries_attribute = count_occurrence("Attribute")
+            num_tool, entries_tool = count_occurrence("Tool")
+            # st.markdown(f"{TERMS["Origin"]}s: {num} in {entries}")
+
+            st.markdown("*Most collected character types:*")
+            col_3, col_4, col_5 = st.columns([4, 1, 10])
+            # st.space("large")
+            col_3.markdown(f"""
+                {TERMS["Origin"]}s  
+                {TERMS["Attribute"]}s  
+                {TERMS["Tool"]}s
+            """)
+            col_4.markdown(f"""
+                {num_origin}  
+                {num_attribute}  
+                {num_tool}
+            """)
+            col_5.markdown(f"""
+                {entries_origin}  
+                {entries_attribute}  
+                {entries_tool}
+            """)
+            # st.markdown(f"""
+            #     {TERMS["Origin"]}s: {num_origin} from {entries_origin}  
+            #     {TERMS["Attribute"]}s: {num_attribute} {entries_attribute.lower()}  
+            #     {TERMS["Tool"]}s: {num_tool} {entries_tool.lower()}
+            # """)
         # with col_3:
         #     st.markdown(table_coll[TERMS["Attribute"]])
         # with col_4:

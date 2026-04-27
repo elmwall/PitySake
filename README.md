@@ -1,20 +1,24 @@
 # PitySake 
 
-### Event-based collectible database manager
+### Database manager and event-based logging tool
 
-A modular application for managing collectible objects with related data and  analysis, and provide data report.
+#### Purpose
 
-## Features:
-- Terminal-based user input
-- Simplifying use through calculation and options display modules
-- Input manager with data validation and error handling
-- Data transformation to-and-from JSON files
-- Data editing functions
-- Automatic backups and safety nets against data curruption
-- Generate data reports within UI and as file
+- Register subjects of two types with predefined labels
+- Logg events related to each subject with associated categories, score and evaluation
+- Tracking progress or value alterations and status in different categories
+- Display history of subject event data
+- Minor supporting features for statistics and calculations
 
-## To-be-added
-- UI instead of terminal-based interaction
-- Built-in function to restore from backup file
-- Visualization and statistics
-- Sample data
+#### System features
+
+Backend systems
+- Managing database of subject types and progress in separate files
+- Automatic backup
+- Failsafes for preventing data loss
+
+UI interface 
+- Single-page, all tools at hand
+- Interactive adaptations to accomodate type of data and correct usage
+
+
