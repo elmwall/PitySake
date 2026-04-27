@@ -1,12 +1,12 @@
 import streamlit as st
 
-def progress_meter(component_key, sub_keys, arciv, negotiator, DATAPATH, TERMS, attempts): 
+def progress_meter(component_key, sub_keys, feature_size_left, arciv, negotiator, DATAPATH, TERMS, attempts): 
     height, html_label, html_add10 = _feature_style(component_key, attempts)
 
     # Header
-    with st.container(key=f"{component_key}_head", width=1000, height=35):
-        st.markdown(f"#### *{TERMS["Attempt"]}meter*", text_alignment="left")
-    with st.container(border=True, key=f"{component_key}_main", width=1000, height=height):
+    with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
+        st.markdown(f"##### *{TERMS["Attempt"]}meter*", text_alignment="left")
+    with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height="stretch"):
         # Initiate keys for all widgets to-be-made and initiate their init value
         # It is run in a separate loop to avoid syncing delay or conflicts
         init_values = list()
@@ -135,7 +135,7 @@ def _reset(attempts, init_values, idx):
 
 
 def _column_style():
-    proggroup_column_size = [0.05, 0.22, 0.15, 0.06, 0.42, 0.08]
+    proggroup_column_size = [0.05, 0.22, 0.15, 0.08, 0.42, 0.08]
     return st.columns(proggroup_column_size, gap="xxsmall", vertical_alignment="center")
 
 
