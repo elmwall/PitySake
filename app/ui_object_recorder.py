@@ -73,7 +73,7 @@ class Secretary:
         return object_database
     
     @st.dialog(f"Editing library entry")
-    def _rename(self, name, object_type, new_data, reg_setting):
+    def _rename(self, name, object_type, new_data, reg_setting, highlight_textstyle, highlight_html):
         st.write(f"You are editing {name}")
         new_name = name
         keep_name = st.checkbox("Keep previous name", value=True)
@@ -81,10 +81,12 @@ class Secretary:
         if not name_update and not keep_name:
             not_updated, appearance, new_name = True, "secondary", None
         elif keep_name:
+            st.html(highlight_html.replace("KEY_REF", "rename").replace("COLOR_REF", highlight_textstyle))
             not_updated, appearance, new_name = False, "primary", name
         else:
+            st.html(highlight_html.replace("COLOR_REF", highlight_textstyle))
             not_updated, appearance, new_name = False, "primary", name_update
-        if st.button("Confirm", type=appearance, disabled=not_updated):
+        if st.button("Confirm", key="rename", type=appearance, disabled=not_updated):
             self._update_object(name, object_type, new_data, reg_setting, new_name.title())
             # Reload the update the list of objects and auto-close dialog box
             st.rerun()
@@ -104,7 +106,7 @@ class Secretary:
             st.rerun()
     
 
-def register_object(component_key, sub_keys, feature_size_left, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
+def register_object(component_key, sub_keys, feature_size_left, highlight_textstyle, highlight_html, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
     _feature_style(component_key)
     secretary = Secretary(arciv, negotiator, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys)
 
@@ -221,14 +223,14 @@ def register_object(component_key, sub_keys, feature_size_left, arciv, negotiato
             data_is_valid, save_button_msg, is_tool = _data_validation(TERMS, options_reg, values, st.session_state["regset"], object_testvalue, event_testvalue)
 
             # 3. Compile the data on press IF all data present, else disable button
-            data_is_collected, name, new_data, new_event, event_date = _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool)
+            data_is_collected, name, new_data, new_event, event_date = _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool, highlight_textstyle, highlight_html)
             if data_is_collected: 
                 object_type = TERMS[f"CLI{st.session_state["type"]}"]
                 new_data = _adjust_event_data(TERMS, name, new_data, options_reg, old_event_data, new_event, event_date)
 
                 # 4. Save the data. For editing data, ask for renaming in dialog box
                 if st.session_state["regset"] == list(options_reg.keys())[3]:
-                    secretary._rename(name, object_type, new_data, options_reg[reg_setting])
+                    secretary._rename(name, object_type, new_data, options_reg[reg_setting], highlight_textstyle, highlight_html)
                 else:
                     secretary._update_object(name, object_type, new_data, options_reg[reg_setting], None)
 
@@ -358,7 +360,7 @@ def _data_validation(TERMS, options_reg, values, reg_setting, object_testvalue, 
     return data_is_valid, save_button_msg, is_tool
 
 
-def _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool):
+def _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool, highlight_textstyle, highlight_html):
     # Mark tasks as finished
     name_done, tool_done, attribute_done, origin_done, state_done = [False]*5
     if data_is_valid:
@@ -390,10 +392,11 @@ def _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool):
             TERMS["Attempt"]: values["attempt"],
             "State": values["state"]
         }
+        st.html(highlight_html.replace("KEY_REF", "save").replace("COLOR_REF", highlight_textstyle))
         data_is_collected = st.button(f"{save_button_msg}", key="save", type="primary", width="stretch")
         return data_is_collected, name, new_data, attempt_data, values["date"]
     else:
-        st.button(f"{save_button_msg}", key="save", type="secondary", width="stretch")
+        st.button(f"{save_button_msg}", key="save", type="secondary", disabled=True, width="stretch")
         return False, None, None, None, None
 
 

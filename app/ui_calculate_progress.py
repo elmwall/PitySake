@@ -1,6 +1,6 @@
 import streamlit as st
 
-def calculator(limit, component_key, height):
+def calculator(limit, component_key, height, highlight_textstyle, highlight_html):
     _initiate()
     # Header
     with st.container(key=f"{component_key}_head", height="content"):
@@ -33,7 +33,6 @@ def calculator(limit, component_key, height):
             # Input data row for latest and previous
             with st.container(width=num_width):
                 curr_opt = range(6) if int(st.session_state["curr_page"]) == 1 else range(6)[1:]
-                print(curr_opt)
                 col_label, col_left, col_right = st.columns(num_columns)
                 with col_label:
                     st.button("*Row*", key="row_label", type="tertiary")
@@ -47,6 +46,7 @@ def calculator(limit, component_key, height):
             # Field for submit and result
             # View settings depending on data validity
             if curr_valid and prev_valid:
+                st.html(highlight_html.replace("KEY_REF", "calc_button").replace("COLOR_REF", highlight_textstyle))
                 invalid, appearance = False, "primary"
             else:
                 invalid, appearance = True, "secondary"
@@ -55,46 +55,36 @@ def calculator(limit, component_key, height):
             left, mid, right = st.columns(calc_columns)
             # Submit button
             with mid:
-                if st.button(f"{msg}", key="caculation", type=appearance, disabled=invalid, width="stretch"):
-                    st.session_state["calculation"] = _submit(
+                if st.button(f"{msg}", key="calc_button", type=appearance, disabled=invalid, width="stretch"):
+                    output = _submit(
                         st.session_state["prev_page"],
                         st.session_state["curr_page"],
                         st.session_state["prev_row"],
                         st.session_state["curr_row"],
                         invalid
                     )
+                else:
+                    output = None
             # Output viewer field - views tip for correcting data or result of calculation
             # st.html("<style> .st-key-result_disp {margin: 0 0; padding: 0} .st-key-result_disp * {margin: 0; padding: 0; text-align: center} </style>")
-            st.space("xxsmall")
+            # st.space("xxsmall")
             left, mid, right = st.columns(calc_columns)
             with mid:
                 with st.container(border=True, key="result_disp", width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
                     html_output = "<div style='font-size: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
-                    if st.session_state["calculation"] is not None:
+                    if output is not None:
                         result_output = f"-"
-                        if st.session_state["calculation"]:
-                            # with st.container():
-                            result_output = f"{st.session_state["calculation"]-1}"
-                            # st.markdown()
-                            # st.html(html_output.replace("REF", result_output))
-                            # st.latex(f"{st.session_state["calculation"]-1}", width="stretch")
-                        # else:
-                        #     result_output = f"-"
-                            # st.latex("", width="stretch")
+                        if output:
+                            result_output = f"{output-1}"
                         st.html(html_output.replace("REF", result_output))
                     else:
-                        # with mid:
-                        # tip = ""
                         if tip_last: 
-                            # tip = tip_last
                             st.markdown(f"{tip_last}", text_alignment="center")
                         elif tip_prev: 
-                            # tip = tip_prev
                             st.markdown(f"{tip_prev}", text_alignment="center")
                         else:
                             st.html(html_output.replace("REF", "-"))
-                            
-                            # st.button(f"{tip}", key="display_msg", type="tertiary", width="stretch")
+
 
 
 def _initiate():

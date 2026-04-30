@@ -140,25 +140,21 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
                     result_output = f"{last}"
                     st.html(html_output.replace("REF", result_output))
                 with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
-                    st.html("<div style='font-size: 50px; margin: -1.5rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏷</div>".replace("REF", green_vis))
+                    st.html("<div style='font-size: 50px; margin: -1.5rem 0 ; padding: 0; line-height: 1; text-align: center; color: REF;'>⏷</div>".replace("REF", green_vis))
             with col_right:
                 with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
                     # st.space("xsmall")
                     label_last = f"Last {TERMS["Event"]}"
                     st.html("<div style='font-size: 22px; margin: 1.0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
-        
+            st.space("medium")
         with col_1:
             col_left, col_mid, col_right = st.columns([1, 9, 7])
             with col_mid:
-                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
-                    st.html("<div style='font-size: 50px; margin: -1rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏶</div>".replace("REF", red_vis))
                 with st.container(border=True, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
                     html_output = "<div style='font-size: 50px; height: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
                     # st.markdown("### Stats")
                     result_output = f"{success_rate["Rate"]}"
                     st.html(html_output.replace("REF", result_output))
-                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
-                    st.html("<div style='font-size: 50px; margin: -1.5rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏷</div>".replace("REF", green_vis))
             with col_right:
                 with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
                     # st.space("xsmall")
@@ -170,6 +166,8 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
             # col_4.markdown(f"{att_median}")
             # col_3.markdown("")
             # col_4.markdown(f"{att_median}")
+            last10_mean_col = "red" if att_mean < last10_mean else "green"
+            last10_med_col = "red" if att_median < last10_med else "green"
             
             # st.markdown(f"""
             #     |Stat||
@@ -187,7 +185,7 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
             st.markdown(" ")
             col_3.markdown(f"""
                 {"%.1f" % att_mean}  
-                {att_median}  
+                {"%.0f" % att_median}  
                 {att_mode}  
                 {lowest}-{highest}    
             """)
@@ -198,8 +196,8 @@ def small_stats(component_key, height, key_reg_obj, key_list_reg, arciv, negotia
                 Lowest-Highest  
             """)
             col_5.markdown(f"""
-10 last: {"%.1f" % last10_mean}
-10 last: {"%.0f" % last10_med}
+10 last: :{last10_mean_col}[{"%.1f" % last10_mean}]
+10 last: :{last10_med_col}[{"%.0f" % last10_med}]
 """)
             # st.markdown(table_coll[TERMS["Origin"]])
             
