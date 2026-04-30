@@ -22,3 +22,13 @@ UI interface
 - Interactive adaptations to accomodate type of data and correct usage
 
 
+<!-- TODO  
+- Add note
+- Page set system
+- Set theme
+- Set limits
+- Set categories
+- Renaming system
+- Popup for deleting object/event
+-->
+

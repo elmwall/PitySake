@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import pandas as pd
 
-def table_view(component_key, height, TERMS, object_type, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, UITERMS):
+def table_view(component_key, height, TERMS, object_type, table_style, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, UITERMS):
     # print(object_type, 1)
     with st.container(key=f"{component_key}_head", height="content"):
         title = "Character" if object_type == "Character" else TERMS[object_type]
@@ -101,14 +101,20 @@ def table_view(component_key, height, TERMS, object_type, arciv, negotiator, DIR
         
         # config = st.column_config.DateColumn("Name")
         # print(object_type, 5)
-        st.html("<style> st-key_table {background-color: #4CAF50 </style>")
-        # if object_type == "Character":
+        # st.html("<style> .st-key_table th {background-color: #ffffff </style>")
+        # df = pd.DataFrame({f"Column {i}": [*"abcdef"] for i in range(5)})
+
+        # st.dataframe(
+        #     df.style.applymap(
+        #         lambda _: "background-color: CornflowerBlue;", subset=([-1], slice(None))
+        #     )
+        # )
         st.dataframe(
             df.style.set_properties(
                 subset=[TERMS["Attempt"]], 
                 **{"text-align": "right"}
             )
-            .set_properties(**{"background-color": "#2d0936"}), 
+            .set_properties(**{"background-color": table_style[1]}), 
             column_config={TERMS["Attempt"]: {"width": "xsmall"}},
             hide_index=True, 
             height="stretch",

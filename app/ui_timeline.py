@@ -1,4 +1,5 @@
 import streamlit as st
+import plotly.graph_objects as go
 import os
 import pandas as pd
 import plotly.express as px
@@ -8,9 +9,10 @@ from streamlit_timeline import st_timeline
 
 def timeline(component_key, feature_size_left, arciv, negotiator, DATAPATH, TERMS, attempts): 
     st.space("large")
-    with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
+    with st.container(key=f"{component_key}_head", width="stretch", height="content"):
         st.markdown(f"##### *Timeline*", text_alignment="left")
     with st.container(border=True, key=f"{component_key}_main", width="stretch", height="stretch"):
+        
         def collect_data(reference):
             # for x in ["Character", "Tool"]
             data_reference = TERMS[reference]
@@ -33,7 +35,10 @@ def timeline(component_key, feature_size_left, arciv, negotiator, DATAPATH, TERM
                 state = ev_data[TERMS["State"]]
         # print(att_date)
 
-        time_dict = list()
+        time_dict = dict()
+        time_dict["date"] = list()
+        time_dict["attempt"] = list()
+        time_dict["name"] = list()
         collected = dict()
         # print(object_type, 3)
         def data_to_df(object_database, object_type):
@@ -44,6 +49,7 @@ def timeline(component_key, feature_size_left, arciv, negotiator, DATAPATH, TERM
                 # attempts = dict()
                 # pulls = info.get("Pull", {})
                 for index, details in info[TERMS["Event"]].items():
+
                     date, idx = index.split("-")
                     if object_type == "Character": 
                         viewname = f"{name} C{collected[name]}"
@@ -53,10 +59,11 @@ def timeline(component_key, feature_size_left, arciv, negotiator, DATAPATH, TERM
                     attempt = details[TERMS["Attempt"]] if details[TERMS["Attempt"]] else None
                     source = details[TERMS["Source"]] if details[TERMS["Source"]] else None
                     state = details[TERMS["State"]] if details[TERMS["State"]] else None
-                    # date = datetime.datetime(
+                    thedate = "20"+ date[0:2] + "-" + date[2:4] + "-" + date[4:6]
+                    # thedate = datetime.datetime(
                     #     int("20"+date[0:2]),
                     #     int(date[2:4]), 
-                    #     int(date[4:6]))
+                    #     int(date[4:6])).strftime("%Y-%m-%d")
                     # date = "20240202"
                     # print("here")
                     # print("20"+date, date)
@@ -71,7 +78,12 @@ def timeline(component_key, feature_size_left, arciv, negotiator, DATAPATH, TERM
                         TERMS["State"]: state
                     })
                     collected[name] += 1
-                time_dict.append({"id": f"{name}", "content":  f"{name}", "start": f"{fdate}", "title": f"{attempt}"})
+                # time_dict.append({"id": f"{name} {attempt}", "content":  f"{name}", "start": f"{fdate}"})
+                time_dict["date"].append(fdate)
+
+                time_dict["attempt"].append(attempt)
+                time_dict["name"].append(name)
+
                 # print(date)
             df = pd.DataFrame(rows)
 
@@ -100,15 +112,91 @@ def timeline(component_key, feature_size_left, arciv, negotiator, DATAPATH, TERM
         #     {"id": 5, "content": "2022-10-25", "start": "2022-10-25"},
         #     {"id": 6, "content": "2022-10-27", "start": "2022-10-27"},
         # ]
+        st.markdown("""
+            <style>
+            iframe[class^="stCustomComponentV1"], 
+                iframe[class*="stCustomComponentV1"] {
+                    background-color: #111111 !important; /* Din önskade bakgrund */
+    
+                }
+                
+                /* Target för containern runt om */
+                div.stCustomComponentV1 {
+                    background-color: #222222 !important;
+                    color: black;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+        # st.html("<style> .st-emotion-cache-1lf6j0f {background-color: #ffffff;}  </style>")
+        # timeline = st_timeline(data, groups=[], options={}, height="300px", key="timel")
+        # st.subheader("Selected item")
+        # st.write(timeline)
+        # Data
+        dates = pd.to_datetime(time_dict["date"])
+        names = time_dict["name"]
+        value = time_dict["attempt"]
+        # Exempeldata
+        data = {
+            'Datum': pd.to_datetime(['2025-01-10', '2025-01-15', '2025-02-05', '2025-02-20']),
+            'Objekt': ['Server A', 'Databas B', 'Server A', 'Webb C'],
+            'Värde': [15, 25, 10, 30]
+        }
+        df = pd.DataFrame(data)
 
-        timeline = st_timeline(data, groups=[], options={}, height="300px")
-        st.subheader("Selected item")
-        st.write(timeline)
-        # data = pd.DataFrame({
-        #     'date': ['2023-01-01', '2023-03-01', '2023-06-01', '2023-09-01'],
-        #     'event': ['Start', 'Milestone A', 'Milestone B', 'End'],
-        #     'y_pos': [0, 0, 0, 0] # All dots on the same y-position
-        # })
+        fig = go.Figure()
+
+        # print("dates", dates)
+        # print("names", names)
+        # print("value", value)
+        for i in range(len(dates)):
+            # print(dates[i], names[i], value[i])
+            # Rita "pinnen"
+            fig.add_trace(go.Scatter(
+                x=[dates[i], dates[i]],
+                y=[0, value[i]],
+                mode='lines',
+                line=dict(color="#27A82D", width=1),
+                hoverlabel=dict(
+                    bgcolor="rgba(0, 0, 0, 1)"
+                ),
+                showlegend=False
+            ))
+            # Rita "huvudet" (punkten)
+            fig.add_trace(go.Scatter(
+                x=[dates[i]],
+                y=[value[i]],
+                mode='markers+text',
+                hovertemplate=f"<b>{names[i]} - {value[i]}</b><br>{dates[i].strftime("%Y-%m-%d")}<extra></extra>",
+                marker=dict(color="blue", size=10, line=dict(color='MediumPurple', width=2)),
+                hoverlabel=dict(
+                    bgcolor="rgba(0, 0, 0, 0)"
+                ),
+                name=names[i],
+                showlegend=False
+            ))
+            # fig.add_annotation(
+            #     x=dates[i],
+            #     y=value[i],
+            #     text=names[i],
+            #     showarrow=False,
+            #     textangle=-90,
+            #     xanchor="center",
+            #     yanchor="bottom",
+            #     xshift=0,
+            #     yshift=0,
+            #     font=dict(color="white", size=11)
+            # )
+
+        fig.update_layout(
+            height=200,
+            margin=dict(l=0, r=00, t=0, b=0),
+            template="plotly_dark", # Anpassa efter ditt tema
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            
+        )
+
+        st.plotly_chart(fig, width="stretch")
 
         # # 2. Create the Altair Chart
         # chart = alt.Chart(data).mark_line(

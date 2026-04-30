@@ -1,7 +1,7 @@
 import streamlit as st
 
-def progress_meter(component_key, sub_keys, feature_size_left, arciv, negotiator, DATAPATH, TERMS, attempts): 
-    height, html_label, html_add10 = _feature_style(component_key, attempts)
+def progress_meter(component_key, sub_keys, feature_size_left, widget_color, highlight_textstyle, highlight_html, arciv, negotiator, DATAPATH, TERMS, attempts): 
+    height, html_label, html_add10 = _feature_style(component_key, attempts, widget_color)
 
     # Header
     with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
@@ -27,7 +27,8 @@ def progress_meter(component_key, sub_keys, feature_size_left, arciv, negotiator
             init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(TERMS, attempts, category, init_values, i)
 
             limit = attempts[category]["Limit"]
-            
+            # st.html("<style> .st-key-KEY_REF {padding: 0.7rem} </style>".replace("KEY_REF", sub_keys[i]))
+            # st.html("<style> .st-key-KEY_REF {margin: 0.5rem} </style>".replace("KEY_REF", add10_key))
             with st.container(key=sub_keys[i]):
             
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()
@@ -81,25 +82,26 @@ def progress_meter(component_key, sub_keys, feature_size_left, arciv, negotiator
                 # Apply and call save function
                 with col_apply:
                     if st.session_state[shared_key] != shared_init:
+                        st.html(highlight_html.replace("KEY_REF", button_key).replace("COLOR_REF", highlight_textstyle))
                         st.button(f"Save", key=button_key, type="primary", on_click=_update_progress, args=(arciv, negotiator, TERMS, DATAPATH, attempts, category, st.session_state[shared_key], TERMS["Attempt"]), width="stretch")
                     else:
                         st.button(f"Save", key=button_key, type="secondary", width="stretch")
         
         # Reset all values
-        _reset_key = f"reset_key"
+        reset_key = f"reset_key"
         col_apply = _column_style()[5]
         with col_apply:
             st.markdown("")
-            st.button(f"**:green[Reset]**", key=_reset_key, type="secondary", on_click=_reset, args=(attempts, init_values, i), width="stretch")
+            st.button(f"**:green[Reset]**", key=reset_key, type="secondary", on_click=_reset, args=(attempts, init_values, i), width="stretch")
         # st.markdown("")
         return height
 
 
-def _feature_style(component_key, attempts):
+def _feature_style(component_key, attempts, widget_color):
     height = 55 * (len(attempts.keys()) - 0) + 65
     st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
     html_label = "<style> .st-key-REF button {background-color: transparent; border: none;} </style>"
-    html_add10 = "<style> .st-key-REF button {background-color: #2b272f; border: none; padding-left: -0.9rem;} </style>"
+    html_add10 = "<style> .st-key-REF button {background-color: COLOR_REF; border: none; padding-left: -0.9rem;} </style>".replace("COLOR_REF", widget_color)
     return height, html_label, html_add10
 
 
