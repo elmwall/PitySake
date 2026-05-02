@@ -1,11 +1,20 @@
 import streamlit as st
 
-def progress_meter(component_key, sub_keys, feature_size_left, widget_color, highlight_textstyle, highlight_html, arciv, negotiator, DATAPATH, TERMS, attempts): 
-    height, html_label, html_add10 = _feature_style(component_key, attempts, widget_color)
+from .file_manager import Archivist
+from .data_access import Holder
 
+from settings.config import TERMS, DIRECTORIES, DATAPATH
+
+
+def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_color, highlight_textstyle, highlight_html): 
+    hold = Holder()
+    attempts = hold.load_progress_data()
+    
+    height, html_label, html_add10 = _feature_style(component_key, attempts, widget_color)
+    arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     # Header
     with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
-        st.markdown(f"##### *{TERMS["Attempt"]}meter*", text_alignment="left")
+        st.markdown(f"##### *{TERMS["attempt"]}meter*", text_alignment="left")
     with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height="stretch"):
         # Initiate keys for all widgets to-be-made and initiate their init value
         # It is run in a separate loop to avoid syncing delay or conflicts
@@ -14,7 +23,7 @@ def progress_meter(component_key, sub_keys, feature_size_left, widget_color, hig
             st.session_state["initated"] = False
         if not st.session_state["initated"]:
             for i, category in enumerate(attempts.keys()):
-                init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(TERMS, attempts, category, init_values, i)
+                init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(attempts, category, init_values, i)
                 st.session_state.setdefault(shared_key, shared_init)
                 st.session_state.setdefault(slider_key, shared_init)
                 st.session_state.setdefault(num_key, shared_init)
@@ -24,9 +33,9 @@ def progress_meter(component_key, sub_keys, feature_size_left, widget_color, hig
         init_values = list()
         for i, category in enumerate(attempts.keys()):
             # Define the active key
-            init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(TERMS, attempts, category, init_values, i)
+            init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(attempts, category, init_values, i)
 
-            limit = attempts[category]["Limit"]
+            limit = attempts[category]["limit"]
             # st.html("<style> .st-key-KEY_REF {padding: 0.7rem} </style>".replace("KEY_REF", sub_keys[i]))
             # st.html("<style> .st-key-KEY_REF {margin: 0.5rem} </style>".replace("KEY_REF", add10_key))
             with st.container(key=sub_keys[i]):
@@ -36,16 +45,16 @@ def progress_meter(component_key, sub_keys, feature_size_left, widget_color, hig
                     is_static = False
                     is_active = None
                     # Indication only when applicable
-                    if attempts[category]["State"]:
-                        if attempts[category]["State"] == TERMS["StateRand"]:
+                    if attempts[category][TERMS["state"]]:
+                        if attempts[category][TERMS["state"]] == TERMS["state_rand"]:
                             symbol = ["**%**"]
                             # is_active = None
-                            switch_to = TERMS["StateDet"]
+                            switch_to = TERMS["state_det"]
                         else:
                             symbol = ["**☆**"]
                             is_active = symbol
-                            switch_to = TERMS["StateRand"]
-                        state_values = (arciv, negotiator, TERMS, DATAPATH, attempts, category, switch_to, TERMS["State"])
+                            switch_to = TERMS["state_rand"]
+                        state_values = (arciv, hold, attempts, category, switch_to, TERMS["state"])
                     # Disable for static
                     else:
                         is_static = True
@@ -78,12 +87,11 @@ def progress_meter(component_key, sub_keys, feature_size_left, widget_color, hig
                 # Syncs to number input
                 with col_slider:
                     st.slider("Slider", min_value=0, max_value=limit, key=slider_key, on_change=_sync_from_slider, args=(i,), label_visibility="collapsed")
-
                 # Apply and call save function
                 with col_apply:
                     if st.session_state[shared_key] != shared_init:
                         st.html(highlight_html.replace("KEY_REF", button_key).replace("COLOR_REF", highlight_textstyle))
-                        st.button(f"Save", key=button_key, type="primary", on_click=_update_progress, args=(arciv, negotiator, TERMS, DATAPATH, attempts, category, st.session_state[shared_key], TERMS["Attempt"]), width="stretch")
+                        st.button(f"Save", key=button_key, type="primary", on_click=_update_progress, args=(arciv, hold, attempts, category, st.session_state[shared_key], TERMS["attempt"]), width="stretch")
                     else:
                         st.button(f"Save", key=button_key, type="secondary", width="stretch")
         
@@ -105,8 +113,8 @@ def _feature_style(component_key, attempts, widget_color):
     return height, html_label, html_add10
 
 
-def _initiate(TERMS, attempts, category, init_values, i):
-    init_values.append(attempts[category][TERMS["Attempt"]])
+def _initiate(attempts, category, init_values, i):
+    init_values.append(attempts[category][TERMS["attempt"]])
     label_key = f"label_{i}"
     state_key = f"state_{i}"
     slider_key = f"slider_{i}"
@@ -115,7 +123,7 @@ def _initiate(TERMS, attempts, category, init_values, i):
     button_key = f"but_{i}"
     add10_key = f"add10_{i}"
     
-    shared_init = attempts[category][TERMS["Attempt"]]
+    shared_init = attempts[category][TERMS["attempt"]]
     return init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key
 
 
@@ -141,11 +149,14 @@ def _column_style():
     return st.columns(proggroup_column_size, gap="xxsmall", vertical_alignment="center")
 
 
-def _update_progress(arciv, negotiator, TERMS, DATAPATH, attempts, category, value, option):
-    if option == TERMS["Attempt"]:
-        attempts[category][TERMS["Attempt"]] = value
-    elif option == TERMS["State"]:
-        attempts[category][TERMS["State"]] = value
+def _update_progress(arciv, hold, attempts, category, value, option):
+    if option == TERMS["attempt"]:
+        attempts[category][TERMS["attempt"]] = value
+    elif option == TERMS["state"]:
+        attempts[category][TERMS["state"]] = value
 
-    if arciv.backup(negotiator, [101, 47, 19, 7], "progress_data", other_file=DATAPATH["Progress"]):
-        arciv.writer(attempts, other_file=DATAPATH["Progress"], join_path="data")
+    arciv.catch_data(attempts, DATAPATH["progress"], TERMS["progress"])
+    if arciv.backup([101, 47, 19, 7, 3], TERMS["progress"], other_file=DATAPATH["progress"]):
+        arciv.writer(attempts, object_type=TERMS["progress"], other_file=DATAPATH["progress"], join_path="data")
+        hold.load_progress_data.clear()
+        

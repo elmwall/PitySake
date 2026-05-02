@@ -2,6 +2,11 @@ import time
 
 import streamlit as st
 
+from .file_manager import Archivist
+
+from settings.config import DIRECTORIES, DATAPATH
+
+
 def layout():
     st.set_page_config(page_title='PitySake', page_icon = "accessories/icon1.ico", layout="wide")
     st.markdown("<style> .block-container {padding: 2rem;}</style>", unsafe_allow_html=True)
@@ -45,7 +50,7 @@ def style(feature_keys, keylist_prog_calc, themes):
         x = prog_meter_keys.append(key)
         style_subcontainer = html_widget.replace("REF", key)
         st.html(style_subcontainer)
-    # Data viewer feature tables "ch_data", "tool_data", 
+    # Data viewer feature tables "ch_data", "utility_data", 
     table_style = [theme["background"], theme["main_container"]]
     highlight_html = "<style> .st-key-KEY_REF button {color: COLOR_REF} .st-key-KEY_REF p {font-size: 1.05rem; font-weight: 700;} </style>"
     highlight_color = theme["highlight_text"]
@@ -64,19 +69,10 @@ def style(feature_keys, keylist_prog_calc, themes):
 
 
 @st.dialog(f"Change theme", width="small")
-def theme(arciv, themes):
+def theme(themes):
+    arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     active_theme = themes["active"]
     _init(themes, active_theme)
-    # for cat, col in themes[active_theme].items():
-    #     if cat not in st.session_state.keys():
-    #         st.session_state[cat] = col
-    #     if not st.session_state[cat]:
-    #         st.session_state[cat] = col
-
-    # if cat not in st.session_state.keys():
-    #     st.session_state[cat] = col
-    # if not st.session_state[cat]:
-    #     st.session_state[cat] = col
 
     st.write(f"Select theme")
     col_left, col_right = st.columns([0.6, 0.4])
