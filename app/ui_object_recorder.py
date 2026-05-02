@@ -1,114 +1,17 @@
 import streamlit as st
 import datetime
 
+from .file_manager import Archivist
+from .object_info_manager import Secretary
 
-class Secretary:
-    def __init__(self, arciv, negotiator, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys):
-        """
-        Collection of all tools needed for accessing files and data necessary for editing object library.
-        """
+from settings.config import TERMS, DIRECTORIES, DATAPATH
 
-        self.arciv = arciv
-        self.nestor = negotiator
-        self.paths = DATAPATH
-        self.terms = TERMS
-        self.options = data_options
-        self.attempts = attempts
-        self.key = component_key
-        self.subkeys = sub_keys
-    
-    def _initiate(self):
-        presets = {
-            "tool": None,
-            "attribute": None,
-            "origin": None,
-            "name": None,
-            "type": "Character",
-            "state": self.options["State alternatives"][0],
-            "source": self.terms["Temp"],
-            "attempt": self.attempts[f"Character {self.terms["Temp"]}"][self.terms["Attempt"]],
-            "date": datetime.date.today()
-        }
-        return presets
-
-    def _settings(self, data_type):
-        object_database = self._collect_database(data_type)
-        options_tool = self.options[self.terms["Character"]][self.terms["Tool"]]
-        options_object = object_database.keys()
-        options_attribute = self.options[self.terms["Character"]][self.terms["Attribute"]]
-        options_origin = self.options[self.terms["Character"]][self.terms["Origin"]]
-        options_type = ["Character", self.terms["Tool"]]
-        options_source = self.options["Source"]
-        
-        options_reg = dict()
-        add_new, options_reg[add_new] = "Add completely new", [False, False, False]
-        add_event, options_reg[add_event] = f"New {self.terms["Event"].lower()} of old", [True, False, False]
-        del_entry, options_reg[del_entry] = "Delete entry", [False, True, False]
-        edit_entry, options_reg[edit_entry] = "Edit details", [False, False, True]
-        del_event, options_reg[del_event] = f"Delete {self.terms["Event"].lower()}", [True, False, False]
-
-        return object_database, options_tool, options_object, options_attribute, options_origin, options_type, options_source, options_reg 
-    
-    def _collect_object_info(self, object_database, reg_setting, options_reg):
-        # Predefined settings collected from object details in library
-        name, data_type = st.session_state["name"], st.session_state["type"]
-        if name not in object_database.keys():
-            pass
-        elif name and not reg_setting == list(options_reg.keys())[0]:
-            settings = object_database[name]
-            if data_type == "Character":
-                st.session_state["tool"] = settings[self.terms["Tool"]]
-                st.session_state["attribute"] = settings[self.terms["Attribute"]]
-                st.session_state["origin"] = settings[self.terms["Origin"]]
-            else:
-                st.session_state["tool"] = settings["Type"]
-
-    def _collect_database(self, set_type):
-        if set_type == "Character":
-            data_reference = self.terms["Character"]
-        else:
-            data_reference = set_type
-        datafile = self.paths[data_reference]
-        object_database = self.arciv.reader(datafile, join_path="data")
-        return object_database
-    
-    @st.dialog(f"Editing library entry")
-    def _rename(self, name, object_type, new_data, reg_setting, highlight_textstyle, highlight_html):
-        st.write(f"You are editing {name}")
-        new_name = name
-        keep_name = st.checkbox("Keep previous name", value=True)
-        name_update = st.text_input("Rename", placeholder="Enter name", disabled=keep_name, label_visibility="collapsed")
-        if not name_update and not keep_name:
-            not_updated, appearance, new_name = True, "secondary", None
-        elif keep_name:
-            st.html(highlight_html.replace("KEY_REF", "rename").replace("COLOR_REF", highlight_textstyle))
-            not_updated, appearance, new_name = False, "primary", name
-        else:
-            st.html(highlight_html.replace("COLOR_REF", highlight_textstyle))
-            not_updated, appearance, new_name = False, "primary", name_update
-        if st.button("Confirm", key="rename", type=appearance, disabled=not_updated):
-            self._update_object(name, object_type, new_data, reg_setting, new_name.title())
-            # Reload the update the list of objects and auto-close dialog box
-            st.rerun()
-
-    def _update_object(self, name, object_type, new_data, edit_setting, new_name):
-        is_static, for_deletion, for_renaming = edit_setting
-        # Rename truth-check also carries new name, define as new_name from _rename
-        if for_renaming: for_renaming = new_name
-        datafile = self.paths[object_type]
-        backup_frequency = [101, 31, 11, 2]
-        if self.arciv.backup(self.nestor, backup_frequency, object_type[:6]+"_data"): 
-            updated_library, action_verification = self.arciv.join_data(new_data, name, for_deletion, for_renaming, other_file=datafile, join_path="data", need_sorting=True, is_static=is_static)
-        if updated_library:
-            self.arciv.writer(updated_library, other_file=datafile, join_path="data")
-            print(f"\nLibrary updated, {action_verification}!\n")
-            # Reload the update the list of objects
-            st.rerun()
     
 
-def register_object(component_key, sub_keys, feature_size_left, highlight_textstyle, highlight_html, arciv, negotiator, DIRECTORIES, DATAPATH, data_options, TERMS, attempts):
+def register_object(data_options, attempts, component_key, sub_keys, feature_size_left, highlight_textstyle, highlight_html):
     _feature_style(component_key)
-    secretary = Secretary(arciv, negotiator, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys)
+    arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
+    secretary = Secretary(arciv, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys)
 
     # Header
     with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
@@ -116,7 +19,7 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_textst
     # Main container
     with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height="stretch"):
         # Collect presets and initiate session states
-        presets = secretary._initiate()
+        presets = secretary.initiate()
         for x, y in presets.items():
             if x not in st.session_state:
                 st.session_state[x] = y
@@ -124,7 +27,7 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_textst
                 st.session_state[x] = y
 
         # Define all initial features settings, options and limits
-        object_database, options_tool, options_object, options_attribute, options_origin, options_type, options_source, options_reg = secretary._settings(st.session_state["type"])
+        object_database, options_utility, options_object, options_attribute, options_origin, options_type, options_source, options_reg = secretary.settings(st.session_state["type"])
         disable_extras = False
 
         # Build widgets
@@ -155,7 +58,7 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_textst
                         options_object, index=None, 
                         placeholder=f"Select {st.session_state["type"].lower()}", 
                         key="name", 
-                        on_change=secretary._collect_object_info, 
+                        on_change=secretary.collect_object_info, 
                         args=(object_database, reg_setting, options_reg), 
                         label_visibility="collapsed"
                     )
@@ -163,24 +66,24 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_textst
                 type_selected = st.pills(
                     "Object type", options_type, key="type", label_visibility="collapsed"
                 )
-                disable_extras = type_selected == TERMS["Tool"]
+                disable_extras = type_selected == TERMS["utility"]
             
-            # Object details - "tool" utilitarian object disables extras i.e. "attribute" and "origin"
+            # Object details - "utility" utilitarian object disables extras i.e. "attribute" and "origin"
             with st.container(border=True, key=sub_keys[1], width="stretch", height=pill_group_height, vertical_alignment="center"):
                 col_label, col_options = _style_selector()
-                col_label.markdown(TERMS["Tool"])
+                col_label.markdown(TERMS["utility"])
                 col_options.pills(
-                    "Tool", 
-                    options=options_tool, 
-                    key="tool", 
+                    "utility", 
+                    options=options_utility, 
+                    key="utility", 
                     label_visibility="collapsed", 
                     width="stretch"
                 )  
             with st.container(border=True, key=sub_keys[2], width="stretch", height=pill_group_height, vertical_alignment="center"):
                 col_label, col_options = _style_selector()
-                col_label.markdown(TERMS["Attribute"])
+                col_label.markdown(TERMS["attribute"])
                 col_options.pills(
-                    "Attribute", 
+                    "attribute", 
                     options_attribute, 
                     key="attribute", 
                     disabled=disable_extras, 
@@ -189,16 +92,16 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_textst
                 )
             with st.container(border=True, key=sub_keys[3], width="stretch", height=pill_group_height, vertical_alignment="center"):
                 col_label, col_options = _style_selector()
-                col_label.markdown(TERMS["Origin"])
+                col_label.markdown(TERMS["origin"])
                 col_options.pills(
-                    "Origin", 
+                    "origin", 
                     options_origin, 
                     key="origin", 
                     disabled=disable_extras, 
                     label_visibility="collapsed", 
                     width="stretch"
                 )
-
+        
         with col_save_and_event:
             # Save button - validate, compile and save
             # 1. Collect state values
@@ -209,56 +112,58 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_textst
                 values["date"] = st.session_state["date"]
             else:
                 values["date"] = st.session_state["date"].strftime("%y%m%d")
-            if st.session_state["source"] in [TERMS["Standard source"], TERMS["Gift"]]: values["state"] = None
-            if st.session_state["source"] == TERMS["Gift"]: values["attempt"] = None
-            object_database = secretary._collect_database(st.session_state["type"])
+            if st.session_state["source"] in [TERMS["common_source"], TERMS["gift"]]: values["state"] = None
+            if st.session_state["source"] == TERMS["gift"]: values["attempt"] = None
+            object_database = secretary.collect_database(st.session_state["type"])
 
             # 2. Checks for proper data setup
             object_testvalue, event_testvalue, old_event_data = [None]*3
             if st.session_state["name"]: object_testvalue = st.session_state["name"].title() in object_database.keys()
             if st.session_state["name"]: 
-                if st.session_state["name"] in object_database.keys() and TERMS["Event"] in object_database[st.session_state["name"]].keys():
-                    event_testvalue = len(object_database[st.session_state["name"]][TERMS["Event"]])
-                    old_event_data = object_database[st.session_state["name"]][TERMS["Event"]]
-            data_is_valid, save_button_msg, is_tool = _data_validation(TERMS, options_reg, values, st.session_state["regset"], object_testvalue, event_testvalue)
+                if st.session_state["name"] in object_database.keys() and TERMS["event"] in object_database[st.session_state["name"]].keys():
+                    event_testvalue = len(object_database[st.session_state["name"]][TERMS["event"]])
+                    old_event_data = object_database[st.session_state["name"]][TERMS["event"]]
+            data_is_valid, save_button_msg, is_utility = _data_validation(options_reg, values, st.session_state["regset"], object_testvalue, event_testvalue)
 
             # 3. Compile the data on press IF all data present, else disable button
-            data_is_collected, name, new_data, new_event, event_date = _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool, highlight_textstyle, highlight_html)
+            data_is_collected, name, new_data, new_event, event_date = _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_textstyle, highlight_html)
             if data_is_collected: 
-                object_type = TERMS[f"CLI{st.session_state["type"]}"]
-                new_data = _adjust_event_data(TERMS, name, new_data, options_reg, old_event_data, new_event, event_date)
+                object_type = st.session_state["type"]
+                new_data = _adjust_event_data(name, new_data, options_reg, old_event_data, new_event, event_date)
 
                 # 4. Save the data. For editing data, ask for renaming in dialog box
                 if st.session_state["regset"] == list(options_reg.keys())[3]:
                     secretary._rename(name, object_type, new_data, options_reg[reg_setting], highlight_textstyle, highlight_html)
                 else:
-                    secretary._update_object(name, object_type, new_data, options_reg[reg_setting], None)
+                    if "Delete" in reg_setting:
+                        _user_confirm(secretary, name, object_type, new_data, options_reg[reg_setting], reg_setting, values["date"])
+                    else:
+                        secretary.update_object(name, object_type, new_data, options_reg[reg_setting], None)
 
             # Info about how and when object was collected
             # Date collector/viewer
             options_dates = list()
             if st.session_state["regset"] == list(options_reg.keys())[4] and st.session_state["name"]: 
-                options_dates = object_database[st.session_state["name"]][TERMS["Event"]].keys()
+                options_dates = object_database[st.session_state["name"]][TERMS["event"]].keys()
             # else:
             #     options_dates = None
             _date_viewer(data_options, options_reg, options_dates)
-            
-            # Source selector
+
+            # source selector
             st.selectbox(
-                f"{TERMS["Source"]}", 
+                f"{TERMS["source"]}", 
                 options_source, 
                 index=0, 
                 key="source", 
                 on_change=_update_source_state, 
-                args=(TERMS, attempts, st.session_state["type"]), 
+                args=(attempts, st.session_state["type"]), 
                 label_visibility="visible"
             )
-
-            # State selector
-            source = _translate_source(TERMS, st.session_state["type"], st.session_state["source"])
-            options_state = data_options["State alternatives"]
+            # state selector
+            source = _translate_source(st.session_state["type"], st.session_state["source"])
+            options_state = data_options["state_alternatives"]
             single_state = False
-            if st.session_state["source"] in [TERMS["Standard source"], TERMS["Gift"]]: single_state = True
+            if st.session_state["source"] in [TERMS["common_source"], TERMS["gift"]]: single_state = True
             st.selectbox(
                 "Success", 
                 options_state, 
@@ -269,13 +174,17 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_textst
                 label_visibility="collapsed"
             )
 
-            # Attempt input - attempt and limit autogenerated from progress data
-            if not source == TERMS["Gift"]:  
-                limit = attempts[source]["Limit"]
-                st.number_input(f"{TERMS["Attempt"]}", min_value=0, max_value=limit, key="attempt")
+            # attempt input - attempt and limit autogenerated from progress data
+            if not source == TERMS["gift"]:  
+                limit = attempts[source]["limit"]
+                st.number_input(f"{TERMS["attempt"]}", min_value=0, max_value=limit, key="attempt")
             else:
                 limit = 0
-                st.number_input(f"{TERMS["Attempt"]}", min_value=0, max_value=limit, key="attempt", disabled=True)
+                st.number_input(f"{TERMS["attempt"]}", min_value=0, max_value=limit, key="attempt", disabled=True)
+
+            # Change options
+            st.button("Edit options", key="edit_options", on_click=secretary.edit_options, type="secondary", width="stretch")
+            
                 
 
 def _feature_style(component_key):
@@ -290,7 +199,7 @@ def _style_target():
 
 def _date_viewer(data_options, options_reg, options_dates):
     # Preset earliest date defined in options file, and latest as today
-    date_min = data_options["Value limits"]["Date"][0]
+    date_min = data_options["value_limits"]["date"][0]
     date_min = datetime.datetime(
         int("20"+date_min[0:2]),
         int(date_min[2:4]), 
@@ -322,22 +231,22 @@ def _date_viewer(data_options, options_reg, options_dates):
         )    
 
 
-def _update_source_state(TERMS, attempts, data_type):
-    source = _translate_source(TERMS, data_type, st.session_state["source"])
-    if not source == TERMS["Gift"]: 
-        st.session_state["attempt"] = attempts[source][TERMS["Attempt"]]
+def _update_source_state(attempts, data_type):
+    source = _translate_source(data_type, st.session_state["source"])
+    if not source == TERMS["gift"]: 
+        st.session_state["attempt"] = attempts[source][TERMS["attempt"]]
     else:
         st.session_state["attempt"] = None
 # Convert source name to collect correct attempt data
-def _translate_source(TERMS, data_type, source):
-    if source == TERMS["Temp"]:
-        source = f"Character {source}" if data_type == "Character" else f"{TERMS["Tool"]} {source}"
-    elif source == TERMS["Standard source"]:
+def _translate_source(data_type, source):
+    if source == TERMS["temp"]:
+        source = f"{TERMS["main"]} {source}" if data_type == TERMS["main"] else f"{TERMS["utility"]} {source}"
+    elif source == TERMS["common_source"]:
         st.session_state["state"] = None
     return source
 
 
-def _data_validation(TERMS, options_reg, values, reg_setting, object_testvalue, event_testvalue):
+def _data_validation(options_reg, values, reg_setting, object_testvalue, event_testvalue):
     # Checks for proper data setup
     # Adjust validity check and "save"-button message for clarity
     # "Already in library" - to avoid losing data objects shall not be added more than once
@@ -348,49 +257,49 @@ def _data_validation(TERMS, options_reg, values, reg_setting, object_testvalue, 
         data_is_valid, save_button_msg = True, f"Delete {st.session_state["type"]}"
     # "Delete object event" - removing collection info of object at date
     elif reg_setting == list(options_reg.keys())[4]:
-        save_button_msg = f"Delete {TERMS["Event"]}"
+        save_button_msg = f"Delete {TERMS["event"]}"
         # Do not attempt if event data is empty - should only occur after previous deletion
         data_is_valid = True if event_testvalue else False
     # "Save" - use case for adding new object or editing without deletion
     else:
         data_is_valid, save_button_msg = True, "Save"
     # Main type of object or utilitarian object
-    is_tool = values["type"] == TERMS["Tool"]
+    is_utility = values["type"] == TERMS["utility"]
 
-    return data_is_valid, save_button_msg, is_tool
+    return data_is_valid, save_button_msg, is_utility
 
 
-def _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool, highlight_textstyle, highlight_html):
+def _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_textstyle, highlight_html):
     # Mark tasks as finished
-    name_done, tool_done, attribute_done, origin_done, state_done = [False]*5
+    name_done, utility_done, attribute_done, origin_done, state_done = [False]*5
     if data_is_valid:
-        disable_extras = values["type"] == TERMS["Tool"]
+        disable_extras = values["type"] == TERMS["utility"]
         if values["name"]: name_done = True
-        if values["tool"]: tool_done = True
+        if values["utility"]: utility_done = True
         if not disable_extras:
             if values["attribute"]: attribute_done = True
             if values["origin"]: origin_done = True
         else:
             attribute_done, origin_done = True, True
         if not values["state"]:
-            if values["source"] == TERMS["Standard source"] or values["source"] == TERMS["Gift"]: state_done = True
+            if values["source"] == TERMS["common_source"] or values["source"] == TERMS["gift"]: state_done = True
         else:
             state_done = True
     # When finished, build data dictionary
-    if all([name_done, tool_done, attribute_done, origin_done, state_done]):
+    if all([name_done, utility_done, attribute_done, origin_done, state_done]):
         name = values["name"].title()
         new_data = dict()
         new_data[name] = dict()
-        if not is_tool:
-            new_data[name][TERMS["Origin"]] = values["origin"]
-            new_data[name][TERMS["Attribute"]] = values["attribute"]
-            new_data[name][TERMS["Tool"]] = values["tool"]
+        if not is_utility:
+            new_data[name][TERMS["origin"]] = values["origin"]
+            new_data[name][TERMS["attribute"]] = values["attribute"]
+            new_data[name][TERMS["utility"]] = values["utility"]
         else:
-            new_data[name]["Type"] = values["tool"]
+            new_data[name]["Type"] = values["utility"]
         attempt_data = {
-            TERMS["Source"]: values["source"],
-            TERMS["Attempt"]: values["attempt"],
-            "State": values["state"]
+            TERMS["source"]: values["source"],
+            TERMS["attempt"]: values["attempt"],
+            "state": values["state"]
         }
         st.html(highlight_html.replace("KEY_REF", "save").replace("COLOR_REF", highlight_textstyle))
         data_is_collected = st.button(f"{save_button_msg}", key="save", type="primary", width="stretch")
@@ -400,28 +309,35 @@ def _compile_data(TERMS, values, data_is_valid, save_button_msg, is_tool, highli
         return False, None, None, None, None
 
 
-def _adjust_event_data(TERMS, name, new_data, options_reg, old_event_data, new_event, event_date):
+def _adjust_event_data(name, new_data, options_reg, old_event_data, new_event, event_date):
     if st.session_state["regset"] == list(options_reg.keys())[3]:
-        new_data[name][TERMS["Event"]] = old_event_data
+        new_data[name][TERMS["event"]] = old_event_data
     elif st.session_state["regset"] in [list(options_reg.keys())[0], list(options_reg.keys())[1], list(options_reg.keys())[4]]:
         event_data = dict() if st.session_state["regset"] == list(options_reg.keys())[0] else old_event_data
         if st.session_state["regset"] != list(options_reg.keys())[4]: 
             now = datetime.datetime.now()
             hhmm = now.strftime("%H%M")
             event_data[f"{event_date}-{hhmm}"] = new_event
-            # event_data[f"{event_date}-new"] = new_event
         else:
             event_data.pop(event_date)
-        # adjusted_data = dict()
         if len(event_data) > 0: 
             event_data = dict(sorted(event_data.items()))
-        # n = 0
-        # for x, y in event_data.items():
-        #     adjusted_data[f"{x[:6]}-{n}"] = y
-        #     n += 1
-        new_data[name][TERMS["Event"]] = event_data
-        print(new_data)
+        new_data[name][TERMS["event"]] = event_data
     
     return new_data
+
+
+@st.dialog(f"Removing object data")
+def _user_confirm(secretary, name, object_type, new_data, edit_settings, removal_object, removal_date):
+    if removal_object == "Delete entry":
+        st.markdown(f"Remove {name} from library?")
+    elif removal_object == f"Delete {TERMS["event"].lower()}":
+        st.markdown(f"Remove {TERMS["event"].lower()} of {name} at 20{removal_date[:2]}-{removal_date[2:4]}-{removal_date[4:6]}?")
+    st.space("xsmall")
+    col_left, col_right = st.columns(2)
+    if col_left.button("Confirm", type="secondary", width="stretch"):
+        secretary.update_object(name, object_type, new_data, edit_settings, None)
+    if col_right.button("Cancel", type="secondary", width="stretch"):
+        st.rerun()
 
 
