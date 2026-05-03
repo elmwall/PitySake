@@ -11,6 +11,7 @@ def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_
     attempts = hold.load_progress_data()
     
     height, html_label, html_add10 = _feature_style(component_key, attempts, widget_color)
+    # st.space(64)
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     # Header
     with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
@@ -32,6 +33,7 @@ def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_
         # Generate a widget for every category in file
         init_values = list()
         for i, category in enumerate(attempts.keys()):
+            st.space("xxsmall")
             # Define the active key
             init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(attempts, category, init_values, i)
 

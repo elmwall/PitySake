@@ -10,7 +10,7 @@ def calculator(limit, component_key, height, highlight_textstyle, highlight_html
         curr_valid, prev_valid, msg, tip_last, tip_prev = _validation(limit)
         st.markdown("")
         # Input field, UI structured as left for latest and right for previous
-        with st.container(horizontal_alignment="center",):
+        with st.container(horizontal_alignment="center"):
             num_columns = [3, 7, 7]
             num_width = 250
             # Group labels

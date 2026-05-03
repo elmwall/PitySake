@@ -1,7 +1,7 @@
 import streamlit as st
 
 from .file_manager import Archivist
-from settings.config import TERMS, DIRECTORIES, DATAPATH
+from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
 
 
 arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
@@ -24,6 +24,11 @@ class Holder:
     def load_progress_data(_self):
         datafile = DATAPATH["progress"]
         return arciv.reader(datafile, join_path="data")
+    
+    @st.cache_data
+    def load_options(_self):
+        options_file = SETTINGS["Options"]
+        return arciv.reader(other_file=options_file, join_path="settings")
 
 
 # @st.cache_data

@@ -2,6 +2,7 @@ import datetime
 import streamlit as st
 
 from .data_access import Holder
+from settings.config import SETTINGS
 
 
 class Secretary:
@@ -32,6 +33,7 @@ class Secretary:
             "attempt": self.attempts[f"{self.terms["main"]} {self.terms["temp"]}"][self.terms["attempt"]],
             "date": datetime.date.today()
         }
+        
         return presets
 
 
@@ -105,7 +107,7 @@ class Secretary:
         datafile = self.paths[object_type]
         backup_frequency = [101, 31, 11, 2]
         if self.arciv.backup(backup_frequency, object_type, other_file=datafile): 
-            updated_library, action_verification = self.arciv.join_data(new_data, name, object_type, for_deletion, for_renaming, other_file=datafile, join_path="data", need_sorting=True, is_static=is_static)
+            updated_library, action_verification = self.arciv.join_data(new_data, name, for_deletion, for_renaming, other_file=datafile, join_path="data", need_sorting=True, is_static=is_static)
         else:
             self.arciv.catch_data(new_data, datafile, object_type, name, for_deletion, for_renaming, join_path="data", need_sorting=True, is_static=is_static)
         if updated_library:
@@ -120,99 +122,143 @@ class Secretary:
 
     @st.dialog("Edit options")
     def edit_options(self):
+        col_main, col_p = st.columns([1, 0.01])
+        col_1, col_2, col_3, col_4, col_5 = st.columns([2, 3, 3, 3, 2])
+        for x in ["new_option", "new_state", "new_limit"]:
+            if x not in st.session_state.keys(): st.session_state[x] = None
         if "edited_options" not in st.session_state.keys():
             st.session_state["edited_options"] = list()
-        with st.container(border=False, height=500):
-            changed_options = self.options     ############## TODO create cache
-            changed_progress = self.attempts
-            edit_utility = self.terms["utility"]
-            edit_attribute = self.terms["attribute"]
-            edit_origin = self.terms["origin"]
-            edit_source = self.terms["source"]
-            change_limits = f"{self.terms["attempt"]} limits"
-            edit_alternatives = [edit_utility, edit_attribute, edit_origin, edit_source, change_limits]
+        with col_main:
+            with st.container(border=False, height=310):
+                changed_options = self.hold.load_options()     ############## TODO create cache
+                changed_progress = self.attempts
+                edit_utility = self.terms["utility"]
+                edit_attribute = self.terms["attribute"]
+                edit_origin = self.terms["origin"]
+                edit_source = self.terms["source"]
+                change_limits = f"{self.terms["attempt"]} limits"
+                edit_alternatives = [edit_utility, edit_attribute, edit_origin, edit_source, change_limits]
 
-            selection = st.selectbox("Select option to edit", options=edit_alternatives, key="options_to_edit")
+                selection = st.selectbox("Select option to edit", options=edit_alternatives, key="options_to_edit")
 
-            if selection in [edit_utility, edit_attribute, edit_origin, edit_source]: 
-                if selection == edit_utility: 
-                    requirements = self.options[f"{self.terms["utility"]}_required"]["Type"]
-                    remove_options = [x for x in self.options[self.terms["utility"]]["Type"] if x not in requirements]
-                elif selection == edit_attribute:
-                    requirements = self.options[f"{self.terms["main"]}_required"][self.terms["attribute"]]
-                    remove_options = [x for x in self.options[self.terms["main"]][self.terms["attribute"]] if x not in requirements]
-                elif selection == edit_origin:
-                    requirements = self.options[f"{self.terms["main"]}_required"][self.terms["origin"]]
-                    remove_options = [x for x in self.options[self.terms["main"]][self.terms["origin"]] if x not in requirements]
-                elif selection == edit_source:
-                    requirements = self.options["source_required"]
-                    remove_options = [x for x in self.options["source"] if x not in requirements]
-                no_options = len(remove_options) < 1
-                    
-
-                if st.checkbox("Remove option to remove", value=False, key="remove_option"):
-                    st.selectbox("Select option", options=remove_options, key="select_removal", disabled=no_options)
-                    if no_options: st.markdown("No removable options")
-                else:
-                    if selection in [edit_utility, edit_attribute, edit_origin]:
-                        new_option = st.text_input("Enter name for new option. Mind spelling and capitalized letters.")
-                        not_valid = len(new_option) < 2
-                        if st.button("Confirm", disabled=not_valid): 
-                            changed_options = self.options 
-                            changed_progress = self.attempts
-                            changed_options[self.terms["main"]][selection].append(new_option)
-                            if selection == edit_utility:
-                                changed_options[self.terms["utility"]]["Type"].append(new_option)
-                            st.session_state["edited_options"].append(selection)
+                if selection in [edit_utility, edit_attribute, edit_origin, edit_source]: 
+                    if selection == edit_utility: 
+                        requirements = self.options[f"{self.terms["utility"]}_required"]["Type"]
+                        remove_options = [x for x in self.options[self.terms["utility"]]["Type"] if x not in requirements]
+                    elif selection == edit_attribute:
+                        requirements = self.options[f"{self.terms["main"]}_required"][self.terms["attribute"]]
+                        remove_options = [x for x in self.options[self.terms["main"]][self.terms["attribute"]] if x not in requirements]
+                    elif selection == edit_origin:
+                        requirements = self.options[f"{self.terms["main"]}_required"][self.terms["origin"]]
+                        remove_options = [x for x in self.options[self.terms["main"]][self.terms["origin"]] if x not in requirements]
                     elif selection == edit_source:
-                        new_option, new_limit, new_state = [None]*3
-                        new_option = st.text_input(f"Enter name for new {self.terms["source"]}. Mind spelling.").capitalize()
-                        col_left, col_right = st.columns(2)
-                        new_limit = col_left.number_input(f"Enter new max value.", min_value=0)
-                        state_options = [f"{self.terms["state_rand"]}", "Constant"]
-                        selected_state = col_right.selectbox("Set state options", options=state_options)
-                        new_state = None if selected_state == "Constant" else f"{self.terms["state_rand"]}"
-                        not_valid = not all([len(new_option) > 1, new_limit > 0])
-                        if st.button("Confirm", disabled=not_valid):
-                            changed_options["source"].append(new_option)
-                            changed_options["limit"] = {f"{new_option}": new_limit}
-                            changed_progress[new_option] = {
-                                f"{self.terms["attempt"]}": 0,                                
-                                f"{self.terms["state"]}": new_state,
-                                "limit": new_limit,                             
-                            }
-                            st.session_state["edited_options"].append(selection)
-            elif selection == change_limits:
-                limit_options = self.options["limit"]
-                limit_cat = st.selectbox("Select category to change", options=limit_options.keys())
-                if type(limit_options[limit_cat]) is dict:
-                    limit_subcat_options = limit_options[limit_cat].keys()
-                    no_sub = False
-                else:
-                    limit_subcat_options = None
-                    no_sub = True
-                
-                limit_subcat = st.selectbox("Select subcategory", options=limit_subcat_options, disabled=no_sub)
-                current_value = limit_options[limit_cat] if no_sub else limit_options[limit_cat][limit_subcat]
-                new_limit = st.number_input(f"Enter new max value. Current value: {current_value}", min_value=0)
-                not_valid = new_limit < 1
-                if st.button("Confirm", disabled=not_valid):
-                    if no_sub:
-                        changed_options["limit"][limit_cat] = new_limit
-                        changed_progress[limit_cat]["limit"] = new_limit
-                    else:
-                        changed_options["limit"][limit_cat][limit_subcat] = new_limit
-                        changed_progress[f"{limit_cat} {limit_subcat}"]["limit"] = new_limit
-                    st.session_state["edited_options"].append(selection)
-            
-            edited_str = str()
-            for x in st.session_state["edited_options"]:
-                edited_str += f"{x} "
-            if len(edited_str) > 0: st.markdown(f"Changes made in: {edited_str}")
+                        requirements = self.options["source_required"]
+                        remove_options = [x for x in self.options["source"] if x not in requirements]
+                    no_options = len(remove_options) < 1
+                        
 
-            with st.container(height=200):
-                st.json(changed_options)
-            with st.container(height=200):
-                st.json(changed_progress)
+                    if st.checkbox("Remove option", value=False, key="remove_option"):
+                        st.selectbox("Select option", options=remove_options, key="select_removal", disabled=no_options)
+                        if no_options: st.markdown("No removable options")
+                    else:
+                        if selection in [edit_utility, edit_attribute, edit_origin]:
+                            st.text_input("Enter name for new option. Mind spelling and capitalized letters.", key="new_option")
+                            if st.session_state["new_option"]:
+                                not_valid = len(st.session_state["new_option"]) < 2
+                            else:
+                                not_valid = True
+                            if col_2.button("Confirm", disabled=not_valid, width="stretch"): 
+                                changed_options[self.terms["main"]][selection].append(st.session_state["new_option"])
+                                if selection == edit_utility:
+                                    changed_options[self.terms["utility"]]["Type"].append(st.session_state["new_option"])
+                                st.session_state["edited_options"].append(selection)
+                        elif selection == edit_source:
+                            st.text_input(f"Enter name for new {self.terms["source"]}. Mind spelling.", key="new_option").capitalize()
+                            col_left, col_right = st.columns(2)
+                            new_limit = col_left.number_input(f"Enter new max value.", min_value=0)
+                            state_options = [f"{self.terms["state_rand"]}", "Constant"]
+                            selected_state = col_right.selectbox("Set state options", options=state_options)
+                            new_state = None if selected_state == "Constant" else f"{self.terms["state_rand"]}"
+                            if st.session_state["new_option"]:
+                                not_valid = not all([len(st.session_state["new_option"]) > 1, new_limit > 0])
+                            else:
+                                not_valid = True
+                            if col_2.button("Confirm", disabled=not_valid, width="stretch"):
+                                changed_options["source"].append(st.session_state["new_option"])
+                                changed_options["limit"] = {f"{st.session_state["new_option"]}": new_limit}
+                                changed_progress[st.session_state["new_option"]] = {
+                                    f"{self.terms["attempt"]}": 0,                                
+                                    f"{self.terms["state"]}": new_state,
+                                    "limit": new_limit,                             
+                                }
+                                st.session_state["edited_options"].append(selection)
+                elif selection == change_limits:
+                    limit_options = self.options["limit"]
+                    limit_cat = st.selectbox("Select category to change", options=limit_options.keys())
+                    if type(limit_options[limit_cat]) is dict:
+                        limit_subcat_options = limit_options[limit_cat].keys()
+                        no_sub = False
+                    else:
+                        limit_subcat_options = None
+                        no_sub = True
+                    
+                    limit_subcat = st.selectbox("Select subcategory", options=limit_subcat_options, disabled=no_sub)
+                    current_value = limit_options[limit_cat] if no_sub else limit_options[limit_cat][limit_subcat]
+                    new_limit = st.number_input(f"Enter new max value. Current value: {current_value}", min_value=0)
+                    not_valid = new_limit < 1
+                    if col_2.button("Confirm", disabled=not_valid, width="stretch"):
+                        if no_sub:
+                            changed_options["limit"][limit_cat] = new_limit
+                            changed_progress[limit_cat]["limit"] = new_limit
+                        else:
+                            changed_options["limit"][limit_cat][limit_subcat] = new_limit
+                            changed_progress[f"{limit_cat} {limit_subcat}"]["limit"] = new_limit
+                        st.session_state["edited_options"].append(selection)
+                
+            
+            no_changes = False
+            if col_3.button("Reset", disabled=no_changes, on_click=self._reset_changes, width="stretch"):
+                changed_options = self.hold.load_options()
+                st.session_state["edited_options"] = list()
+            edited_str = str()
+
+        not_complete = True
+        if col_4.button("Save", disabled=not_complete, width="stretch"):
+            self.arciv.catch_data(changed_options, SETTINGS["Options"], "options")
+            if self.arciv.backup([7, 5, 3, 1], "options", other_file=SETTINGS["Options"]): 
+                self.arciv.writer(changed_options, other_file=SETTINGS["Options"], join_path="data")
+
+        for x in st.session_state["edited_options"]:
+            edited_str += f"{x} "
+        if len(edited_str) > 0: 
+            st.markdown(f"Changes made in: {edited_str}")
+        else:
+            st.markdown("No changes")
+        
+        print("\n registered")
+        print("editede", st.session_state["edited_options"])
+        try:
+            print(new_limit)
+        except:
+            print("no new_limit")
+        try:
+            print(st.session_state["new_option"])
+        except:
+            print("no new_option")
+        try:
+            print(new_state)
+        except:
+            print("no new_state")
+
+        with st.container(height=150):
+            st.json(changed_options)
+        with st.container(height=150):
+            st.json(changed_progress)
+
+
+    def _reset_changes(self):
+        for x in ["new_option", "new_state", "new_limit"]:
+            st.session_state[x] = None
+
 
                 

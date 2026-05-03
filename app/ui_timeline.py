@@ -10,8 +10,8 @@ from settings.config import TERMS
 
 def timeline(component_key): 
     hold = Holder()
-    st.space("large")
-    with st.container(key=f"{component_key}_head", width="stretch", height="content"):
+    # st.space("xsmall")
+    with st.container(key=f"{component_key}_head", height="content"):
         st.markdown(f"##### *Timeline*", text_alignment="left")
     with st.container(border=True, key=f"{component_key}_main", width="stretch", height="stretch"):
         
@@ -102,8 +102,8 @@ def timeline(component_key):
             ))
 
         fig.update_layout(
-            height=200,
-            margin=dict(l=0, r=00, t=0, b=0),
+            height=230,
+            margin=dict(l=0, r=00, t=20, b=0),
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',

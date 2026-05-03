@@ -183,14 +183,15 @@ def register_object(data_options, attempts, component_key, sub_keys, feature_siz
                 st.number_input(f"{TERMS["attempt"]}", min_value=0, max_value=limit, key="attempt", disabled=True)
 
             # Change options
-            st.button("Edit options", key="edit_options", on_click=secretary.edit_options, type="secondary", width="stretch")
+            with st.container(height="stretch", vertical_alignment="bottom"):
+                st.button("Edit options", key="edit_options", on_click=secretary.edit_options, type="secondary", width="stretch")
             
                 
 
 def _feature_style(component_key):
     st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
 def _style_form():
-    return st.columns([0.8, 0.2], vertical_alignment="center")
+    return st.columns([0.8, 0.2], vertical_alignment="top")
 def _style_selector():
     return st.columns([0.1, 0.9], vertical_alignment="center")
 def _style_target():

@@ -88,9 +88,9 @@ class Archivist:
             file_edit_count = edit_meta[file]
         else:
             file_edit_count = 0 
-        backup_file = False
-        
+
         # Check backup frequencies and set backup file path if any frequency condition is met and update edit meta
+        backup_file = False
         for value in backup_frequency:
             if file_edit_count > 0 and file_edit_count % value == 0:
                 print(f"Performing backup for every {value} saves.")
@@ -101,7 +101,7 @@ class Archivist:
         edit_meta[file] = file_edit_count + 1
         self.writer(edit_meta, other_file=meta_file)
         backup_file = os.path.join(self.backup_directory, "backuptest_nofile.json") ############ test
-        file = os.path.join(self.data_directory, "nofile.json")
+        file = os.path.join(self.data_directory, "nofile.json") ############ test
         data = self.reader(file, allow_missing=True, allow_empty=True)
         if data:
             file_length = len(data)
@@ -131,7 +131,7 @@ class Archivist:
             return True
         
 
-    def join_data(self, new_data:dict, name:str, object_type, for_deletion, for_editing, other_file=False, join_path="none", need_sorting=True, is_static=False):
+    def join_data(self, new_data:dict, name:str, for_deletion, for_editing, other_file=False, join_path="none", need_sorting=True, is_static=False):
         """
         Update library with new or edited data.  
         Returns: bool
@@ -276,6 +276,9 @@ class Archivist:
             elif datatype == TERMS["progress"]:
                 updated_library = data_details["new_data"]
                 action_verification = "progress added"
+            elif datatype == "options":
+                updated_library = data_details["new_data"]
+                action_verification = "options edited"
         else:
             st.rerun()
 

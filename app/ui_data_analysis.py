@@ -115,9 +115,9 @@ def small_stats(data_options, component_key):
             with col_right:
                 with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
                     label_last = f"%"
-                    st.html("<div style='font-size: 40px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
+                    st.html("<div style='font-size: 30px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
                     st.html("<div style='font-size: 20px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 0; text-align: left;'>REF</div>".replace("REF", "win rate"))
-
+            print("test1")
             last10_mean_col = "red" if att_mean < last10_mean else "green"
             last10_med_col = "red" if att_median < last10_med else "green"
 
