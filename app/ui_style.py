@@ -9,7 +9,8 @@ from settings.config import DIRECTORIES, DATAPATH
 
 def layout():
     st.set_page_config(page_title='PitySake', page_icon = "accessories/icon1.ico", layout="wide")
-    st.markdown("<style> .block-container {padding: 2rem;}</style>", unsafe_allow_html=True)
+    st.html("<style> .block-container {margin: 0rem 0rem; padding: 0rem 0rem;} [data-testid='stVerticalBlock'] {gap: 0.2rem;} </style>")
+    st.html("<style> header {visibility: hidden;} </style>")
 
 
 
@@ -23,14 +24,14 @@ def style(feature_keys, keylist_prog_calc, themes):
     theme = themes[active_theme]
     # Main container style
     html_main_container = "<style> .st-key-REF {background-color: BGR_COLOR_REF;} </style>".replace("BGR_COLOR_REF", theme["main_container"])
-    html_header = "<style> .st-key-REF {background-color: COLOR_REF; border: none; margin-bottom: -1rem; padding: 0.4rem 1rem 1rem; border-top-left-radius: 10px; border-top-right-radius: 30px;} </style>".replace("COLOR_REF", theme["feature_header"])
+    html_header = "<style> .st-key-REF {background-color: COLOR_REF; border: none; margin-bottom: 0rem; padding: 0rem 1rem 0rem; border-top-left-radius: 10px; border-top-right-radius: 30px;} </style>".replace("COLOR_REF", theme["feature_header"])
     
     for x in feature_keys:
         style_main_container = html_main_container.replace("REF", f"{x}_main")
         st.html(style_main_container)
         style_html_header = html_header.replace("REF", f"{x}_head")
         st.html(style_html_header)
-    st.html("<style> [data-testid='stVerticalBlock'] > div {margin: -0.2rem 0rem -0.2rem; padding: 0rem 0rem 0rem;} </style>")
+    # st.html("<style> [data-testid='stVerticalBlock'] > div {gap: 0.2rem; margin: 0rem 0rem 0rem; padding: 0rem 0rem 0rem;} </style>")
     st.html(html_header)
 
     # Subcontainer style
@@ -42,7 +43,7 @@ def style(feature_keys, keylist_prog_calc, themes):
         x = registration_keys.append(key)
         style_subcontainer = html_subcontainer.replace("REF", key)
         st.html(style_subcontainer)
-    html_widget = "<style> .st-key-REF {background-color: COLOR_REF; margin: 0.2rem 0rem; padding: 0.5rem 0 0.5rem 0.5rem; border-radius: 30px;} </style>".replace("COLOR_REF", theme["small_widget"])
+    html_widget = "<style> .st-key-REF {background-color: COLOR_REF; margin: 0rem 0rem; padding: 0.1rem 0rem 0.1rem 0.2rem; border-radius: 30px;} </style>".replace("COLOR_REF", theme["small_widget"])
     # Progress meter feature
     prog_meter_keys = list()
     for x in range(10):
@@ -57,7 +58,7 @@ def style(feature_keys, keylist_prog_calc, themes):
 
 
     # Progress calculator feature
-    st.html("<style>span.katex-display span.katex span.katex-html {font-size: 3rem; margin-top: -0.4rem;} </style>")
+    st.html("<style>span.katex-display span.katex span.katex-html {font-size: 3rem; margin-top: 0rem;} </style>")
     # Feature details
     detail_pill_style = "<style>  .st-key-REF * {justify-content: center;} .st-key-REF button {flex: 1 1 110px; max-width: 160px;}</style>"
     for x in keylist_prog_calc:
@@ -69,7 +70,7 @@ def style(feature_keys, keylist_prog_calc, themes):
 
 
 @st.dialog(f"Change theme", width="small")
-def theme(themes):
+def theme(themes, config_base):
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     active_theme = themes["active"]
     _init(themes, active_theme)
@@ -151,6 +152,7 @@ def theme(themes):
     col_1, col_2, col_3, col_4 = st.columns([1, 1, 1, 1])
     with st.container(width="stretch", horizontal_alignment="center"):
         if col_2.button("Apply", type="secondary", width="stretch"):
+            
             st.session_state["show_theme_settings"] = True
             themes["active"] = selected_theme
             if select_colors:
@@ -165,9 +167,9 @@ def theme(themes):
                     "sub_container": st.session_state["sub_container"],
                     "small_widget": st.session_state["small_widget"]
                 }
-                config = f'[theme]\nbackgroundColor = "{st.session_state["background"]}"\nsecondaryBackgroundColor = "{st.session_state["feature_background"]}"\nprimaryColor = "{st.session_state["highlights"]}"\ntextColor = "{st.session_state["text_color"]}"\nfont = "sans serif"'
+                config = config_base + f'[theme]\nbackgroundColor = "{st.session_state["background"]}"\nsecondaryBackgroundColor = "{st.session_state["feature_background"]}"\nprimaryColor = "{st.session_state["highlights"]}"\ntextColor = "{st.session_state["text_color"]}"\nfont = "sans serif"'
             else:
-                config = f'[theme]\nbackgroundColor = "{themes[selected_theme]["background"]}"\nsecondaryBackgroundColor = "{themes[selected_theme]["feature_background"]}"\nprimaryColor = "{themes[selected_theme]["highlights"]}"\ntextColor = "{themes[selected_theme]["text_color"]}"\nfont = "sans serif"'
+                config = config_base + f'[theme]\nbackgroundColor = "{themes[selected_theme]["background"]}"\nsecondaryBackgroundColor = "{themes[selected_theme]["feature_background"]}"\nprimaryColor = "{themes[selected_theme]["highlights"]}"\ntextColor = "{themes[selected_theme]["text_color"]}"\nfont = "sans serif"'
             st.session_state["theme_edited"] = time.time()
             try:
                 with open(".streamlit/config.toml", "w") as f:

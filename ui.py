@@ -3,7 +3,7 @@ import time
 
 import streamlit as st
 
-from app import Archivist
+from app.file_manager import Archivist
 import app.ui_progress_tracker as prog
 import app.ui_object_recorder as ore
 import app.ui_calculate_progress as cal
@@ -31,9 +31,12 @@ hold = Holder()
 attempts = hold.load_progress_data()
 themes = arciv.reader(other_file="ui_themes.json", join_path="settings")
 # active_theme = themes["active"]
-data_options = arciv.reader(other_file="data_options.json", join_path="settings") ######## TODO add edit options
+# data_options = arciv.reader(other_file="data_options.json", join_path="settings") ######## TODO add edit options
+data_options = hold.load_options()
 object_database_main = hold.load_main_database()
 object_database_util = hold.load_utility_database()
+reset_cooldown = 0.3
+config_base = "[server]\nrunOnSave = true\n\n"
 
 # Set page style
 style.layout()
@@ -43,8 +46,7 @@ progress_calc_keys = ["tool", "attribute", "origin"]
 registration_keys, prog_meter_keys, highlight_textstyle, highlight_html, table_style = style.style(feature_keys, progress_calc_keys, themes)
 
 # Build layout
-col_main.title(f"*{TERMS["ui_title"]}*", text_alignment="center")
-
+# col_main.title(f"*{TERMS["ui_title"]}*", text_alignment="center")
 width_left = 900
 width_total_right = 900
 width_mid_1 = 450
@@ -54,6 +56,7 @@ width_right_2 = width_total_right - width_mid_2
 with col_main:
     with st.container(key="main_content", width=1800):
         with st.container():
+            st.space(50)
             col_left, col_mid, col_right = st.columns([width_left, width_mid_1, width_right_1])
             with col_left:
                 ore.register_object(data_options, attempts, "reg_object", registration_keys, width_left, highlight_textstyle, highlight_html)
@@ -62,15 +65,24 @@ with col_main:
             with col_right:
                 dave.table_view("utility_data", "utility", table_style)
         st.space()
-        with st.container(vertical_alignment="center"):
-            col_left, col_mid, col_right = st.columns([width_left, width_mid_2, width_right_2])
+        with st.container(vertical_alignment="center", height="content"):
+            col_left, col_right = st.columns([width_left, width_total_right])
             with col_left:
+                # st.space(64)
                 height = prog.progress_meter(attempts, "progress", prog_meter_keys, width_left, themes[themes["active"]]["feature_background"], highlight_textstyle, highlight_html)
-            with col_mid:
-                cal.calculator(data_options["value_limits"]["general_limit"], "calc", height, highlight_textstyle, highlight_html)
             with col_right:
-                stat.small_stats(data_options, "smallstat")
-        tim.timeline("timeline")
+                tab_1, tab_2 = st.tabs(["Timeline", "Calculate"])
+                with tab_1:
+                    # col_mid, col_right = st.columns([width_total_right - 1, 1])
+                    # with col_mid:
+                    tim.timeline("timeline")
+                with tab_2:
+                    col_mid, col_right = st.columns([width_mid_2, width_right_2])
+                    with col_mid:
+                        cal.calculator(data_options["value_limits"]["general_limit"], "calc", height, highlight_textstyle, highlight_html)
+                    with col_right:
+                        pass
+                        stat.small_stats(data_options, "smallstat")
 
 with col_panel:
     st.space("large")
@@ -78,10 +90,9 @@ with col_panel:
         st.session_state["show_theme_settings"] = False
         st.session_state["theme_edited"] = 0
     if st.button("T"): 
-        cooldown = 0.3
         st.session_state["show_theme_settings"] = True
     if st.session_state["show_theme_settings"]: 
-        style.theme(themes)
-        if st.session_state["theme_edited"] and time.time() - st.session_state["theme_edited"] > cooldown:
+        style.theme(themes, config_base)
+        if st.session_state["theme_edited"] and time.time() - st.session_state["theme_edited"] > reset_cooldown:
             st.session_state["show_theme_settings"] = False
             st.session_state["theme_edited"] = 0

@@ -1,0 +1,63 @@
+{
+    "main": {
+        "origin": [
+            "Placeholder"
+        ],
+        "attribute": [
+            "Placeholder"
+        ],
+        "utility": [
+            "Placeholder"
+        ]
+    },
+    "main_required": {
+        "origin": [
+            "Placeholder"
+        ],
+        "attribute": [
+            "Placeholder"
+        ]
+    },
+    "utility": {
+        "Type": [
+            "Placeholder"
+        ]
+    },
+    "utility_required": {
+        "Type": [
+            "Placeholder"
+        ]
+    },
+    "source": [
+        "Placeholder",
+        "common_source",
+        "gift"
+    ],
+    "source_required": [
+        "Placeholder",
+        "common_source",
+        "gift"
+    ],
+    "Current state": [
+        "state_rand",
+        "state_det"
+    ],
+    "state_alternatives": [
+        "state_win",
+        "state_loss",
+        "state_det"
+    ],
+    "limit": {
+        "main": {
+            "Placeholder": 500
+        },
+        "utility": {
+            "Placeholder": 120
+        },
+        "common_source": 2000
+    },
+    "value_limits": {
+        "date": ["startdate_placeholder", null],
+        "general_limit": 500
+    }
+}
