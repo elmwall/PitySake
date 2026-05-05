@@ -12,12 +12,12 @@ class Holder:
 
     @st.cache_data
     def load_main_database(_self):
-        datafile = DATAPATH["main"]
+        datafile = DATAPATH[TERMS["main"]]
         return arciv.reader(datafile, join_path="data")
 
     @st.cache_data
     def load_utility_database(_self):
-        datafile = DATAPATH["utility"]
+        datafile = DATAPATH[TERMS["utility"]]
         return arciv.reader(datafile, join_path="data")
 
     @st.cache_data
@@ -29,6 +29,17 @@ class Holder:
     def load_options(_self):
         options_file = SETTINGS["Options"]
         return arciv.reader(other_file=options_file, join_path="settings")
+
+    # def dropper(self):
+    #     # if "processed_edits" not in st.session_state.keys():
+    #     #     st.session_state["processed_edits"] = False
+    #     # elif st.session_state["processed_edits"]:
+    #     if "changed_progress" in st.session_state.keys():
+    #         del st.session_state["changed_progress"]
+    #         self.load_progress_data.clear()
+    #     if "changed_options" in st.session_state.keys():
+    #         del st.session_state["changed_options"]
+    #         self.load_options.clear()
 
 
 # @st.cache_data

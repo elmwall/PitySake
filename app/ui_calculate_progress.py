@@ -1,12 +1,14 @@
 import streamlit as st
 
-def calculator(limit, component_key, height, highlight_textstyle, highlight_html):
+def calculator(limit, component_key, set_width, highlight_html, set_height):
     _initiate()
     # Header
-    with st.container(key=f"{component_key}_head", height="content"):
-        st.markdown("##### *Calculate*", text_alignment="left")
+    if st.session_state["header_switch"]:
+        with st.container(key=f"{component_key}_head", width=set_width, height="content"):
+            st.markdown("##### *Calculate*", text_alignment="left")
     # Main container
-    with st.container(border=True, key=f"{component_key}_main", height="stretch"):
+    set_height = "content" if set_height > 400 else "stretch"
+    with st.container(border=True, key=f"{component_key}_main", width=set_width, height=set_height):
         curr_valid, prev_valid, msg, tip_last, tip_prev = _validation(limit)
         st.markdown("")
         # Input field, UI structured as left for latest and right for previous
@@ -46,7 +48,7 @@ def calculator(limit, component_key, height, highlight_textstyle, highlight_html
             # Field for submit and result
             # View settings depending on data validity
             if curr_valid and prev_valid:
-                st.html(highlight_html.replace("KEY_REF", "calc_button").replace("COLOR_REF", highlight_textstyle))
+                st.html(highlight_html.replace("KEY_REF", "calc_button"))
                 invalid, appearance = False, "primary"
             else:
                 invalid, appearance = True, "secondary"
@@ -118,12 +120,12 @@ def _validation(limit):
         prev_page_min = int(st.session_state["curr_page"])
     # Comparing latest data against previous data and conditions and highlights errors
     if int(st.session_state["prev_page"]) < prev_page_min: 
-        st.html("<style> .st-key-curr_page * {color: red} </style>")
-        st.html("<style> .st-key-curr_row * {color: red} </style>")
+        st.html("<style> .st-key-curr_page * {color: COLOR_REF} </style>".replace("COLOR_REF", st.session_state["negative_color"]))
+        st.html("<style> .st-key-curr_row * {color: COLOR_REF} </style>".replace("COLOR_REF", st.session_state["negative_color"]))
         msg, tip_last = "Out of range", "Page of last must be lower"
     elif int(st.session_state["curr_page"]) == int(st.session_state["prev_page"]): 
         if st.session_state["curr_row"] >= st.session_state["prev_row"]:
-            st.html("<style> .st-key-curr_row * {color: red} </style>")
+            st.html("<style> .st-key-curr_row * {color: COLOR_REF} </style>".replace("COLOR_REF", st.session_state["negative_color"]))
             msg, tip_last = "Out of range", "Row of last must be lower"
         else:
             curr_valid = True,

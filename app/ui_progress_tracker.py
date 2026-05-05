@@ -6,7 +6,7 @@ from .data_access import Holder
 from settings.config import TERMS, DIRECTORIES, DATAPATH
 
 
-def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_color, highlight_textstyle, highlight_html): 
+def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_color, highlight_html): 
     hold = Holder()
     attempts = hold.load_progress_data()
     
@@ -14,8 +14,10 @@ def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_
     # st.space(64)
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     # Header
-    with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
-        st.markdown(f"##### *{TERMS["attempt"]}meter*", text_alignment="left")
+    # st.html("<style> .st-key-KEY_REF {width: 900px; min-width: 900px; max-width: 900px;} </style>".replace("KEY_REF", f"{component_key}_main"))
+    if st.session_state["header_switch"]:
+        with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
+            st.markdown(f"##### *{TERMS["attempt"]}meter*", text_alignment="left")
     with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height="stretch"):
         # Initiate keys for all widgets to-be-made and initiate their init value
         # It is run in a separate loop to avoid syncing delay or conflicts
@@ -92,7 +94,7 @@ def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_
                 # Apply and call save function
                 with col_apply:
                     if st.session_state[shared_key] != shared_init:
-                        st.html(highlight_html.replace("KEY_REF", button_key).replace("COLOR_REF", highlight_textstyle))
+                        st.html(highlight_html.replace("KEY_REF", button_key))
                         st.button(f"Save", key=button_key, type="primary", on_click=_update_progress, args=(arciv, hold, attempts, category, st.session_state[shared_key], TERMS["attempt"]), width="stretch")
                     else:
                         st.button(f"Save", key=button_key, type="secondary", width="stretch")
@@ -105,10 +107,12 @@ def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_
             st.button(f"**:green[Reset]**", key=reset_key, type="secondary", on_click=_reset, args=(attempts, init_values, i), width="stretch")
         # st.markdown("")
         return height
+    
+    
 
 
 def _feature_style(component_key, attempts, widget_color):
-    height = 55 * (len(attempts.keys()) - 0) + 65
+    height = 75 * (len(attempts.keys()) - 0) + 65
     st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
     html_label = "<style> .st-key-REF button {background-color: transparent; border: none;} </style>"
     html_add10 = "<style> .st-key-REF button {background-color: COLOR_REF; border: none; padding-left: -0.9rem;} </style>".replace("COLOR_REF", widget_color)

@@ -8,25 +8,28 @@ from settings.config import TERMS, DIRECTORIES, DATAPATH
 
     
 
-def register_object(data_options, attempts, component_key, sub_keys, feature_size_left, highlight_textstyle, highlight_html):
+def register_object(data_options, attempts, component_key, sub_keys, feature_size_left, highlight_html):
     _feature_style(component_key)
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     secretary = Secretary(arciv, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys)
 
     # Header
-    with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
-        st.markdown("##### *Update library*",  text_alignment="left")
+    if st.session_state["header_switch"]:
+        with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
+            st.markdown("##### *Update library*",  text_alignment="left")
     # Main container
     with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height="stretch"):
         # Collect presets and initiate session states
-        presets = secretary.initiate()
-        for x, y in presets.items():
-            if x not in st.session_state:
-                st.session_state[x] = y
-            elif not st.session_state[x]: 
-                st.session_state[x] = y
+        # for x, y in presets.items():
+        #     if x not in st.session_state:
+        #         st.session_state[x] = y
+            # elif not st.session_state[x]: 
+            #     st.session_state[x] = y
 
         # Define all initial features settings, options and limits
+        if "type" not in st.session_state.keys(): st.session_state["type"] = TERMS["main"]
+        elif not st.session_state["type"]: st.session_state["type"] = TERMS["main"]
+        presets = secretary.initiate()
         object_database, options_utility, options_object, options_attribute, options_origin, options_type, options_source, options_reg = secretary.settings(st.session_state["type"])
         disable_extras = False
 
@@ -108,8 +111,11 @@ def register_object(data_options, attempts, component_key, sub_keys, feature_siz
             values = dict()
             for x in presets.keys():
                 values[x] = st.session_state[x]
+            print("date", values["date"], type(st.session_state["date"]))
             if type(st.session_state["date"]) is str:
                 values["date"] = st.session_state["date"]
+            elif not values["date"]:
+                pass
             else:
                 values["date"] = st.session_state["date"].strftime("%y%m%d")
             if st.session_state["source"] in [TERMS["common_source"], TERMS["gift"]]: values["state"] = None
@@ -126,14 +132,14 @@ def register_object(data_options, attempts, component_key, sub_keys, feature_siz
             data_is_valid, save_button_msg, is_utility = _data_validation(options_reg, values, st.session_state["regset"], object_testvalue, event_testvalue)
 
             # 3. Compile the data on press IF all data present, else disable button
-            data_is_collected, name, new_data, new_event, event_date = _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_textstyle, highlight_html)
+            data_is_collected, name, new_data, new_event, event_date = _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_html)
             if data_is_collected: 
                 object_type = st.session_state["type"]
                 new_data = _adjust_event_data(name, new_data, options_reg, old_event_data, new_event, event_date)
 
                 # 4. Save the data. For editing data, ask for renaming in dialog box
                 if st.session_state["regset"] == list(options_reg.keys())[3]:
-                    secretary._rename(name, object_type, new_data, options_reg[reg_setting], highlight_textstyle, highlight_html)
+                    secretary._rename(name, object_type, new_data, options_reg[reg_setting], highlight_html)
                 else:
                     if "Delete" in reg_setting:
                         _user_confirm(secretary, name, object_type, new_data, options_reg[reg_setting], reg_setting, values["date"])
@@ -142,6 +148,7 @@ def register_object(data_options, attempts, component_key, sub_keys, feature_siz
 
             # Info about how and when object was collected
             # Date collector/viewer
+            st.space("xxsmall")
             options_dates = list()
             if st.session_state["regset"] == list(options_reg.keys())[4] and st.session_state["name"]: 
                 options_dates = object_database[st.session_state["name"]][TERMS["event"]].keys()
@@ -149,7 +156,7 @@ def register_object(data_options, attempts, component_key, sub_keys, feature_siz
             #     options_dates = None
             _date_viewer(data_options, options_reg, options_dates)
 
-            # source selector
+            # Source selector
             st.selectbox(
                 f"{TERMS["source"]}", 
                 options_source, 
@@ -159,7 +166,7 @@ def register_object(data_options, attempts, component_key, sub_keys, feature_siz
                 args=(attempts, st.session_state["type"]), 
                 label_visibility="visible"
             )
-            # state selector
+            # State selector
             source = _translate_source(st.session_state["type"], st.session_state["source"])
             options_state = data_options["state_alternatives"]
             single_state = False
@@ -191,7 +198,7 @@ def register_object(data_options, attempts, component_key, sub_keys, feature_siz
 def _feature_style(component_key):
     st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
 def _style_form():
-    return st.columns([0.8, 0.2], vertical_alignment="top")
+    return st.columns([1, 0.2], vertical_alignment="top")
 def _style_selector():
     return st.columns([0.1, 0.9], vertical_alignment="center")
 def _style_target():
@@ -223,11 +230,13 @@ def _date_viewer(data_options, options_reg, options_dates):
             st.session_state["date"].strftime("%y%m%d")
         except:
             st.session_state["date"] = datetime.date.today()
+        not_ready = not st.session_state["name"]
         st.date_input(
             "First received", 
             min_value=date_min, 
             max_value=date_max, 
             key="date", 
+            disabled=not_ready,
             label_visibility="collapsed"
         )    
 
@@ -270,7 +279,7 @@ def _data_validation(options_reg, values, reg_setting, object_testvalue, event_t
     return data_is_valid, save_button_msg, is_utility
 
 
-def _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_textstyle, highlight_html):
+def _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_html):
     # Mark tasks as finished
     name_done, utility_done, attribute_done, origin_done, state_done = [False]*5
     if data_is_valid:
@@ -297,12 +306,13 @@ def _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_
             new_data[name][TERMS["utility"]] = values["utility"]
         else:
             new_data[name]["Type"] = values["utility"]
+        print("check1", values["attempt"])
         attempt_data = {
             TERMS["source"]: values["source"],
             TERMS["attempt"]: values["attempt"],
-            "state": values["state"]
+            TERMS["state"]: values["state"]
         }
-        st.html(highlight_html.replace("KEY_REF", "save").replace("COLOR_REF", highlight_textstyle))
+        st.html(highlight_html.replace("KEY_REF", "save"))
         data_is_collected = st.button(f"{save_button_msg}", key="save", type="primary", width="stretch")
         return data_is_collected, name, new_data, attempt_data, values["date"]
     else:
@@ -310,7 +320,7 @@ def _compile_data(values, data_is_valid, save_button_msg, is_utility, highlight_
         return False, None, None, None, None
 
 
-def _adjust_event_data(name, new_data, options_reg, old_event_data, new_event, event_date):
+def _adjust_event_data(name, new_data, options_reg, old_event_data, new_event, event_date):    
     if st.session_state["regset"] == list(options_reg.keys())[3]:
         new_data[name][TERMS["event"]] = old_event_data
     elif st.session_state["regset"] in [list(options_reg.keys())[0], list(options_reg.keys())[1], list(options_reg.keys())[4]]:
@@ -330,6 +340,7 @@ def _adjust_event_data(name, new_data, options_reg, old_event_data, new_event, e
 
 @st.dialog(f"Removing object data")
 def _user_confirm(secretary, name, object_type, new_data, edit_settings, removal_object, removal_date):
+    st.session_state["dialog_active"] = True
     if removal_object == "Delete entry":
         st.markdown(f"Remove {name} from library?")
     elif removal_object == f"Delete {TERMS["event"].lower()}":
@@ -337,6 +348,7 @@ def _user_confirm(secretary, name, object_type, new_data, edit_settings, removal
     st.space("xsmall")
     col_left, col_right = st.columns(2)
     if col_left.button("Confirm", type="secondary", width="stretch"):
+        st.session_state["type"] = None
         secretary.update_object(name, object_type, new_data, edit_settings, None)
     if col_right.button("Cancel", type="secondary", width="stretch"):
         st.rerun()
