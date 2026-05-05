@@ -6,11 +6,13 @@ from .data_access import Holder
 from settings.config import TERMS
 
 
-def small_stats(data_options, component_key):
+def small_stats(data_options, component_key, set_width, set_height):
     hold = Holder()
-    with st.container(key=f"{component_key}_head", height="content"):
-        st.markdown("##### *Character statistics*", text_alignment="left")
-    with st.container(border=True, key=f"{component_key}_main", height="stretch"):
+    if st.session_state["header_switch"]:
+        with st.container(key=f"{component_key}_head", width=set_width, height="content"):
+            st.markdown("##### *Character statistics*", text_alignment="left")
+    set_height = "content" if set_height > 400 else "stretch"
+    with st.container(border=True, key=f"{component_key}_main", width=set_width, height=set_height):
         st.markdown("")
         object_database = hold.load_main_database()
 
@@ -31,7 +33,6 @@ def small_stats(data_options, component_key):
         }
         for x, y in counts.items():
             for z in data_options[TERMS["main"]][x]:
-                # print(x, y, z)
                 counts[x][f"{z}"] = 0
 
         for main_data in object_database.values():
@@ -67,7 +68,6 @@ def small_stats(data_options, component_key):
             for a, b in y.items():
                 table_coll[x] += f"{b} {a}  \n"
                 for i, j in top[x].items():
-                    # print("j", j)
                     if b == int(i): 
                         j.append(a)
                         top[x] = {str(b): j}
@@ -88,40 +88,48 @@ def small_stats(data_options, component_key):
             green_vis, red_vis = "transparent", "red"
         else:
             green_vis, red_vis = "transparent", "transparent"
-        col_1, col_m, col_2 = st.columns([12, 1, 17])
+        col_1, col_m, col_2 = st.columns([5, 2, 17])
         with col_1:
-            col_left, col_mid, col_right = st.columns([1, 9, 7])
-            with col_mid:
-                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
-                    st.html("<div style='font-size: 50px; margin: -1rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏶</div>".replace("REF", red_vis))
-                with st.container(border=True, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
-                    html_output = "<div style='font-size: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
-                    result_output = f"{last}"
-                    st.html(html_output.replace("REF", result_output))
-                with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
-                    st.html("<div style='font-size: 50px; margin: -1.5rem 0 ; padding: 0; line-height: 1; text-align: center; color: REF;'>⏷</div>".replace("REF", green_vis))
-            with col_right:
-                with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
-                    label_last = f"Last {TERMS["event"]}"
-                    st.html("<div style='font-size: 22px; margin: 1.0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
-            st.space("medium")
-        with col_1:
-            col_left, col_mid, col_right = st.columns([1, 9, 7])
-            with col_mid:
-                with st.container(border=True, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
-                    html_output = "<div style='font-size: 50px; height: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
-                    result_output = f"{success_rate["Rate"]}"
-                    st.html(html_output.replace("REF", result_output))
-            with col_right:
-                with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
-                    label_last = f"%"
-                    st.html("<div style='font-size: 30px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
-                    st.html("<div style='font-size: 20px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 0; text-align: left;'>REF</div>".replace("REF", "win rate"))
-            print("test1")
-            last10_mean_col = "red" if att_mean < last10_mean else "green"
-            last10_med_col = "red" if att_median < last10_med else "green"
+            # with st.container(horizontal_alignment="center"):
+            col_left, col_mid, col_right = st.columns([1, 20, 1])
+            col_mid.metric(f"Last {TERMS["event"].lower()}", value=last, delta=f"{last - att_median}", delta_color="inverse", border=False, width="stretch", delta_description="vs ★")
+            col_mid.divider()
+            col_mid.metric("Win rate", value=last, delta=f"{last - att_median}", delta_color="inverse", border=False, width="stretch", delta_description="vs ★")
+            
+            # with col_mid:
+
+                # st.html("<style> .st-key_indicator {font-size: 50px; margin: -1rem 0; padding: 0; line-height: 1; text-align: center; color: REF;} </style>".replace("REF", red_vis))
+                # st.button("79", key="indicator_1", width=100)
+            #     with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+            #         st.html("<div style='font-size: 50px; margin: -1rem 0; padding: 0; line-height: 1; text-align: center; color: REF;'>⏶</div>".replace("REF", red_vis))
+                # with st.container(border=True, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+            #         html_output = "<div style='font-size: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
+            #         result_output = f"{last}"
+            #         st.html(html_output.replace("REF", result_output))
+            #     with st.container(border=False, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+            #         st.html("<div style='font-size: 50px; margin: -1.5rem 0 ; padding: 0; line-height: 1; text-align: center; color: REF;'>⏷</div>".replace("REF", green_vis))
+            # with col_right:
+            #     with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
+            #         label_last = f"Last {TERMS["event"]}"
+            #         st.html("<div style='font-size: 22px; margin: 1.0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
+            # st.space("medium")
+        # with col_1:
+        #     col_left, col_mid, col_right = st.columns([1, 9, 7])
+        #     with col_mid:
+        #         with st.container(border=True, width="stretch", height="content", horizontal_alignment="center", vertical_alignment="center"):
+        #             html_output = "<div style='font-size: 50px; height: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
+        #             result_output = f"{success_rate["Rate"]}"
+        #             st.html(html_output.replace("REF", result_output))
+        #     with col_right:
+        #         with st.container(border=False, width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
+        #             label_last = f"%"
+        #             st.html("<div style='font-size: 30px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 1; text-align: left;'>REF</div>".replace("REF", label_last))
+        #             st.html("<div style='font-size: 20px; margin: 0rem 0 0 -0.5rem; padding: 0; line-height: 0; text-align: left;'>REF</div>".replace("REF", "win rate"))
+            
 
         with col_2:
+            last10_mean_col = "red" if att_mean < last10_mean else "green"
+            last10_med_col = "red" if att_median < last10_med else "green"
             st.markdown(" ")
             col_3, col_4, col_5 = st.columns([5, 11, 10])
             st.markdown(" ")
@@ -133,12 +141,12 @@ def small_stats(data_options, component_key):
             """)
             col_4.markdown(f"""
                 Average  
-                Half below  
+                ★ Half below  
                 Most occuring  
                 Lowest-Highest  
             """)
             col_5.markdown(f"""
-10 last: :{last10_mean_col}[{"%.1f" % last10_mean}]
+10 last: :{last10_mean_col}[{"%.1f" % last10_mean}]  
 10 last: :{last10_med_col}[{"%.0f" % last10_med}]
 """)
             

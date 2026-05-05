@@ -9,8 +9,8 @@ from settings.config import DIRECTORIES, DATAPATH
 
 def layout():
     st.set_page_config(page_title='PitySake', page_icon = "accessories/icon1.ico", layout="wide")
-    st.html("<style> .block-container {margin: 0rem 0rem; padding: 0rem 0rem;} [data-testid='stVerticalBlock'] {gap: 0.2rem;} </style>")
-    st.html("<style> header {visibility: hidden;} </style>")
+    st.html("<style> .block-container {margin: 0rem 0rem; padding: 0rem 0rem;} [data-testid='stVerticalBlock'] {gap: 0.2rem; ;} </style>") # padding: 0.35rem 0.35rem 
+    st.html("<style> .st-key-settings_main, .st-key-smallstat > div {white-space: nowrap;} header {visibility: hidden;} </style>")
 
 
 
@@ -22,9 +22,11 @@ def layout():
 def style(feature_keys, keylist_prog_calc, themes):
     active_theme = themes["active"]
     theme = themes[active_theme]
+    _init(themes, active_theme)
     # Main container style
     html_main_container = "<style> .st-key-REF {background-color: BGR_COLOR_REF;} </style>".replace("BGR_COLOR_REF", theme["main_container"])
     html_header = "<style> .st-key-REF {background-color: COLOR_REF; border: none; margin-bottom: 0rem; padding: 0rem 1rem 0rem; border-top-left-radius: 10px; border-top-right-radius: 30px;} </style>".replace("COLOR_REF", theme["feature_header"])
+    # html_left_container = "<style> .st-key-REF {width: 100vw; min-width: 900px; max-width: 3000px;} </style>"
     
     for x in feature_keys:
         style_main_container = html_main_container.replace("REF", f"{x}_main")
@@ -53,20 +55,26 @@ def style(feature_keys, keylist_prog_calc, themes):
         st.html(style_subcontainer)
     # Data viewer feature tables "ch_data", "utility_data", 
     table_style = [theme["background"], theme["main_container"]]
-    highlight_html = "<style> .st-key-KEY_REF button {color: COLOR_REF} .st-key-KEY_REF p {font-size: 1.05rem; font-weight: 700;} </style>"
-    highlight_color = theme["highlight_text"]
+    # Highlights and inicators
+    highlight_html = "<style> .st-key-KEY_REF button {color: COLOR_REF} .st-key-KEY_REF p {font-size: 1.05rem; font-weight: 700;} </style>".replace("COLOR_REF", theme["highlight_text"])
+    # highlight_color = theme["highlight_text"]
+    # positive_html = "<style> .st-key-KEY_REF {color: COLOR_REF} </style>"
+    # negative_html = "<style> .st-key-KEY_REF {color: COLOR_REF} </style>"
+
 
 
     # Progress calculator feature
-    st.html("<style>span.katex-display span.katex span.katex-html {font-size: 3rem; margin-top: 0rem;} </style>")
+    st.html("<style> span.katex-display span.katex span.katex-html {font-size: 3rem; margin-top: 0rem;} </style>")
     # Feature details
-    detail_pill_style = "<style>  .st-key-REF * {justify-content: center;} .st-key-REF button {flex: 1 1 110px; max-width: 160px;}</style>"
+    detail_pill_style = "<style>  .st-key-REF * {justify-content: center;} .st-key-REF button {flex: 1; min-width: 90px; max-width: 160px;}</style>"
     for x in keylist_prog_calc:
         st.html(detail_pill_style.replace("REF", x))
 
-    st.html("<style> .st-key-main_content {min-width: 1800px;} </style>")
+    # st.html("<style> .st-key-main_content {width: 100vw; min-width: 1800px; max-width: 3000px; align-items: center;} </style>")
+    # st.html("<style> .st-key-main_content {width: 100vw; min-width: 1800px; max-width: 3000px; align-items: center;} </style>")
 
-    return registration_keys, prog_meter_keys, highlight_color, highlight_html, table_style
+
+    return registration_keys, prog_meter_keys, highlight_html, table_style
 
 
 @st.dialog(f"Change theme", width="small")
@@ -98,9 +106,10 @@ def theme(themes, config_base):
     #     "small_widget": sw_col
     # }
     
-    col_1, col_2, col_3, col_4 = st.columns([0.6, 0.4, 0.6, 0.4])
     if select_colors:
         with st.container(horizontal_alignment="center"):
+            st.space("small")
+            col_1, col_2, col_3, col_4 = st.columns([0.6, 0.4, 0.6, 0.4])
 
             # config
             st.html("<style> .st-key-bgr_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["background"]))
@@ -113,19 +122,14 @@ def theme(themes, config_base):
             col_2.color_picker("Feature", key="main_container", label_visibility="collapsed")
             
             # json
-            st.html("<style> .st-key-hd_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["feature_header"]))
-            col_1.button("Header", key="hd_col", width="stretch")
-            col_2.color_picker("Header", key="feature_header", label_visibility="collapsed")
-            
-            # json
             st.html("<style> .st-key-gr_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["sub_container"]))
             col_1.button("Group", key="gr_col", width="stretch")
             col_2.color_picker("Group", key="sub_container", label_visibility="collapsed")
             
             # json
             st.html("<style> .st-key-sw_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["small_widget"]))
-            col_3.button("Widget", key="sw_col", width="stretch")
-            col_4.color_picker("Widget", key="small_widget", label_visibility="collapsed")
+            col_1.button("Widget", key="sw_col", width="stretch")
+            col_2.color_picker("Widget", key="small_widget", label_visibility="collapsed")
             
             # config
             st.html("<style> .st-key-hl_col button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlights"]))
@@ -136,6 +140,16 @@ def theme(themes, config_base):
             st.html("<style> .st-key-hl_txt button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlight_text"]))
             col_3.button("Highlight text", key="hl_txt", width="stretch")
             col_4.color_picker("Highlight text", key="highlight_text", label_visibility="collapsed")
+
+            # json
+            st.html("<style> .st-key-pos_col button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlight_text"]))
+            col_3.button("Positive", key="pos_col", width="stretch")
+            col_4.color_picker("Positive", key="positive_color", label_visibility="collapsed")
+            
+            # json
+            st.html("<style> .st-key-neg_col button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlight_text"]))
+            col_3.button("Negative", key="neg_col", width="stretch")
+            col_4.color_picker("Negative", key="negative_color", label_visibility="collapsed")
             
             # config
             st.html("<style> .st-key-tx_col button {color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["text_color"]))
@@ -144,8 +158,20 @@ def theme(themes, config_base):
 
             # config
             st.html("<style> .st-key-ip_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["feature_background"]))
-            col_3.button("Input", key="ip_col", width="stretch")
-            col_4.color_picker("Input", key="feature_background", label_visibility="collapsed")
+            col_3.button("Input field", key="ip_col", width="stretch")
+            col_4.color_picker("Input field", key="feature_background", label_visibility="collapsed")
+
+            # json
+            st.html("<style> .st-key-fhd_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["feature_header"]))
+            col_1.button("Feature header", key="fhd_col", width="stretch")
+            col_2.color_picker("Feature header", key="feature_header", label_visibility="collapsed")
+
+            col_1.space()
+            col_1.checkbox("Show feature header", key="header_switch")
+
+
+
+
 
 
     st.space()
@@ -165,7 +191,10 @@ def theme(themes, config_base):
                     "main_container": st.session_state["main_container"],
                     "feature_header": st.session_state["feature_header"],
                     "sub_container": st.session_state["sub_container"],
-                    "small_widget": st.session_state["small_widget"]
+                    "small_widget": st.session_state["small_widget"],
+                    "positive_color": st.session_state["positive_color"],
+                    "negative_color": st.session_state["negative_color"],
+                    "header_switch": st.session_state["header_switch"]
                 }
                 config = config_base + f'[theme]\nbackgroundColor = "{st.session_state["background"]}"\nsecondaryBackgroundColor = "{st.session_state["feature_background"]}"\nprimaryColor = "{st.session_state["highlights"]}"\ntextColor = "{st.session_state["text_color"]}"\nfont = "sans serif"'
             else:

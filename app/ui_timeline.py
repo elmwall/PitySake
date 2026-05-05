@@ -8,12 +8,14 @@ from .data_access import Holder
 from settings.config import TERMS
 
 
-def timeline(component_key): 
+def timeline(component_key, set_width, set_height): 
     hold = Holder()
     # st.space("xsmall")
-    with st.container(key=f"{component_key}_head", height="content"):
-        st.markdown(f"##### *Timeline*", text_alignment="left")
-    with st.container(border=True, key=f"{component_key}_main", width="stretch", height="stretch"):
+    if st.session_state["header_switch"]:
+        with st.container(key=f"{component_key}_head", width="stretch", height="content"):
+            st.markdown(f"##### *Timeline*", text_alignment="left")
+    fheight = 300 if set_height > 300 else set_height
+    with st.container(border=True, key=f"{component_key}_main", width="stretch", height=fheight):
         
         object_database = hold.load_main_database()
         attempt_list = list()
@@ -43,7 +45,7 @@ def timeline(component_key):
                         viewname = f"{name} C{collected[name]}"
                     else:
                         viewname = name
-                    attempt = details[TERMS["attempt"]] if details[TERMS["attempt"]] else None
+                    attempt = details[TERMS["attempt"]]
                     source = details[TERMS["source"]] if details[TERMS["source"]] else None
                     state = details[TERMS["state"]] if details[TERMS["state"]] else None
                     thedate = "20"+ date[0:2] + "-" + date[2:4] + "-" + date[4:6]
@@ -81,7 +83,7 @@ def timeline(component_key):
                 x=[dates[i], dates[i]],
                 y=[0, value[i]],
                 mode='lines',
-                line=dict(color="#27A82D", width=1),
+                line=dict(color=st.session_state["text_color"], width=1),
                 hoverlabel=dict(
                     bgcolor="rgba(0, 0, 0, 1)"
                 ),
@@ -93,21 +95,30 @@ def timeline(component_key):
                 y=[value[i]],
                 mode='markers+text',
                 hovertemplate=f"<b>{names[i]} - {value[i]}</b><br>{dates[i].strftime("%Y-%m-%d")}<extra></extra>",
-                marker=dict(color="blue", size=10, line=dict(color='MediumPurple', width=2)),
+                marker=dict(color=st.session_state["positive_color"], size=10, line=dict(color=st.session_state["background"], width=2)),
                 hoverlabel=dict(
                     bgcolor="rgba(0, 0, 0, 0)"
                 ),
                 name=names[i],
                 showlegend=False
             ))
-
+        
+        fig.update_xaxes(
+            tickfont_color=st.session_state["text_color"],
+            gridcolor='white',
+        )
+        fig.update_yaxes(
+            zeroline=False,
+            tickfont_color=st.session_state["text_color"],
+            gridcolor=st.session_state["sub_container"],
+            range=[-5, None],
+        )
         fig.update_layout(
-            height=230,
+            height=fheight-40,
             margin=dict(l=0, r=00, t=20, b=0),
             template="plotly_dark",
             paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            
+            plot_bgcolor='rgba(0,0,0,0)', 
         )
 
         st.plotly_chart(fig, width="stretch")
