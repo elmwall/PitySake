@@ -1,118 +1,90 @@
 import streamlit as st
 import plotly.graph_objects as go
-import pandas as pd
-import datetime
 
-from .data_access import Holder
+import app.data_access as hold
 
 from settings.config import TERMS
 
 
-def timeline(component_key, set_width, set_height): 
-    hold = Holder()
-    # st.space("xsmall")
+def timeline(component_key, set_height): 
     if st.session_state["header_switch"]:
         with st.container(key=f"{component_key}_head", width="stretch", height="content"):
-            st.markdown(f"##### *Timeline*", text_alignment="left")
+            st.markdown(f"##### *Timeline*", help=f"All time {TERMS["event"].lower()}s of {TERMS["main"].lower()}s. Dot color highlights {TERMS["state_win"].lower()}; line color highlights rare {TERMS["attempt"].lower()} values, good or bad.", text_alignment="left")
     fheight = 300 if set_height > 300 else set_height
     with st.container(border=True, key=f"{component_key}_main", width="stretch", height=fheight):
-        
         object_database = hold.load_main_database()
-        attempt_list = list()
-        att_date = dict()
-        for main_data in object_database.values():
-            for date, ev_data in main_data[TERMS["event"]].items():
-                att = ev_data[TERMS["attempt"]]
-                if att: 
-                    attempt_list.append(att)
-                    att_date[f"{date}"] = att
-                state = ev_data[TERMS["state"]]
+        data = hold.process_collection_db(object_database, "main")["graph_data"]
+        theme = {
+            "positive": st.session_state["positive_color"],
+            "neutral": st.session_state["neutral_color"],
+            "negative": st.session_state["negative_color"],
+            "text": st.session_state["text_color"],
+            "background": st.session_state["background"],
+            "subarea": st.session_state["sub_container"]
+        }
 
-        time_dict = dict()
-        time_dict["date"] = list()
-        time_dict["attempt"] = list()
-        time_dict["name"] = list()
-        collected = dict()
-        def data_to_df(object_database, object_type):
-            rows = []
-
-            for name, info in object_database.items():
-                collected[name] = 0
-                for index, details in info[TERMS["event"]].items():
-
-                    date, idx = index.split("-")
-                    if object_type == "Character": 
-                        viewname = f"{name} C{collected[name]}"
-                    else:
-                        viewname = name
-                    attempt = details[TERMS["attempt"]]
-                    source = details[TERMS["source"]] if details[TERMS["source"]] else None
-                    state = details[TERMS["state"]] if details[TERMS["state"]] else None
-                    thedate = "20"+ date[0:2] + "-" + date[2:4] + "-" + date[4:6]
-                    fulldata = "20" + date
-                    fdate = datetime.datetime.strptime(fulldata, "%Y%m%d").strftime("%Y-%m-%d")
-                    rows.append({
-                        "date": date,
-                        "Name": viewname,
-                        "Index": idx,
-                        "event": attempt,
-                        "source": source,
-                        TERMS["state"]: state
-                    })
-                    collected[name] += 1
-                time_dict["date"].append(fdate)
-                time_dict["attempt"].append(attempt)
-                time_dict["name"].append(name)
-            df = pd.DataFrame(rows)
-
-            return time_dict
- 
-        data = data_to_df(object_database, TERMS["main"].capitalize())
-        # st.set_page_config(layout="wide")
-
-
-        dates = pd.to_datetime(time_dict["date"])
-        names = time_dict["name"]
-        value = time_dict["attempt"]
+        dates = data["date"]
+        names = data["name"]
+        value = data["attempt"]
+        state = data["state"]
 
         fig = go.Figure()
 
         for i in range(len(dates)):
-            # Rita "pinnen"
-            fig.add_trace(go.Scatter(
-                x=[dates[i], dates[i]],
-                y=[0, value[i]],
-                mode='lines',
-                line=dict(color=st.session_state["text_color"], width=1),
-                hoverlabel=dict(
-                    bgcolor="rgba(0, 0, 0, 1)"
-                ),
-                showlegend=False
-            ))
-            # Rita "huvudet" (punkten)
-            fig.add_trace(go.Scatter(
-                x=[dates[i]],
-                y=[value[i]],
-                mode='markers+text',
-                hovertemplate=f"<b>{names[i]} - {value[i]}</b><br>{dates[i].strftime("%Y-%m-%d")}<extra></extra>",
-                marker=dict(color=st.session_state["positive_color"], size=10, line=dict(color=st.session_state["background"], width=2)),
-                hoverlabel=dict(
-                    bgcolor="rgba(0, 0, 0, 0)"
-                ),
-                name=names[i],
-                showlegend=False
-            ))
-        
+            if value[i] is not None: 
+                if value[i] > 79:
+                    hightlight_col = theme["negative"]
+                elif value[i] < 50:
+                    hightlight_col = theme["positive"]
+                else:
+                    hightlight_col = theme["text"]
+                
+                if state[i] is True:
+                    dot_col = theme["positive"]
+                elif state[i] is False:
+                    dot_col = theme["negative"]
+                else:
+                    dot_col = theme["text"]
+
+                # Draw line
+                fig.add_trace(go.Scatter(
+                    x=[dates[i], dates[i]],
+                    y=[0, value[i]],
+                    mode='lines',
+                    line=dict(color=hightlight_col, width=1),
+                    hoverlabel=dict(
+                        bgcolor="rgba(0, 0, 0, 1)"
+                    ),
+                    showlegend=False
+                ))
+
+                # Draw dot
+                fig.add_trace(go.Scatter(
+                    x=[dates[i]],
+                    y=[value[i]],
+                    mode='markers+text',
+                    hovertemplate=f"<b>{names[i]} - {value[i]}</b><br>{dates[i]}<extra></extra>",
+                    marker=dict(color=dot_col, size=10, line=dict(color=theme["background"], width=2)),
+                    hoverlabel=dict(
+                        bgcolor="rgba(0, 0, 0, 0)"
+                    ),
+                    name=names[i],
+                    showlegend=False
+                ))
+
+        # Axes
         fig.update_xaxes(
-            tickfont_color=st.session_state["text_color"],
+            tickfont_color=theme["text"],
             gridcolor='white',
         )
         fig.update_yaxes(
             zeroline=False,
-            tickfont_color=st.session_state["text_color"],
-            gridcolor=st.session_state["sub_container"],
+            tickfont_color=theme["text"],
+            gridcolor=theme["subarea"],
             range=[-5, None],
         )
+
+        # Layout
         fig.update_layout(
             height=fheight-40,
             margin=dict(l=0, r=00, t=20, b=0),

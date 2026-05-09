@@ -347,7 +347,7 @@ class Archivist:
 
 
 
-    def catch_data(self, new_data, save_file, object_type, name=None, for_deletion=False, for_renaming=False, join_path="data", need_sorting=False, is_static=False):
+    def catch_data(self, new_data, save_file, object_type, name=None, for_deletion=False, for_renaming=False, join_path="data", need_sorting=False, is_static=False, stage="unknown_stage", prefix="data"):
         st.session_state["pending_save"] = {
             "name": name,
             "new_data": new_data,
@@ -359,6 +359,7 @@ class Archivist:
             "is_static": is_static,
             "object_type": object_type
         }
+        self._dump(stage, st.session_state["pending_save"], prefix=prefix)
 
 
     def _catch_backup_data(self, mode, data, file, backup_file, object_type):
@@ -369,7 +370,7 @@ class Archivist:
             "backup_file": backup_file,
             "datatype": object_type
         }
-        print("pending backup", st.session_state["pending_backup"])
+        self._dump("backup", st.session_state["pending_backup"], prefix="backupcatch")
 
         return True
 
@@ -384,14 +385,15 @@ class Archivist:
             return False
     
 
-    def _dump(self, stage, details):
+    def _dump(self, stage, details, prefix="data"):
         content = f"{stage}\n\n"
         for x in details.keys():
-            content += f"Logged {x}:\n{details[x]} + \n\n"
-        dumpfile = os.path.join(self.backup_directory, "dump.txt")
+            content += f"Logged {x}:\n{details[x]} \n\n"
+        dumpfile = os.path.join(self.backup_directory, f"{prefix}_dump.txt")
 
         try:
-            with open(dumpfile, "r", encoding="utf-8") as f:
+            with open(dumpfile, "w", encoding="utf-8") as f:
+                f.write(content)
                 print(f"Datadump created.")
         except:
             print("Could not dump data.")
