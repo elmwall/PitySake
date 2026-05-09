@@ -1,51 +1,51 @@
 import time
+import datetime
 
 import streamlit as st
 
 from .file_manager import Archivist
-
+import app.data_access as hold
 from settings.config import DIRECTORIES, DATAPATH
 
 
-def layout():
+def settings():
     st.set_page_config(page_title='PitySake', page_icon = "accessories/icon1.ico", layout="wide")
     st.html("<style> .block-container {margin: 0rem 0rem; padding: 0rem 0rem;} [data-testid='stVerticalBlock'] {gap: 0.2rem; ;} </style>") # padding: 0.35rem 0.35rem 
     st.html("<style> .st-key-settings_main, .st-key-smallstat > div {white-space: nowrap;} header {visibility: hidden;} </style>")
 
+    feature_keys = ["reg_object", "progress", "calc", "smallstat", "main_object_data", "utility_object_data", "timeline", "settings"]
+    progress_calc_keys = ["tool", "attribute", "origin"]
+
+    return feature_keys, progress_calc_keys
 
 
-
-# def set_color(html, color):
-#     return html.replace("COLOR_REF", color)
-
-
-def style(feature_keys, keylist_prog_calc, themes):
+def style(feature_keys, keylist_prog_calc):
+    themes = hold.load_themes()
     active_theme = themes["active"]
     theme = themes[active_theme]
-    _init(themes, active_theme)
-    # Main container style
     html_main_container = "<style> .st-key-REF {background-color: BGR_COLOR_REF;} </style>".replace("BGR_COLOR_REF", theme["main_container"])
     html_header = "<style> .st-key-REF {background-color: COLOR_REF; border: none; margin-bottom: 0rem; padding: 0rem 1rem 0rem; border-top-left-radius: 10px; border-top-right-radius: 30px;} </style>".replace("COLOR_REF", theme["feature_header"])
-    # html_left_container = "<style> .st-key-REF {width: 100vw; min-width: 900px; max-width: 3000px;} </style>"
     
     for x in feature_keys:
         style_main_container = html_main_container.replace("REF", f"{x}_main")
         st.html(style_main_container)
         style_html_header = html_header.replace("REF", f"{x}_head")
         st.html(style_html_header)
-    # st.html("<style> [data-testid='stVerticalBlock'] > div {gap: 0.2rem; margin: 0rem 0rem 0rem; padding: 0rem 0rem 0rem;} </style>")
     st.html(html_header)
 
     # Subcontainer style
-    html_subcontainer = "<style> .st-key-REF {background-color: COLOR_REF;} </style>".replace("COLOR_REF", theme["sub_container"])
+    html_subcontainer = "<style> .st-key-REF {background-color: COLOR_REF;} </style>".replace("COLOR_REF", theme
+    ["sub_container"])
+
     # Object registration feature
     registration_keys = list()
-    for x in range(6):
+    for x in range(10):
         key = f"sub1_{str(x)}"
         x = registration_keys.append(key)
         style_subcontainer = html_subcontainer.replace("REF", key)
         st.html(style_subcontainer)
     html_widget = "<style> .st-key-REF {background-color: COLOR_REF; margin: 0rem 0rem; padding: 0.1rem 0rem 0.1rem 0.2rem; border-radius: 30px;} </style>".replace("COLOR_REF", theme["small_widget"])
+    
     # Progress meter feature
     prog_meter_keys = list()
     for x in range(10):
@@ -53,15 +53,12 @@ def style(feature_keys, keylist_prog_calc, themes):
         x = prog_meter_keys.append(key)
         style_subcontainer = html_widget.replace("REF", key)
         st.html(style_subcontainer)
+
     # Data viewer feature tables "ch_data", "utility_data", 
     table_style = [theme["background"], theme["main_container"]]
+
     # Highlights and inicators
-    highlight_html = "<style> .st-key-KEY_REF button {color: COLOR_REF} .st-key-KEY_REF p {font-size: 1.05rem; font-weight: 700;} </style>".replace("COLOR_REF", theme["highlight_text"])
-    # highlight_color = theme["highlight_text"]
-    # positive_html = "<style> .st-key-KEY_REF {color: COLOR_REF} </style>"
-    # negative_html = "<style> .st-key-KEY_REF {color: COLOR_REF} </style>"
-
-
+    highlight_html = "<style> .st-key-KEY_REF button * {color: COLOR_REF} .st-key-KEY_REF p {font-size: 1.05rem; font-weight: 700;} </style>".replace("COLOR_REF", theme["highlight_text"])
 
     # Progress calculator feature
     st.html("<style> span.katex-display span.katex span.katex-html {font-size: 3rem; margin-top: 0rem;} </style>")
@@ -70,135 +67,70 @@ def style(feature_keys, keylist_prog_calc, themes):
     for x in keylist_prog_calc:
         st.html(detail_pill_style.replace("REF", x))
 
-    # st.html("<style> .st-key-main_content {width: 100vw; min-width: 1800px; max-width: 3000px; align-items: center;} </style>")
-    # st.html("<style> .st-key-main_content {width: 100vw; min-width: 1800px; max-width: 3000px; align-items: center;} </style>")
-
-
     return registration_keys, prog_meter_keys, highlight_html, table_style
 
 
 @st.dialog(f"Change theme", width="small")
-def theme(themes, config_base):
+def theme():
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
+    themes = hold.load_themes()
     active_theme = themes["active"]
-    _init(themes, active_theme)
 
     st.write(f"Select theme")
     col_left, col_right = st.columns([0.6, 0.4])
     active_theme = themes["active"]
     theme_options = list(themes.keys())
     theme_options.remove("active")
-    active_option = theme_options.index(active_theme)
     with col_left:
-        selected_theme = st.selectbox("themes", options=theme_options, key="set_theme", on_change=_reset_colors, args=(themes,), label_visibility="collapsed")
-        # selected_theme = st.selectbox("themes", options=theme_options, index=active_option, key="set_theme", on_change=_reset_colors, args=(themes,), label_visibility="collapsed")
+        selected_theme = st.selectbox(
+            "themes", options=theme_options, 
+            key="set_theme_temp", 
+            on_change=_reset_colors, 
+            args=(themes,), 
+            label_visibility="collapsed"
+        )
     with col_right:
-        select_colors = st.checkbox("Edit theme", key="change_colors",  on_change=_reset_colors, args=(themes,))
-    
-    # color_keys = {
-    #     "background": bgr_col,
-    #     "feature_background": ip_col,
-    #     "highlights": hl_col,
-    #     "text_color": tx_col,
-    #     "main_container": ft_col,
-    #     "feature_header": hd_col,
-    #     "sub_container": gr_col,
-    #     "small_widget": sw_col
-    # }
+        select_colors = st.checkbox(
+            "Edit theme", 
+            key="change_colors", 
+            on_change=_reset_colors, 
+            args=(themes,)
+        )
     
     if select_colors:
         with st.container(horizontal_alignment="center"):
-            st.space("small")
-            col_1, col_2, col_3, col_4 = st.columns([0.6, 0.4, 0.6, 0.4])
-
-            # config
-            st.html("<style> .st-key-bgr_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["background"]))
-            col_1.button("Background", key="bgr_col", width="stretch")
-            col_2.color_picker("Background", key="background", label_visibility="collapsed")
-            
-            # json
-            st.html("<style> .st-key-ft_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["main_container"]))
-            col_1.button("Feature", key="ft_col", width="stretch")
-            col_2.color_picker("Feature", key="main_container", label_visibility="collapsed")
-            
-            # json
-            st.html("<style> .st-key-gr_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["sub_container"]))
-            col_1.button("Group", key="gr_col", width="stretch")
-            col_2.color_picker("Group", key="sub_container", label_visibility="collapsed")
-            
-            # json
-            st.html("<style> .st-key-sw_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["small_widget"]))
-            col_1.button("Widget", key="sw_col", width="stretch")
-            col_2.color_picker("Widget", key="small_widget", label_visibility="collapsed")
-            
-            # config
-            st.html("<style> .st-key-hl_col button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlights"]))
-            col_3.button("Highlights", key="hl_col", width="stretch")
-            col_4.color_picker("Highlights", key="highlights", label_visibility="collapsed")
-            
-            # json
-            st.html("<style> .st-key-hl_txt button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlight_text"]))
-            col_3.button("Highlight text", key="hl_txt", width="stretch")
-            col_4.color_picker("Highlight text", key="highlight_text", label_visibility="collapsed")
-
-            # json
-            st.html("<style> .st-key-pos_col button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlight_text"]))
-            col_3.button("Positive", key="pos_col", width="stretch")
-            col_4.color_picker("Positive", key="positive_color", label_visibility="collapsed")
-            
-            # json
-            st.html("<style> .st-key-neg_col button {background-color: transparent; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlight_text"]))
-            col_3.button("Negative", key="neg_col", width="stretch")
-            col_4.color_picker("Negative", key="negative_color", label_visibility="collapsed")
-            
-            # config
-            st.html("<style> .st-key-tx_col button {color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["text_color"]))
-            col_3.button("Text", key="tx_col", width="stretch")
-            col_4.color_picker("Text", key="text_color", label_visibility="collapsed")
-
-            # config
-            st.html("<style> .st-key-ip_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["feature_background"]))
-            col_3.button("Input field", key="ip_col", width="stretch")
-            col_4.color_picker("Input field", key="feature_background", label_visibility="collapsed")
-
-            # json
-            st.html("<style> .st-key-fhd_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["feature_header"]))
-            col_1.button("Feature header", key="fhd_col", width="stretch")
-            col_2.color_picker("Feature header", key="feature_header", label_visibility="collapsed")
-
-            col_1.space()
-            col_1.checkbox("Show feature header", key="header_switch")
-
-
-
-
-
+            if "background_temp" in st.session_state.keys():
+                _color_selector(themes, active_theme)
 
     st.space()
     col_1, col_2, col_3, col_4 = st.columns([1, 1, 1, 1])
     with st.container(width="stretch", horizontal_alignment="center"):
         if col_2.button("Apply", type="secondary", width="stretch"):
-            
             st.session_state["show_theme_settings"] = True
             themes["active"] = selected_theme
+            config_base = "[server]\nrunOnSave = true\n\n"
             if select_colors:
                 themes[selected_theme] = {
-                    "background": st.session_state["background"],
-                    "feature_background": st.session_state["feature_background"],
-                    "highlights": st.session_state["highlights"],
-                    "highlight_text": st.session_state["highlight_text"],
-                    "text_color": st.session_state["text_color"],
-                    "main_container": st.session_state["main_container"],
-                    "feature_header": st.session_state["feature_header"],
-                    "sub_container": st.session_state["sub_container"],
-                    "small_widget": st.session_state["small_widget"],
-                    "positive_color": st.session_state["positive_color"],
-                    "negative_color": st.session_state["negative_color"],
-                    "header_switch": st.session_state["header_switch"]
+                    "background": st.session_state["background_temp"],
+                    "input_field": st.session_state["input_field_temp"],
+                    "highlights": st.session_state["highlights_temp"],
+                    "highlight_text": st.session_state["highlight_text_temp"],
+                    "text_color": st.session_state["text_color_temp"],
+                    "main_container": st.session_state["main_container_temp"],
+                    "feature_header": st.session_state["feature_header_temp"],
+                    "sub_container": st.session_state["sub_container_temp"],
+                    "small_widget": st.session_state["small_widget_temp"],
+                    "positive_color": st.session_state["positive_color_temp"],
+                    "neutral_color": st.session_state["neutral_color_temp"],
+                    "negative_color": st.session_state["negative_color_temp"],
+                    "header_switch": st.session_state["header_switch_temp"]
                 }
-                config = config_base + f'[theme]\nbackgroundColor = "{st.session_state["background"]}"\nsecondaryBackgroundColor = "{st.session_state["feature_background"]}"\nprimaryColor = "{st.session_state["highlights"]}"\ntextColor = "{st.session_state["text_color"]}"\nfont = "sans serif"'
+
+                config = config_base + f'[theme]\nbackgroundColor = "{st.session_state["background_temp"]}"\nsecondaryBackgroundColor = "{st.session_state["input_field_temp"]}"\nprimaryColor = "{st.session_state["highlights_temp"]}"\ntextColor = "{st.session_state["text_color_temp"]}"\nfont = "sans serif"'
             else:
-                config = config_base + f'[theme]\nbackgroundColor = "{themes[selected_theme]["background"]}"\nsecondaryBackgroundColor = "{themes[selected_theme]["feature_background"]}"\nprimaryColor = "{themes[selected_theme]["highlights"]}"\ntextColor = "{themes[selected_theme]["text_color"]}"\nfont = "sans serif"'
+                config = config_base + f'[theme]\nbackgroundColor = "{themes[selected_theme]["background"]}"\nsecondaryBackgroundColor = "{themes[selected_theme]["input_field"]}"\nprimaryColor = "{themes[selected_theme]["highlights"]}"\ntextColor = "{themes[selected_theme]["text_color"]}"\nfont = "sans serif"'
+            for x in themes[selected_theme].keys():
+                st.session_state[x] = st.session_state[f"{x}_temp"]
             st.session_state["theme_edited"] = time.time()
             try:
                 with open(".streamlit/config.toml", "w") as f:
@@ -207,31 +139,87 @@ def theme(themes, config_base):
                 raise RuntimeError(f"Error from {e} occurred while attempting to write to config.toml")
             arciv.writer(themes, other_file="ui_themes.json", join_path="settings")
             print("Theme updated.")
+            now = datetime.datetime.now()
+            hhmm = now.strftime("%H%M")
+            st.session_state["state_key"] = f"{hhmm}"
         if col_3.button("Done", type="secondary", width="stretch"):
             select_colors = False
             st.session_state["show_theme_settings"] = False
             st.rerun()
 
 
-def _init(themes, active_theme):
-    themes[active_theme]["background"]
-    if "set_theme" not in st.session_state.keys():
-        st.session_state["set_theme"] = active_theme
-    if st.session_state["set_theme"] == active_theme:
-        # print("theme")
-        for cat, col in themes[active_theme].items():
-            if cat not in st.session_state.keys():
-                st.session_state[cat] = col
-            # elif not st.session_state[cat]:
-            #     st.session_state[cat] = col
-    else:
-        for cat, col in themes[st.session_state["set_theme"]].items():
-            st.session_state[cat] = col
-
-
 def _reset_colors(themes):
-    # st.session_state["change_colors"] = False
-    # print()
-    for cat, col in themes[st.session_state["set_theme"]].items():
-        st.session_state[cat] = col
-        # print(col)
+    for cat, col in themes[st.session_state["set_theme_temp"]].items():
+        st.session_state[f"{cat}_temp"] = col
+
+
+def _color_selector(themes, active_theme):
+    for x in themes[active_theme].keys():
+        if f"{x}_temp" not in st.session_state:
+            st.session_state[f"{x}_temp"] = themes[st.session_state["set_theme_temp"]][x]
+
+    st.space("small")
+    col_1, col_2, col_3, col_4 = st.columns([0.6, 0.4, 0.6, 0.4])
+    # In config
+    st.html("<style> .st-key-bgr_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["background"]))
+    col_1.button("Background", key="bgr_col", width="stretch")
+    col_2.color_picker("Background", key="background_temp", label_visibility="collapsed")
+    
+    # In json
+    st.html("<style> .st-key-ft_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["main_container"]))
+    col_1.button("Feature", key="ft_col", width="stretch")
+    col_2.color_picker("Feature", key="main_container_temp", label_visibility="collapsed")
+    
+    # In json
+    st.html("<style> .st-key-gr_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["sub_container"]))
+    col_1.button("Group", key="gr_col", width="stretch")
+    col_2.color_picker("Group", key="sub_container_temp", label_visibility="collapsed")
+    
+    # In json
+    st.html("<style> .st-key-sw_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["small_widget"]))
+    col_1.button("Widget", key="sw_col", width="stretch")
+    col_2.color_picker("Widget", key="small_widget_temp", label_visibility="collapsed")
+
+    # In json
+    st.html("<style> .st-key-fhd_col button {background-color: COLOR_REF; border-color: VIS_REF;} </style>".replace("COLOR_REF", themes[active_theme]["feature_header"]))
+    col_1.button("Header", key="fhd_col", width="stretch")
+    col_2.color_picker("Headers", key="feature_header_temp", label_visibility="collapsed")
+
+    # In config
+    st.html("<style> .st-key-ip_col button {background-color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["input_field"]))
+    col_1.button("Input field", key="ip_col", width="stretch")
+    col_2.color_picker("Input field", key="input_field_temp", label_visibility="collapsed")
+    
+    # In config
+    st.html("<style> .st-key-hl_col button {background-color: VIS_REF; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["highlights"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+    col_3.button("Highlights", key="hl_col", width="stretch")
+    col_4.color_picker("Highlights", key="highlights_temp", label_visibility="collapsed")
+    
+    # In json
+    st.html("<style> .st-key-hl_txt button {background-color: VIS_REF; color: COLOR_REF; border-color: COLOR_REF;} .st-key-hl_txt button * {font-weight: 600;} </style>".replace("COLOR_REF", themes[active_theme]["highlight_text"]).replace("VIS_REF", themes[active_theme]["highlights"]))
+    col_3.button("Highlight text", key="hl_txt", width="stretch")
+    col_4.color_picker("Highlight text", key="highlight_text_temp", label_visibility="collapsed")
+
+    # In json
+    st.html("<style> .st-key-pos_col button {background-color: VIS_REF; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["positive_color"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+    col_3.button("Positive", key="pos_col", width="stretch")
+    col_4.color_picker("Positive", key="positive_color_temp", label_visibility="collapsed")
+    
+    # In json
+    st.html("<style> .st-key-neu_col button {background-color: VIS_REF; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["neutral_color"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+    col_3.button("Neutral", key="neu_col", width="stretch")
+    col_4.color_picker("Neutral", key="neutral_color_temp", label_visibility="collapsed")
+    
+    # In json
+    st.html("<style> .st-key-neg_col button {background-color: VIS_REF; color: COLOR_REF; border-color: COLOR_REF;} </style>".replace("COLOR_REF", themes[active_theme]["negative_color"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+    col_3.button("Negative", key="neg_col", width="stretch")
+    col_4.color_picker("Negative", key="negative_color_temp", label_visibility="collapsed")
+    
+    # In config
+    st.html("<style> .st-key-tx_col button {color: COLOR_REF; border-color: transparent;} </style>".replace("COLOR_REF", themes[active_theme]["text_color"]))
+    col_3.button("Text", key="tx_col", width="stretch")
+    col_4.color_picker("Text", key="text_color_temp", label_visibility="collapsed")
+
+    col_l, col_r = st.columns(2)
+    col_l.space()
+    col_l.checkbox("Feature header", key="header_switch_temp")

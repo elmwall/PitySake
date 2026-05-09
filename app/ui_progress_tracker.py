@@ -1,47 +1,44 @@
 import streamlit as st
 
 from .file_manager import Archivist
-from .data_access import Holder
+import app.data_access as hold
 
 from settings.config import TERMS, DIRECTORIES, DATAPATH
 
 
-def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_color, highlight_html): 
-    hold = Holder()
-    attempts = hold.load_progress_data()
-    
-    height, html_label, html_add10 = _feature_style(component_key, attempts, widget_color)
-    # st.space(64)
+attempt_ref = TERMS["attempt"]
+progress_ref = TERMS["progress"]
+state_ref = TERMS["state"]
+staterand_ref = TERMS["state_rand"]
+statedet_ref = TERMS["state_det"]
+
+
+
+def progress_meter(component_key, sub_keys, feature_size_left, highlight_html): 
+
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
-    # Header
-    # st.html("<style> .st-key-KEY_REF {width: 900px; min-width: 900px; max-width: 900px;} </style>".replace("KEY_REF", f"{component_key}_main"))
+    attempts = hold.load_progress_data()
+    active_theme = hold.load_themes()["active"]
+    widget_color = hold.load_themes()[active_theme]["input_field"]
+    height, html_label, html_add10 = _feature_style(component_key, widget_color)
+
     if st.session_state["header_switch"]:
         with st.container(key=f"{component_key}_head", width=feature_size_left, height="content"):
-            st.markdown(f"##### *{TERMS["attempt"]}meter*", text_alignment="left")
-    with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height="stretch"):
-        # Initiate keys for all widgets to-be-made and initiate their init value
-        # It is run in a separate loop to avoid syncing delay or conflicts
-        init_values = list()
-        if "initiated" not in st.session_state.keys():
-            st.session_state["initated"] = False
-        if not st.session_state["initated"]:
-            for i, category in enumerate(attempts.keys()):
-                init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(attempts, category, init_values, i)
-                st.session_state.setdefault(shared_key, shared_init)
-                st.session_state.setdefault(slider_key, shared_init)
-                st.session_state.setdefault(num_key, shared_init)
-            st.session_state["initated"] = True
-
+            col_title, col_res = st.columns([23, 2])
+            col_title.markdown(
+                f"##### *{attempt_ref}meter*", 
+                help=f"Indicate {staterand_ref} or {statedet_ref.lower()} by left-most icon. Press Save after changing any value to store it. Use Reset to restore all values , or to re-sync if all values are 0.", 
+                text_alignment="left"
+            )
+    with st.container(border=True, key=f"{component_key}_main", width=feature_size_left, height=340):
         # Generate a widget for every category in file
         init_values = list()
         for i, category in enumerate(attempts.keys()):
             st.space("xxsmall")
-            # Define the active key
-            init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key = _initiate(attempts, category, init_values, i)
+            # Define a key for each widget and initiate their init value
+            init_values, shared_init, keys = _initiate(attempts, category, init_values, i)
 
             limit = attempts[category]["limit"]
-            # st.html("<style> .st-key-KEY_REF {padding: 0.7rem} </style>".replace("KEY_REF", sub_keys[i]))
-            # st.html("<style> .st-key-KEY_REF {margin: 0.5rem} </style>".replace("KEY_REF", add10_key))
             with st.container(key=sub_keys[i]):
             
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()
@@ -49,70 +46,112 @@ def progress_meter(attempts, component_key, sub_keys, feature_size_left, widget_
                     is_static = False
                     is_active = None
                     # Indication only when applicable
-                    if attempts[category][TERMS["state"]]:
-                        if attempts[category][TERMS["state"]] == TERMS["state_rand"]:
+                    if attempts[category][state_ref]:
+                        if attempts[category][state_ref] == staterand_ref:
                             symbol = ["**%**"]
                             # is_active = None
-                            switch_to = TERMS["state_det"]
+                            switch_to = statedet_ref
                         else:
                             symbol = ["**☆**"]
                             is_active = symbol
-                            switch_to = TERMS["state_rand"]
-                        state_values = (arciv, hold, attempts, category, switch_to, TERMS["state"])
+                            switch_to = staterand_ref
+                        state_values = (arciv, hold, attempts, category, switch_to, state_ref)
                     # Disable for static
                     else:
                         is_static = True
                         symbol = ["**⦸**"]
                         state_values = (None,)
-                    st.pills("state", options=symbol, default=is_active, key=state_key, width="stretch", on_change=_update_progress, args=state_values, disabled=is_static, label_visibility="collapsed")
+                    st.pills(
+                        "state", 
+                        options=symbol, 
+                        default=is_active, 
+                        key=keys["state"], 
+                        width="stretch", 
+                        on_change=_update_progress, 
+                        args=state_values, 
+                        disabled=is_static, 
+                        label_visibility="collapsed"
+                    )
                 
                 # Category title
-                label_style = html_label.replace("REF", label_key)
+                label_style = html_label.replace("REF", keys["label"])
                 st.html(label_style)
                 with col_cat:
-                    st.button(f"*{category}*", key=label_key, width="stretch") 
+                    st.button(f"*{category}*", key=keys["label"], width="stretch") 
                 
                 # Enter number / change by increments
                 # Syncs to slider
                 with col_number:
-                    st.number_input("Number", min_value=0, max_value=limit, key=num_key, on_change=_sync_from_num, args=(i,), label_visibility="collapsed")
+                    st.number_input(
+                        "Number", 
+                        min_value=0, 
+                        max_value=limit, 
+                        key=keys["num"], 
+                        on_change=_sync_from_num, 
+                        args=(i,), 
+                        label_visibility="collapsed"
+                    )
                 
                 # Increase-by-10 button
                 # Syncs to slider and number input
-                add10_style = html_add10.replace("REF", add10_key)
+                add10_style = html_add10.replace("REF", keys["add10"])
                 st.html(add10_style)
                 with col_10:
-                    if st.session_state[num_key] < limit-10:
-                        st.button("**+ 10**", key=add10_key, width="stretch", on_click=_increment_counter, args=(i,))
+                    if st.session_state[keys["num"]] < limit-10:
+                        st.button(
+                            "**+ 10**", 
+                            key=keys["add10"], 
+                            width="stretch", 
+                            on_click=_increment_counter, 
+                            args=(i,)
+                        )
                     else:
-                        st.button("**+ 10**", key=add10_key, width="stretch")
+                        st.button("**+ 10**", key=keys["add10"], width="stretch")
                 
                 # Slider view/interface
                 # Syncs to number input
                 with col_slider:
-                    st.slider("Slider", min_value=0, max_value=limit, key=slider_key, on_change=_sync_from_slider, args=(i,), label_visibility="collapsed")
+                    st.slider(
+                        "Slider", 
+                        min_value=0, 
+                        max_value=limit, 
+                        key=keys["slider"], 
+                        on_change=_sync_from_slider, 
+                        args=(i,), 
+                        label_visibility="collapsed"
+                    )
                 # Apply and call save function
                 with col_apply:
-                    if st.session_state[shared_key] != shared_init:
-                        st.html(highlight_html.replace("KEY_REF", button_key))
-                        st.button(f"Save", key=button_key, type="primary", on_click=_update_progress, args=(arciv, hold, attempts, category, st.session_state[shared_key], TERMS["attempt"]), width="stretch")
+                    if st.session_state[keys["shared"]] != shared_init:
+                        st.html(highlight_html.replace("KEY_REF", keys["button"]))
+                        st.button(
+                            f"Save", 
+                            key=keys["button"], 
+                            type="primary", 
+                            on_click=_update_progress, 
+                            args=(arciv, hold, attempts, category, st.session_state[keys["shared"]], 
+                            attempt_ref), 
+                            width="stretch"
+                        )
                     else:
-                        st.button(f"Save", key=button_key, type="secondary", width="stretch")
+                        st.button(f"Save", key=keys["button"], type="secondary", width="stretch")
         
         # Reset all values
         reset_key = f"reset_key"
-        col_apply = _column_style()[5]
-        with col_apply:
-            st.markdown("")
-            st.button(f"**:green[Reset]**", key=reset_key, type="secondary", on_click=_reset, args=(attempts, init_values, i), width="stretch")
+        with col_res:
+            with st.container(border=False):
+                st.markdown("")
+                st.html("<style> .st-key-KEY_REF button * {color: COLOR_REF} .st-key-KEY_REF button {margin: -2rem 0rem;}</style>"
+                        .replace("KEY_REF", reset_key)
+                        .replace("COLOR_REF", st.session_state["positive_color"]))
+                st.button("Reset", key=reset_key, type="tertiary", on_click=_reset, args=(attempts, init_values, i), width="stretch")
         # st.markdown("")
         return height
     
     
-
-
-def _feature_style(component_key, attempts, widget_color):
-    height = 75 * (len(attempts.keys()) - 0) + 65
+def _feature_style(component_key, widget_color):
+    # height = 75 * (len(attempts.keys()) - 0) + 65
+    height = 282
     st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
     html_label = "<style> .st-key-REF button {background-color: transparent; border: none;} </style>"
     html_add10 = "<style> .st-key-REF button {background-color: COLOR_REF; border: none; padding-left: -0.9rem;} </style>".replace("COLOR_REF", widget_color)
@@ -120,17 +159,24 @@ def _feature_style(component_key, attempts, widget_color):
 
 
 def _initiate(attempts, category, init_values, i):
-    init_values.append(attempts[category][TERMS["attempt"]])
-    label_key = f"label_{i}"
-    state_key = f"state_{i}"
-    slider_key = f"slider_{i}"
-    num_key = f"num_{i}"
-    shared_key = f"val_{i}"
-    button_key = f"but_{i}"
-    add10_key = f"add10_{i}"
+    init_values.append(attempts[category][attempt_ref])
+    keys = {
+        "label": f"label_{i}",
+        "state": f"state_{i}",
+        "slider": f"slider_{i}",
+        "num": f"num_{i}",
+        "shared": f"val_{i}",
+        "button": f"but_{i}",
+        "add10": f"add10_{i}"
+    }
     
-    shared_init = attempts[category][TERMS["attempt"]]
-    return init_values, shared_init, label_key, state_key, slider_key, num_key, shared_key, button_key, add10_key
+    shared_init = attempts[category][attempt_ref]
+
+    st.session_state.setdefault(keys["shared"], shared_init)
+    st.session_state.setdefault(keys["slider"], shared_init)
+    st.session_state.setdefault(keys["num"], shared_init)
+    
+    return init_values, shared_init, keys
 
 
 def _sync_from_num(idx):
@@ -156,13 +202,14 @@ def _column_style():
 
 
 def _update_progress(arciv, hold, attempts, category, value, option):
-    if option == TERMS["attempt"]:
-        attempts[category][TERMS["attempt"]] = value
-    elif option == TERMS["state"]:
-        attempts[category][TERMS["state"]] = value
+    if option == attempt_ref:
+        attempts[category][attempt_ref] = value
+    elif option == state_ref:
+        attempts[category][state_ref] = value
 
-    arciv.catch_data(attempts, DATAPATH["progress"], TERMS["progress"])
-    if arciv.backup([101, 47, 19, 7, 3], TERMS["progress"], other_file=DATAPATH["progress"]):
-        arciv.writer(attempts, object_type=TERMS["progress"], other_file=DATAPATH["progress"], join_path="data")
+    arciv.catch_data(attempts, DATAPATH["progress"], progress_ref)
+    if arciv.backup([101, 47, 19, 7, 3], progress_ref, other_file=DATAPATH["progress"]):
+        arciv.writer(attempts, object_type=progress_ref, other_file=DATAPATH["progress"], join_path="data")
+        st.session_state["cleared_cache"] = True
         hold.load_progress_data.clear()
         

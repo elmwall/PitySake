@@ -1,14 +1,16 @@
 import streamlit as st
 
-def calculator(limit, component_key, set_width, highlight_html, set_height):
-    _initiate()
+import app.data_access as hold
+
+
+def calculator(component_key, set_width, highlight_html, set_height):
     # Header
     if st.session_state["header_switch"]:
         with st.container(key=f"{component_key}_head", width=set_width, height="content"):
             st.markdown("##### *Calculate*", text_alignment="left")
     # Main container
-    set_height = "content" if set_height > 400 else "stretch"
     with st.container(border=True, key=f"{component_key}_main", width=set_width, height=set_height):
+        limit = hold.load_options()["value_limits"]["general_limit"]
         curr_valid, prev_valid, msg, tip_last, tip_prev = _validation(limit)
         st.markdown("")
         # Input field, UI structured as left for latest and right for previous
@@ -68,12 +70,10 @@ def calculator(limit, component_key, set_width, highlight_html, set_height):
                 else:
                     output = None
             # Output viewer field - views tip for correcting data or result of calculation
-            # st.html("<style> .st-key-result_disp {margin: 0 0; padding: 0} .st-key-result_disp * {margin: 0; padding: 0; text-align: center} </style>")
-            # st.space("xxsmall")
             left, mid, right = st.columns(calc_columns)
             with mid:
                 with st.container(border=True, key="result_disp", width="stretch", height="stretch", horizontal_alignment="center", vertical_alignment="center"):
-                    html_output = "<div style='font-size: 50px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
+                    html_output = "<div style='font-size: 30px; margin: 0; padding: 0; line-height: 1; text-align: center;'>REF</div>"
                     if output is not None:
                         result_output = f"-"
                         if output:
@@ -86,23 +86,6 @@ def calculator(limit, component_key, set_width, highlight_html, set_height):
                             st.markdown(f"{tip_prev}", text_alignment="center")
                         else:
                             st.html(html_output.replace("REF", "-"))
-
-
-
-def _initiate():
-    init_values = {
-        "curr_page": 1, 
-        "curr_row": 0, 
-        "prev_page": 1, 
-        "prev_row": 2,
-        "message": "",
-        "calculation": None
-    }
-    for key, value in init_values.items():
-        if key not in st.session_state.keys():
-            st.session_state[key] = value
-        elif not st.session_state[key]:
-            st.session_state[key] = value
 
 
 def _validation(limit):
@@ -133,7 +116,6 @@ def _validation(limit):
     else:
         curr_valid = True
         tip_last = None
-    # if int(st.session_state["curr_page"]) 
     prev_valid = False
     # A general limit is utilized, exceptions rare
     max_value = limit
