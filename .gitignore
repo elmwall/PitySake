@@ -6,7 +6,11 @@ settings/
 __pycache__/
 venv/
 ui/
+install/
+.streamlit/
+settings_dev/
 
 test.py
 test.ipynb
 users.py
+PitySake.lnk
