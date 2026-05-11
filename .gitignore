@@ -9,6 +9,7 @@ ui/
 install/
 .streamlit/
 settings_dev/
+src/
 
 test.py
 test.ipynb
