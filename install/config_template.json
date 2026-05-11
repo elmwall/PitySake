@@ -1,0 +1,44 @@
+{
+    "DIRECTORIES": {
+        "BackupFolder": "user_project/backup",
+        "DataFolder": "user_project/data",
+        "SettingsFolder": "user_project/settings",
+        "UIFolder": "user_project/settings"
+    },
+    "SETTINGS": {
+        "Options": "data_options.json",
+        "Presets": "init_values.json",
+        "Validation": "data_validation.json",
+        "UISettings": "ui_settings.json"
+    },
+    "DATAPATH": {
+        "backup_meta": "backup_meta.json",
+        "main": "main.json",
+        "utility": "utility.json",
+        "progress": "progress.json"
+    },
+    "TERMS": {
+        "main": "Primary object",
+        "secondary": "Secondary object",
+        "utility": "Topic",
+        "attribute": "Type",
+        "origin": "Origin",
+        "progress": "Progress",
+        "attempt": "Progress/value",
+        "event_calculator": "Progress calculator",
+        "active_attempts": "Completed tasks/recorded value",
+        "source": "General term for event source",
+        "event": "Event/milestone with associated tasks",
+        "event_name": "Source/milestone category",
+        "temp": "Dedicated event sources, separate for primary or secondary objects",
+        "common_source": "Source without state, for primary or secondary objects",
+        "mix": "Mixed event source for primary or secondary objects",
+        "gift": "Event without associated value, for primary or secondary objects",
+        "state": "State",
+        "state_win": "Positive outcome",
+        "state_loss": "Negative outcome",
+        "state_det": "Neutral outcome",
+        "state_rand": "Uncertain",
+        "ui_title": "Project title"
+    }
+}
