@@ -17,8 +17,8 @@ def run_define_labels(set_width, set_heigth):
         col_1, col_2 = st.columns(2)
 
         # TODO: image of data view search
-        col_1.image("sample_obj.png", caption="**Main objects** has three group of labels.", output_format="PNG")
-        col_2.image("sample_obj.png", caption="**Secondary objects** only has the the first label group.", output_format="PNG")
+        col_1.image("images/sample_obj.png", caption="**Main objects** has three group of labels.", output_format="PNG")
+        col_2.image("images/sample_obj.png", caption="**Secondary objects** only has the the first label group.", output_format="PNG")
 
 
 def _apply(key, need_save, is_changed, submission_key, submission):

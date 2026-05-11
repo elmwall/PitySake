@@ -44,7 +44,7 @@ def run_define_event_limits(set_width, set_heigth):
                     col_left.text_input("extra", key=key_txt, help="")
                     col_right.number_input("limit", key=key_num, min_value=1)
 
-            col_5.image("sample_att.png")
+            col_5.image("images/sample_att.png")
 
 
 
