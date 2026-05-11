@@ -3,7 +3,9 @@ import streamlit as st
 from .file_manager import Archivist
 import app.data_access as hold
 
-from settings.config import TERMS, DIRECTORIES, DATAPATH
+# from settings.config import TERMS, DIRECTORIES, DATAPATH
+from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
+
 
 
 attempt_ref = TERMS["attempt"]

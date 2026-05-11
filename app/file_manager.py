@@ -3,8 +3,9 @@ import shutil
 
 import json
 import streamlit as st
-
-from settings.config import TERMS
+# import app.config_hub as hub
+# from settings.config import TERMS
+from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
 
 
 class Archivist:
@@ -38,7 +39,7 @@ class Archivist:
             read_file = os.path.join(self.settings_directory, read_file)
         elif join_path:
             raise ValueError("Invalid value of pathway indicator 'join_path'.")
-
+        print("dirname", os.path.abspath(read_file))
         if is_json:
             try:
                 with open(read_file, "r", encoding="utf-8") as f:
@@ -312,7 +313,7 @@ class Archivist:
                 shutil.copy(catch["file"], catch["backup_file"])
                 print("Data backup done.")
 
-            if catch["datatype"] in [TERMS["main"], TERMS["utility"]]:
+            if catch["datatype"] in [TERMS["main"], TERMS["secondary"]]:
                 st.session_state["updated_library"], action_verification = self.join_data(
                 data_details["new_data"], 
                 data_details["name"], 

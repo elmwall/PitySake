@@ -3,7 +3,9 @@ import plotly.graph_objects as go
 
 import app.data_access as hold
 
-from settings.config import TERMS
+# from settings.config import TERMS
+from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
+
 
 
 def timeline(component_key, set_height): 

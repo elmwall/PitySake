@@ -3,7 +3,7 @@ import pandas as pd
 
 import app.data_access as hold
 
-from settings.config import TERMS
+from app.config_hub import TERMS
 
 
 def table_view(component_key, object_type, table_style, table_height):
@@ -13,8 +13,8 @@ def table_view(component_key, object_type, table_style, table_height):
     with st.container(border=False, width="stretch", height=table_height):
         if object_type == "main":
             database = hold.load_main_database()
-        elif object_type == "utility":
-            database = hold.load_utility_database()
+        elif object_type == "secondary":
+            database = hold.load_secondary_database()
 
         rows = hold.process_collection_db(database, object_type)["table_data"]
         dataframe = hold.data_to_dataframe(rows, object_type)

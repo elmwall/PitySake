@@ -4,13 +4,16 @@ import copy
 import streamlit as st
 
 import app.data_access as hold
-from settings.config import SETTINGS
+# import app.config_hub as hub
+# from settings.config import SETTINGS
+# from app.configg import DIRECTORIES, SETTINGS, DATAPATH
+from app.config_hub import SETTINGS
 
 
 class Secretary:
     def __init__(self, arciv, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys):
         """
-        Collection of all utilitys needed for accessing files and data necessary for editing object library.
+        Collection of all tools needed for accessing files and data necessary for editing object library.
         """
 
         self.arciv = arciv
@@ -26,23 +29,29 @@ class Secretary:
         self.main_ref = TERMS["main"]
         self.origin_ref = TERMS["origin"]
         self.progress_ref = TERMS["progress"]
+        self.secondary_ref = TERMS["secondary"]
         self.source_ref = TERMS["source"]
         self.state_ref = TERMS["state"]
         self.staterand_ref = TERMS["state_rand"]
         self.utility_ref = TERMS["utility"]
+        self.utility_sec_ref = TERMS["secondary_utility"]
 
 
     def settings(self, data_type):
-        if not data_type: data_type = self.main_ref
+        if not st.session_state["reg_type"]: 
+            data_type = self.main_ref
+        else: 
+            data_type = st.session_state["reg_type"]
+            
         if data_type == self.main_ref:
             object_database = hold.load_main_database()
-        if data_type == self.utility_ref:
-            object_database = hold.load_utility_database()
+        if data_type == self.secondary_ref:
+            object_database = hold.load_secondary_database()
         
         try:
-            options_object = object_database.keys()
+            options_object = list(st.session_state["current_database"].keys())
         except:
-            options_object = hold.load_main_database().keys()
+            options_object = list(hold.load_main_database().keys())
 
 
         selectable_options = {
@@ -50,7 +59,7 @@ class Secretary:
             "options_object": options_object,
             "options_attribute": self.options[self.main_ref][self.attribute_ref],
             "options_origin": self.options[self.main_ref][self.origin_ref],
-            "options_type": [self.main_ref, self.utility_ref],
+            "options_type": [self.main_ref, self.secondary_ref],
             "options_source": self.options["source"]
         }
 
@@ -89,33 +98,40 @@ class Secretary:
             }
         }
 
-        return object_database, selectable_options, registration_options, preset_keys
+        return object_database, options_object, selectable_options, registration_options, preset_keys
     
 
     def collect_object_info(self, object_database, reg_selection):
         # Predefined settings collected from object details in library
         name, data_type = st.session_state["reg_name"], st.session_state["reg_type"]
-        if name not in object_database.keys():
+        if st.session_state["reg_name"] not in st.session_state["current_database"].keys():
             pass
-        elif name and not reg_selection == "add_new":
-            settings = object_database[name]
-            if data_type == self.main_ref:
+        elif st.session_state["reg_name"] and not reg_selection == "add_new":
+            settings = st.session_state["current_database"][st.session_state["reg_name"]]
+            print(st.session_state["reg_type"], settings)
+            if st.session_state["reg_type"] == self.main_ref:
                 st.session_state["reg_utility"] = settings[self.utility_ref]
                 st.session_state["reg_attribute"] = settings[self.attribute_ref]
                 st.session_state["reg_origin"] = settings[self.origin_ref]
             else:
-                st.session_state["reg_utility"] = settings["Type"]
+                st.session_state["reg_utility"] = settings[self.utility_sec_ref]
+                st.session_state["reg_attribute"] = None
+                st.session_state["reg_origin"] = None
 
 
-    def collect_database(self, set_type):
-        if set_type == self.main_ref or not set_type:
+    def collect_database(self):
+        if st.session_state["reg_object_type"] == self.main_ref or not st.session_state["reg_object_type"]:
+            st.session_state["current_database"] = copy.deepcopy(hold.load_main_database())
+            st.session_state["reg_type"] = self.main_ref
             return hold.load_main_database()
-        if set_type == self.utility_ref:
-            return hold.load_utility_database()
+        if st.session_state["reg_object_type"] == self.utility_ref:
+            st.session_state["current_database"] = copy.deepcopy(hold.load_secondary_database())
+            st.session_state["reg_type"] = self.secondary_ref
+            return hold.load_secondary_database()
     
 
     @st.dialog(f"Editing library entry")
-    def _rename(self, name, object_type, new_data, reg_selection, highlight_html):
+    def rename(self, name, object_type, new_data, reg_setting, highlight_html):
         active_theme = hold.load_themes()["active"]
         highlight_textstyle = hold.load_themes()[active_theme]["highlight_text"]
         st.write(f"You are editing {name}")
@@ -131,13 +147,13 @@ class Secretary:
             st.html(highlight_html.replace("COLOR_REF", highlight_textstyle))
             not_updated, appearance, new_name = False, "primary", name_update
         if st.button("Confirm", key="rename", type=appearance, disabled=not_updated):
-            self.update_object(name, object_type, new_data, reg_selection, new_name.title())
+            self.update_object(name, object_type, new_data, reg_setting, new_name.title())
             # Reload the update the list of objects and auto-close dialog box
             st.rerun()
 
 
     def update_object(self, name, object_type, new_data, reg_setting, new_name):
-        # Rename truth-check also carries new name, define as new_name from _rename
+        # Rename truth-check also carries new name, define as new_name from rename
         if reg_setting["for_renaming"]: reg_setting["for_renaming"] = new_name
         datafile = self.paths[object_type]
         backup_frequency = [101, 31, 11, 2]
@@ -176,11 +192,11 @@ class Secretary:
             )
             print(f"\nLibrary updated, {action_verification}!\n")
             if object_type == self.main_ref:
-                st.session_state["cleared_cache"] = True
-                hold.load_main_database.clear()
+                st.session_state["processed_edits"] = True
+                # hold.load_main_database.clear()
             elif object_type == self.utility_ref:
-                st.session_state["cleared_cache"] = True
-                hold.load_utility_database.clear()
+                st.session_state["processed_edits"] = True
+                # hold.load_secondary_database.clear()
             st.rerun()
 
 
@@ -193,7 +209,7 @@ class Secretary:
         st.session_state["edited_options"] = list()
         with col_main:
             with st.container(border=False, height=310):
-                name_edit, selection, no_options, requirements, option_ref = self._initiate_optionedit()     
+                name_edit, selection, no_options, requirements, option_ref = self._initiate_option_edit()     
                 if name_edit:
                     if st.checkbox("Remove option", value=False, key="remove_option"):
                         placeholder = "No removable options" if no_options else None
@@ -220,7 +236,7 @@ class Secretary:
                         elif selection == option_ref["edit_source"]:
                             st.text_input(f"Enter name for new {self.source_ref}. Mind spelling.", key="new_option")
                             col_left, col_right = st.columns(2)
-                            new_limit = col_left.number_input(f"Enter new max value.", min_value=0)
+                            new_limit = col_left.number_input(f"Enter new max value.", min_value=1)
                             state_options = [f"{self.staterand_ref}", "Constant"]
                             selected_state = col_right.selectbox("Set state options", options=state_options)
                             new_state = None if selected_state == "Constant" else f"{self.staterand_ref}"
@@ -290,7 +306,7 @@ class Secretary:
             st.json(st.session_state["changed_progress"])
 
 
-    def _initiate_optionedit(self, full=True, prev_sel=None):
+    def _initiate_option_edit(self, full=True, prev_sel=None):
         print("11111", st.session_state["changed_options"])
         if "changed_options" not in st.session_state:
             st.session_state["changed_options"] = copy.deepcopy(hold.load_options())
@@ -302,8 +318,6 @@ class Secretary:
         elif not st.session_state["changed_progress"]:
             st.session_state["changed_progress"] = copy.deepcopy(hold.load_progress_data())
             
-        print("22222", st.session_state["changed_options"])
-        print("33333", hold.load_options())
         option_ref = {
             "edit_utility": self.utility_ref,
             "edit_attribute": self.attribute_ref,
