@@ -1,13 +1,24 @@
 import datetime
 import pandas as pd
+from dataclasses import dataclass
 
 import streamlit as st
 
 from .file_manager import Archivist
-from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
+# import app.config_hub as hub
+# from settings.config import TERMS, DIRECTORIES, DATAPATH, SETTINGS
+# from app.configg import DIRECTORIES, SETTINGS, DATAPATH
+from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
 
 
 arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
+
+
+# @dataclass
+# class AppContext:
+#     project_root: str
+#     config: dict
+
 
 @st.cache_data
 def load_main_database():
@@ -19,12 +30,12 @@ def load_main_database():
     return arciv.reader(datafile, join_path="data")
 
 @st.cache_data
-def load_utility_database():
+def load_secondary_database():
     """
-    Loads and caches secondary (utility) database with one labels (type) and event data
+    Loads and caches secondary database with one labels (type) and event data
     Event data has date, attempts and source
     """
-    datafile = DATAPATH[TERMS["utility"]]
+    datafile = DATAPATH[TERMS["secondary"]]
     return arciv.reader(datafile, join_path="data")
 
 @st.cache_data
@@ -41,6 +52,7 @@ def load_options():
     Loads and caches data option needed for registering and analyzing data
     """
     options_file = SETTINGS["Options"]
+    
     return arciv.reader(other_file=options_file, join_path="settings")
 
 @st.cache_data
@@ -162,7 +174,7 @@ def data_to_dataframe(rows, object_type):
         dataframe.sort_values(["Date", "Index"], ascending=False)
         .drop(columns=["Index", f"{TERMS["state"]}"])
     )
-    if object_type == "utility": processed_dataframe = (processed_dataframe.drop(columns=[" "]))
+    if object_type == "secondary": processed_dataframe = (processed_dataframe.drop(columns=[" "]))
     processed_dataframe[TERMS["attempt"]] = pd.to_numeric(
         processed_dataframe[TERMS["attempt"]], errors="coerce"
     ).astype("Int64")

@@ -5,7 +5,10 @@ import streamlit as st
 
 from .file_manager import Archivist
 import app.data_access as hold
-from settings.config import DIRECTORIES, DATAPATH
+
+# from settings.config import DIRECTORIES, DATAPATH
+from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
+
 
 
 def settings():
@@ -13,7 +16,7 @@ def settings():
     st.html("<style> .block-container {margin: 0rem 0rem; padding: 0rem 0rem;} [data-testid='stVerticalBlock'] {gap: 0.2rem; ;} </style>") # padding: 0.35rem 0.35rem 
     st.html("<style> .st-key-settings_main, .st-key-smallstat > div {white-space: nowrap;} header {visibility: hidden;} </style>")
 
-    feature_keys = ["reg_object", "progress", "calc", "smallstat", "main_object_data", "utility_object_data", "timeline", "settings"]
+    feature_keys = ["reg_object", "progress", "calc", "smallstat", "main_object_data", "secondary_object_data", "timeline", "settings"]
     progress_calc_keys = ["tool", "attribute", "origin"]
 
     return feature_keys, progress_calc_keys
@@ -54,7 +57,7 @@ def style(feature_keys, keylist_prog_calc):
         style_subcontainer = html_widget.replace("REF", key)
         st.html(style_subcontainer)
 
-    # Data viewer feature tables "ch_data", "utility_data", 
+    # Data viewer feature tables "ch_data", "secondary_data", 
     table_style = [theme["background"], theme["main_container"]]
 
     # Highlights and inicators

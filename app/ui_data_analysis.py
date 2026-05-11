@@ -3,7 +3,7 @@ import statistics
 
 import app.data_access as hold
 
-from settings.config import TERMS
+from app.config_hub import TERMS
 
 
 def small_stats(component_key, sub_keys, set_width, set_height):
@@ -11,6 +11,7 @@ def small_stats(component_key, sub_keys, set_width, set_height):
     attempt_ref = TERMS["attempt"]
     event_ref = TERMS["event"]
     main_ref = TERMS["main"]
+    secondary_ref = TERMS["secondary"]
     utility_ref = TERMS["utility"]
     
     if st.session_state["header_switch"]:
@@ -19,25 +20,25 @@ def small_stats(component_key, sub_keys, set_width, set_height):
     feat_height = "content" if set_height > 400 else "stretch"
     with st.container(border=True, key=f"{component_key}_main", width=set_width, height=feat_height):
         st.markdown("")
-        object_database = hold.load_main_database()
-        utility_database = hold.load_utility_database()
+        main_database = hold.load_main_database()
+        secondary_database = hold.load_secondary_database()
         progress = hold.load_progress_data()
         attempts = 0
         for x  in progress.values():
             attempts += x[attempt_ref]
 
-        processed_main = hold.process_collection_db(object_database, "main")
-        processed_utility = hold.process_collection_db(utility_database, "utility")
+        processed_main = hold.process_collection_db(main_database, "main")
+        processed_secondary = hold.process_collection_db(secondary_database, "secondary")
 
         counts = processed_main["counts"]
 
         main_success = processed_main["success_fail"]
-        utility_success = processed_utility["success_fail"]
-        success = main_success[0] + utility_success[0]
-        success_rate = success / sum(main_success + utility_success)*100
+        secondary_success = processed_secondary["success_fail"]
+        success = main_success[0] + secondary_success[0]
+        success_rate = success / sum(main_success + secondary_success)*100
         success_rate = "%.f" % success_rate
 
-        attempt_list = processed_main["attempt_list"] + processed_utility["attempt_list"]
+        attempt_list = processed_main["attempt_list"] + processed_secondary["attempt_list"]
         total_val = sum(attempt_list) + attempts
 
         last = processed_main["last_event"][1]
@@ -72,7 +73,7 @@ def small_stats(component_key, sub_keys, set_width, set_height):
                         col_l.metric(
                             "Win rate", 
                             value=f"{success_rate}%", 
-                            help=f"From {main_ref.lower()} and {utility_ref.lower()} {event_ref.lower()}s", 
+                            help=f"From {main_ref.lower()} and {secondary_ref.lower()} {event_ref.lower()}s", 
                             border=False, 
                             width="stretch"
                         )            

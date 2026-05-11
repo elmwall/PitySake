@@ -10,7 +10,10 @@ import app.ui_data_analysis as data_analysis
 import app.ui_data_viewer as data_viewer
 import app.ui_timeline as timeline
 import app.ui_style as page
-from settings.config import TERMS
+# import app.config_hub as hub
+# from settings.config import TERMS
+# from app.configg import DIRECTORIES, SETTINGS, DATAPATH
+from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
 
 
 CONTENT_WIDTH = 1800
@@ -73,7 +76,7 @@ def horizontal_view(registration_keys, prog_meter_keys, highlight_html, table_st
             with col_mid:
                 data_viewer.table_view("main_data", "main", table_style, table_height)
             with col_right:
-                data_viewer.table_view("utility_data", "utility", table_style, table_height)
+                data_viewer.table_view("secondary_data", "secondary", table_style, table_height)
         st.space()
         with st.container(width=CONTENT_WIDTH, height="content"):
             col_left, col_right = st.columns([width_left, WIDTH_TOT_RIGHT])
@@ -117,7 +120,7 @@ def vertical_view(registration_keys, prog_meter_keys, highlight_html, table_styl
                 data_viewer.table_view("main_data", "main", table_style, table_height)
             with col_right:
                 st.space("xxsmall")
-                data_viewer.table_view("utility_data", "utility", table_style, table_height)
+                data_viewer.table_view("secondary_data", "secondary", table_style, table_height)
             tab_1, tab_2 = st.tabs(["Timeline", "Calculate"])
             with tab_1:
                 timeline.timeline("timeline", height)
@@ -128,19 +131,3 @@ def vertical_view(registration_keys, prog_meter_keys, highlight_html, table_styl
                 with col_right:
                     pass
                     data_analysis.small_stats("smallstat", registration_keys, WIDTH_RIGTH_2, height)
-
-def tab_view(registration_keys, prog_meter_keys, highlight_html, table_style):
-    tab_1, tab_2, tab_3 = st.tabs(["Register object", "Progress tracker", "View data"])
-    width_left = 900
-    table_height = "stretch"
-    height = 300
-    with tab_1:
-        object_recorder.register_object("reg_object", registration_keys, width_left, highlight_html)
-        cal.calculator("calc", WIDTH_MID_2, highlight_html, height)
-    with tab_2:
-        progress_tracker.progress_meter("progress", prog_meter_keys, width_left, highlight_html)
-    with tab_3:
-        data_viewer.table_view("main_data", "main", table_style, table_height)
-        data_viewer.table_view("utility_data", "utility", table_style, table_height)
-        data_analysis.small_stats("smallstat", registration_keys, WIDTH_RIGTH_2, height)
-        timeline.timeline("timeline", height)

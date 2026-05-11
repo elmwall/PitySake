@@ -4,12 +4,19 @@ PitySake_Accessories/
 images/
 backup/
 settings/
+settings_dev/
 __pycache__/
 venv/
 ui/
 .streamlit/
 
+PitySake.lnk
 test.py
 test.ipynb
 users.py
 init_demo.py
+sample.png
+sample_obj.png
+sample_att.png
+sample_data.png
+sample_t.png

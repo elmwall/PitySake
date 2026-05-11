@@ -1,0 +1,4 @@
+DIRECTORIES = None
+SETTINGS = None
+DATAPATH = None
+TERMS = None
