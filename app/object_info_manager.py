@@ -1,13 +1,15 @@
-import datetime
 import copy
+import logging
 
 import streamlit as st
 
 import app.data_access as hold
-# import app.config_hub as hub
-# from settings.config import SETTINGS
-# from app.configg import DIRECTORIES, SETTINGS, DATAPATH
-from app.config_hub import SETTINGS
+
+
+logger = logging.getLogger(__name__)
+logger.info("Loading object_info_manager")
+
+SETTINGS = st.session_state["SETTINGS"]
 
 
 class Secretary:
@@ -15,6 +17,8 @@ class Secretary:
         """
         Collection of all tools needed for accessing files and data necessary for editing object library.
         """
+
+        logger.info("Running object_info_manager.Secretary.__init__")
 
         self.arciv = arciv
         self.paths = DATAPATH
@@ -38,6 +42,8 @@ class Secretary:
 
 
     def settings(self, data_type):
+        logger.info("Running object_info_manager.Secretary.settings")
+
         if not st.session_state["reg_type"]: 
             data_type = self.main_ref
         else: 
@@ -102,6 +108,8 @@ class Secretary:
     
 
     def collect_object_info(self, object_database, reg_selection):
+        logger.info("Running object_info_manager.Secretary.collect_object_info")
+
         # Predefined settings collected from object details in library
         name, data_type = st.session_state["reg_name"], st.session_state["reg_type"]
         if st.session_state["reg_name"] not in st.session_state["current_database"].keys():
@@ -120,6 +128,8 @@ class Secretary:
 
 
     def collect_database(self):
+        logger.info("Running object_info_manager.Secretary.collect_database")
+
         if st.session_state["reg_object_type"] == self.main_ref or not st.session_state["reg_object_type"]:
             st.session_state["current_database"] = copy.deepcopy(hold.load_main_database())
             st.session_state["reg_type"] = self.main_ref
@@ -132,8 +142,10 @@ class Secretary:
 
     @st.dialog(f"Editing library entry")
     def rename(self, name, object_type, new_data, reg_setting, highlight_html):
-        active_theme = hold.load_themes()["active"]
-        highlight_textstyle = hold.load_themes()[active_theme]["highlight_text"]
+        logger.info("Running object_info_manager.Secretary.rename @st.dialog")
+
+        active_theme = st.session_state["themes"]["active"]
+        highlight_textstyle = st.session_state["themes"][active_theme]["highlight_text"]
         st.write(f"You are editing {name}")
         new_name = name
         keep_name = st.checkbox("Keep previous name", value=True)
@@ -153,6 +165,8 @@ class Secretary:
 
 
     def update_object(self, name, object_type, new_data, reg_setting, new_name):
+        logger.info("Running object_info_manager.Secretary.update_object")
+
         # Rename truth-check also carries new name, define as new_name from rename
         if reg_setting["for_renaming"]: reg_setting["for_renaming"] = new_name
         datafile = self.paths[object_type]
@@ -202,6 +216,8 @@ class Secretary:
 
     @st.dialog("Edit options")
     def edit_options(self):
+        logger.info("Running object_info_manager.Secretary.edit_options @st.dialog")
+
         st.session_state["edit_options_complete"] = False
         st.session_state["dialog_active"] = False
         col_main, col_p = st.columns([1, 0.01])
@@ -307,7 +323,8 @@ class Secretary:
 
 
     def _initiate_option_edit(self, full=True, prev_sel=None):
-        print("11111", st.session_state["changed_options"])
+        logger.info("Running object_info_manager.Secretary._initiate_option_edit")
+
         if "changed_options" not in st.session_state:
             st.session_state["changed_options"] = copy.deepcopy(hold.load_options())
         elif not st.session_state["changed_options"]:
@@ -357,12 +374,16 @@ class Secretary:
 
 
     def _reset_changes(self):
+        logger.info("Running object_info_manager.Secretary._reset_changes")
+
         st.session_state["changed_options"] = hold.load_options()
         st.session_state["changed_progress"] = hold.load_progress_data()
         st.session_state["edit_options_complete"] = False
 
 
     def _validity_check(self, name=False, number=False):
+        logger.info("Running object_info_manager.Secretary._validity_check")
+
         msg, msg_len, msg_sym, msg_ini, msg_val = [str()]*5
         
         if name:

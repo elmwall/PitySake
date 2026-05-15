@@ -1,20 +1,27 @@
+import logging
 import time
-import datetime
 
 import streamlit as st
 
 from .file_manager import Archivist
 import app.data_access as hold
 
-# from settings.config import DIRECTORIES, DATAPATH
-from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
+logger = logging.getLogger(__name__)
+logger.info("Loading style")
+
+DATAPATH = st.session_state["DATAPATH"]
+DIRECTORIES = st.session_state["DIRECTORIES"]
+SETTINGS = st.session_state["SETTINGS"]
+TERMS = st.session_state["TERMS"]
 
 
 
 def settings():
+    logger.info("Running style.settings")
+
     st.set_page_config(page_title='PitySake', page_icon = "accessories/icon1.ico", layout="wide")
     st.html("<style> .block-container {margin: 0rem 0rem; padding: 0rem 0rem;} [data-testid='stVerticalBlock'] {gap: 0.2rem; ;} </style>") # padding: 0.35rem 0.35rem 
-    st.html("<style> .st-key-settings_main, .st-key-smallstat > div {white-space: nowrap;} header {visibility: hidden;} </style>")
+    st.html("<style> .st-key-settings_main, .st-key-smallstat > div {white-space: nowrap;} header {visibility: hidden;} .st-key-border_options {width: 400px; min-width: 350px;} .st-key-border_options button {min-width: 80px;} .st-key-page_title button {width: 280px; margin: 0rem 1rem;} </style>")
 
     feature_keys = ["reg_object", "progress", "calc", "smallstat", "main_object_data", "secondary_object_data", "timeline", "settings"]
     progress_calc_keys = ["tool", "attribute", "origin"]
@@ -23,11 +30,13 @@ def settings():
 
 
 def style(feature_keys, keylist_prog_calc):
-    themes = hold.load_themes()
+    logger.info("Running style.style")
+
+    themes = st.session_state["themes"]
     active_theme = themes["active"]
-    theme = themes[active_theme]
-    html_main_container = "<style> .st-key-REF {background-color: BGR_COLOR_REF;} </style>".replace("BGR_COLOR_REF", theme["main_container"])
-    html_header = "<style> .st-key-REF {background-color: COLOR_REF; border: none; margin-bottom: 0rem; padding: 0rem 1rem 0rem; border-top-left-radius: 10px; border-top-right-radius: 30px;} </style>".replace("COLOR_REF", theme["feature_header"])
+    active_theme_settings = themes[active_theme]
+    html_main_container = "<style> .st-key-REF {background-color: BGR_COLOR_REF;} </style>".replace("BGR_COLOR_REF", active_theme_settings["main_container"])
+    html_header = "<style> .st-key-REF {background-color: COLOR_REF; border: none; margin-bottom: 0rem; padding: 0rem 1rem 0rem; border-top-left-radius: 10px; border-top-right-radius: 30px;} </style>".replace("COLOR_REF", active_theme_settings["feature_header"])
     
     for x in feature_keys:
         style_main_container = html_main_container.replace("REF", f"{x}_main")
@@ -37,7 +46,7 @@ def style(feature_keys, keylist_prog_calc):
     st.html(html_header)
 
     # Subcontainer style
-    html_subcontainer = "<style> .st-key-REF {background-color: COLOR_REF;} </style>".replace("COLOR_REF", theme
+    html_subcontainer = "<style> .st-key-REF {background-color: COLOR_REF;} </style>".replace("COLOR_REF", active_theme_settings
     ["sub_container"])
 
     # Object registration feature
@@ -47,7 +56,7 @@ def style(feature_keys, keylist_prog_calc):
         x = registration_keys.append(key)
         style_subcontainer = html_subcontainer.replace("REF", key)
         st.html(style_subcontainer)
-    html_widget = "<style> .st-key-REF {background-color: COLOR_REF; margin: 0rem 0rem; padding: 0.1rem 0rem 0.1rem 0.2rem; border-radius: 30px;} </style>".replace("COLOR_REF", theme["small_widget"])
+    html_widget = "<style> .st-key-REF {background-color: COLOR_REF; margin: 0rem 0rem; padding: 0.1rem 0rem 0.1rem 0.2rem; border-radius: 30px;} </style>".replace("COLOR_REF", active_theme_settings["small_widget"])
     
     # Progress meter feature
     prog_meter_keys = list()
@@ -58,13 +67,18 @@ def style(feature_keys, keylist_prog_calc):
         st.html(style_subcontainer)
 
     # Data viewer feature tables "ch_data", "secondary_data", 
-    table_style = [theme["background"], theme["main_container"]]
+    table_style = [active_theme_settings["background"], active_theme_settings["main_container"]]
 
     # Highlights and inicators
-    highlight_html = "<style> .st-key-KEY_REF button * {color: COLOR_REF} .st-key-KEY_REF p {font-size: 1.05rem; font-weight: 700;} </style>".replace("COLOR_REF", theme["highlight_text"])
+    highlight_html = "<style> .st-key-KEY_REF button * {color: COLOR_REF} .st-key-KEY_REF p {font-size: 1.05rem; font-weight: 700;} </style>".replace("COLOR_REF", active_theme_settings["highlight_text"])
 
     # Progress calculator feature
-    st.html("<style> span.katex-display span.katex span.katex-html {font-size: 3rem; margin-top: 0rem;} </style>")
+    st.html("""
+        <style> 
+            span.katex-display span.katex span.katex-html {font-size: 3rem; margin-top: 0rem;} 
+            .st-key-result_disp {overflow-y: hidden;} 
+        </style>
+        """)
     # Feature details
     detail_pill_style = "<style>  .st-key-REF * {justify-content: center;} .st-key-REF button {flex: 1; min-width: 90px; max-width: 160px;}</style>"
     for x in keylist_prog_calc:
@@ -75,8 +89,10 @@ def style(feature_keys, keylist_prog_calc):
 
 @st.dialog(f"Change theme", width="small")
 def theme():
+    logger.info("Running style.theme @st.dialog")
+
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
-    themes = hold.load_themes()
+    themes = st.session_state["themes"]
     active_theme = themes["active"]
 
     st.write(f"Select theme")
@@ -84,14 +100,19 @@ def theme():
     active_theme = themes["active"]
     theme_options = list(themes.keys())
     theme_options.remove("active")
+
     with col_left:
         selected_theme = st.selectbox(
-            "themes", options=theme_options, 
-            key="set_theme_temp", 
+            "themes", 
+            options=theme_options, 
+            # index=active_theme,
+            key="active_theme_temp", 
             on_change=_reset_colors, 
             args=(themes,), 
             label_visibility="collapsed"
         )
+    if col_right.checkbox("Dont close on change"):
+        st.session_state["leave_theme_open"] = True
     with col_right:
         select_colors = st.checkbox(
             "Edit theme", 
@@ -107,6 +128,7 @@ def theme():
 
     st.space()
     col_1, col_2, col_3, col_4 = st.columns([1, 1, 1, 1])
+
     with st.container(width="stretch", horizontal_alignment="center"):
         if col_2.button("Apply", type="secondary", width="stretch"):
             st.session_state["show_theme_settings"] = True
@@ -134,7 +156,7 @@ def theme():
                 config = config_base + f'[theme]\nbackgroundColor = "{themes[selected_theme]["background"]}"\nsecondaryBackgroundColor = "{themes[selected_theme]["input_field"]}"\nprimaryColor = "{themes[selected_theme]["highlights"]}"\ntextColor = "{themes[selected_theme]["text_color"]}"\nfont = "sans serif"'
             for x in themes[selected_theme].keys():
                 st.session_state[x] = st.session_state[f"{x}_temp"]
-            st.session_state["theme_edited"] = time.time()
+            st.session_state["theme_edited"] = time.perf_counter()
             try:
                 with open(".streamlit/config.toml", "w") as f:
                     f.write(config.strip())
@@ -142,9 +164,7 @@ def theme():
                 raise RuntimeError(f"Error from {e} occurred while attempting to write to config.toml")
             arciv.writer(themes, other_file="ui_themes.json", join_path="settings")
             print("Theme updated.")
-            now = datetime.datetime.now()
-            hhmm = now.strftime("%H%M")
-            st.session_state["state_key"] = f"{hhmm}"
+
         if col_3.button("Done", type="secondary", width="stretch"):
             select_colors = False
             st.session_state["show_theme_settings"] = False
@@ -152,14 +172,18 @@ def theme():
 
 
 def _reset_colors(themes):
-    for cat, col in themes[st.session_state["set_theme_temp"]].items():
+    logger.info("Running style._reset_colors")
+
+    for cat, col in themes[st.session_state["active_theme_temp"]].items():
         st.session_state[f"{cat}_temp"] = col
 
 
 def _color_selector(themes, active_theme):
+    logger.info("Running style._color_selector")
+
     for x in themes[active_theme].keys():
         if f"{x}_temp" not in st.session_state:
-            st.session_state[f"{x}_temp"] = themes[st.session_state["set_theme_temp"]][x]
+            st.session_state[f"{x}_temp"] = themes[st.session_state["active_theme_temp"]][x]
 
     st.space("small")
     col_1, col_2, col_3, col_4 = st.columns([0.6, 0.4, 0.6, 0.4])

@@ -1,14 +1,21 @@
+import logging
+
 import streamlit as st
 import plotly.graph_objects as go
 
 import app.data_access as hold
 
-# from settings.config import TERMS
-from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
+
+logger = logging.getLogger(__name__)
+logger.info("Loading timeline")
+
+TERMS = st.session_state["TERMS"]
 
 
 
 def timeline(component_key, set_height): 
+    logger.info("Running timeline.timeline")
+
     if st.session_state["header_switch"]:
         with st.container(key=f"{component_key}_head", width="stretch", height="content"):
             st.markdown(f"##### *Timeline*", help=f"All time {TERMS["event"].lower()}s of {TERMS["main"].lower()}s. Dot color highlights {TERMS["state_win"].lower()}; line color highlights rare {TERMS["attempt"].lower()} values, good or bad.", text_alignment="left")

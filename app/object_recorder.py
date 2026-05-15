@@ -1,12 +1,20 @@
-import streamlit as st
-import datetime
 import copy
+import datetime
+import logging
+
+import streamlit as st
 
 from .file_manager import Archivist
 from .object_info_manager import Secretary
 import app.data_access as hold
 
-from app.config_hub import TERMS, DIRECTORIES, DATAPATH
+
+logger = logging.getLogger(__name__)
+logger.info("Loading object_recorder")
+
+DATAPATH = st.session_state["DATAPATH"]
+DIRECTORIES = st.session_state["DIRECTORIES"]
+TERMS = st.session_state["TERMS"]
 
 
 attempt_ref = TERMS["attempt"]
@@ -24,6 +32,8 @@ utility_sec_ref = TERMS["secondary_utility"]
 
 
 def register_object(component_key, sub_keys, feature_size_left, highlight_html):
+    logger.info("Running object_recorder.register_object")
+
     _feature_style(component_key)
     attempts = hold.load_progress_data()
     data_options = hold.load_options()
@@ -81,7 +91,6 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_html):
                     )
                 # For old object --> select name
                 else:
-                    print("currrr", st.session_state["current_database"].keys())
                     st.selectbox(
                         f"{label}s", 
                         options=list(
@@ -163,8 +172,8 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_html):
             # 2. Checks for proper data setup
             object_testvalue, event_testvalue, old_event_data = [None]*3
             if st.session_state["reg_name"] is not None: 
-                if st.session_state["reg_object_type"] == main_ref:
-                    object_database = hold.load_main_database() if st.session_state["reg_object_type"] == main_ref else hold.load_secondary_database()
+                # if st.session_state["reg_object_type"] == main_ref:
+                #     object_database = hold.load_main_database() if st.session_state["reg_object_type"] == main_ref else hold.load_secondary_database()
                 reg_name = st.session_state["reg_name"]
                 object_testvalue = reg_name.title() in database_keys
                 if reg_name in st.session_state["current_database"] and event_ref in st.session_state["current_database"][reg_name].keys():
@@ -280,16 +289,26 @@ def register_object(component_key, sub_keys, feature_size_left, highlight_html):
 
 
 def _feature_style(component_key):
+    logger.info("Running object_recorder._feature_style")
     st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
+
 def _style_form():
+    logger.info("Running object_recorder._style_form")
     return st.columns([1, 0.2], vertical_alignment="top")
+
 def _style_selector():
+    logger.info("Running object_recorder._style_selector")
     return st.columns([0.1, 0.9], vertical_alignment="center")
+
 def _style_target():
+    logger.info("Running object_recorder._style_target")
     return st.columns([5, 5], vertical_alignment="center")
 
 
+
 def _date_viewer(data_options, options_dates):
+    logger.info("Running object_recorder._date_viewer")
+
     # Preset earliest date defined in options file, and latest as today
     date_min = data_options["value_limits"]["date"][0]
     date_min = datetime.datetime(
@@ -327,6 +346,8 @@ def _date_viewer(data_options, options_dates):
 
 
 def _update_source_state(attempts, data_type):
+    logger.info("Running object_recorder._update_source_state")
+
     source = _translate_source(data_type, st.session_state["reg_source"], main_ref, secondary_ref)
     if not source == gift_ref: 
         st.session_state["reg_attempt"] = attempts[source][attempt_ref]
@@ -336,6 +357,8 @@ def _update_source_state(attempts, data_type):
 
 # Convert source name to collect correct attempt data
 def _translate_source(data_type, source, main_ref, secondary_ref):
+    logger.info("Running object_recorder._translate_source")
+
     if source == TERMS["temp"]:
         source = f"{main_ref} {source}" if data_type == main_ref else f"{secondary_ref} {source}"
     elif source == common_ref:
@@ -346,6 +369,7 @@ def _translate_source(data_type, source, main_ref, secondary_ref):
 
 
 def _data_validation(preset_keys, reg_selection, object_testvalue, event_testvalue): 
+    logger.info("Running object_recorder._data_validation")
     # Checks for proper data setup
     # Adjust validity check and "save"-button message for clarity
 
@@ -383,6 +407,8 @@ def _data_validation(preset_keys, reg_selection, object_testvalue, event_testval
 
 
 def _compile_data(data_is_valid, save_button_msg, is_secondary, highlight_html):
+    logger.info("Running object_recorder._compile_data")
+    
     # Mark tasks as finished
     name_done, utility_done, attribute_done, origin_done, state_done = [False]*5
     if data_is_valid:
@@ -423,6 +449,8 @@ def _compile_data(data_is_valid, save_button_msg, is_secondary, highlight_html):
 
 
 def _adjust_event_data(name, new_data, old_event_data, new_event, event_date):    
+    logger.info("Running object_recorder._adjust_event_data")
+
     if st.session_state["regset"] == "edit_entry":
         new_data[name][event_ref] = old_event_data
     elif st.session_state["regset"] in ["add_new", "add_event", "del_event"]:
@@ -442,6 +470,8 @@ def _adjust_event_data(name, new_data, old_event_data, new_event, event_date):
 
 @st.dialog(f"Removing object data")
 def _user_confirm(secretary, name, object_type, new_data, reg_setting, reg_selection, removal_date):
+    logger.info("Running object_recorder._user_confirm @st.dialog")
+
     st.session_state["dialog_active"] = True
 
     if reg_selection == "del_entry":

@@ -1,21 +1,29 @@
+"""
+Constructor module for page layout
+
+Builds:
+- Page header: layout/theme settings and title
+- Main features in horizontal or vertical layout
+"""
+
+import logging
 import time
 
 import streamlit as st
 
-import app.ui_progress_tracker as progress_tracker
-import app.ui_object_recorder as object_recorder
-import app.ui_calculate_progress as cal
+import app.data_access as hold
+import app.progress_tracker as progress_tracker
+import app.object_recorder as object_recorder
+import app.calculate_progress as cal
 import app.initialize as init
-import app.ui_data_analysis as data_analysis
-import app.ui_data_viewer as data_viewer
-import app.ui_timeline as timeline
-import app.ui_style as page
-# import app.config_hub as hub
-# from settings.config import TERMS
-# from app.configg import DIRECTORIES, SETTINGS, DATAPATH
-from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
+import app.data_analysis as data_analysis
+import app.data_viewer as data_viewer
+import app.timeline as timeline
+import app.style as page
 
 
+logger = logging.getLogger(__name__)
+# Constants for layout dimensions
 CONTENT_WIDTH = 1800
 WIDTH_TOT_LEFT = 950
 WIDTH_TOT_RIGHT = CONTENT_WIDTH - WIDTH_TOT_LEFT
@@ -24,64 +32,160 @@ WIDTH_RIGTH_1 = WIDTH_TOT_RIGHT - WIDTH_MID_1
 WIDTH_MID_2 = 350
 WIDTH_RIGTH_2 = WIDTH_TOT_RIGHT - WIDTH_MID_2
 
+TERMS = st.session_state["TERMS"]
 
-def border():
+
+def header():
     """
-    Generate top-side border with app name, theme options, and vertical/horizontal switch
+    Header builder 
+    
+    Manages setup, placement and interactions for header elements.
+
+    Behaviour:
+    - title: display-only button
+    - vertical toggle: adjusts session state key bool
+    - refresh: triggers refresh of cache and session state keys
+    - theme: 
+        - presets theme editing keys
+        - adjusting theme dialog check for it to open at proper time
     """
-    reset_cooldown = 0.3
-    with st.container(border=False, key="settings_main", width="stretch", height=40, vertical_alignment="center"):
-        with st.container(border=False, width=500):
-            col_sp1, col_head1, col_head2, col_head3, col_head4 = st.columns([0.1, 0.38, 0.1, 0.6, 1.9])
-            col_head1.button(f"***{TERMS["title"]}***", type="tertiary")
-            if col_head2.button("", key="reload_page", icon=":material/refresh:", type="tertiary"):
-                init.refresh()
-            with col_head3:
-                with st.container(key="tools"):
-                    if "show_theme_settings" not in st.session_state.keys():
-                        st.session_state["show_theme_settings"] = False
-                        st.session_state["theme_edited"] = 0
-                    else:
-                        st.session_state["show_theme_settings"] = False
-                        st.session_state["theme_edited"] = 0
-                    if st.button("Theme", type="tertiary", width=100):
-                        st.session_state["show_theme_settings"] = True
-                    if st.session_state["show_theme_settings"]:
-                        page.theme()
-                        if st.session_state["theme_edited"] and time.time() - st.session_state["theme_edited"] > reset_cooldown:
-                            st.session_state["show_theme_settings"] = False
+
+    logger.info("Running constructor.border")
+    
+    # Sets whole-page width area for header
+    with st.container(
+        border=False, 
+        key="settings_main",
+        height=40, 
+        vertical_alignment="center"
+    ):
+        # Creates columns for buttons and for title
+        c1, col_options, col_title, c3 = st.columns([0.1, 5, 2, 5])
+        with col_options:
+            with st.container(key="border_options"):
+                col_view, col_refr, col_theme = st.columns([4, 3.5, 2])
+        
+        # Button is used for title display because:
+        # markdown or write causes bad alignment of column contents
+        col_title.button(
+            f"***{TERMS["ui_title"]}***", 
+            key="page_title",
+            type="tertiary", 
+            width="content")
+        
+        # View orientation selection - always horizontal at start
+        col_view.toggle("Vertical view", key="vertical_view")
+
+        if col_refr.button(
+            "Refresh page", 
+            key="reload_page", 
+            icon=":material/refresh:", 
+            type="tertiary",
+            width="content"
+        ): 
+            init.refresh()
+
+        # Theme dialog is controlled via session state key "theme_edited" bool
+        # "leave_theme_open" bool is set to prevent dialog closing prematurely during edits
+        with col_theme:
+            with st.container(key="tools"):
+                if not st.session_state["leave_theme_open"]:
+                    st.session_state["show_theme_settings"] = False
+                if st.button("Theme", type="secondary"):
+                    st.session_state["show_theme_settings"] = True
+                if st.session_state["show_theme_settings"]:
+                    st.session_state["active_theme_temp"] = st.session_state["themes"]["active"]
+                    page.theme()
+                    if "theme_edited" in st.session_state:
+                        if st.session_state["theme_edited"] and not st.session_state["leave_theme_open"]:
+                            st.session_state["show_theme_settings"] = True
                             st.session_state["theme_edited"] = 0
-        col_head4.toggle("Vertical view", key="vertical_view")
 
 
-def horizontal_view(registration_keys, prog_meter_keys, highlight_html, table_style):
+def horizontal_view(registration_keys: list, 
+                    prog_meter_keys: list, 
+                    highlight_html: str, 
+                    table_style: str):
     """
-    Construct dash board view for horizontal layout.
+    Horizontal view builder 
+    
+    Manages setup and placement for main content features 
+    in placement:
+    - row 1: 
+        - columnt 1: update library
+        - columnt 2: main object history tables
+        - columnt 3: secondary object history tables
+    - row 2: 
+        - columnt 1: progress tracker
+        - columnt 2:
+            - tab 1: timline
+            - tab 2: calculator and statistics
+
+    Args:
+        registration_keys (list): 
+            keys for object registration settings
+        prog_meter_keys (list): 
+            keys for object progress tracker settings
+        highlight_html (str): 
+            css style for highlights
+        table_style (str): 
+            css style for tables
     """
-    st.html("<style> .st-key-main_content {width: 100vw; min-width: 1800px;} </style>")
+
+    logger.info("Running constructor.horizontal_view")
+
+    st.html("""<style> 
+            .st-key-main_content {width: 100vw; min-width: 1800px;} 
+            </style>""")
     width_left = WIDTH_TOT_LEFT
     table_height = "stretch"
 
+    # Main container
     with st.container(
         key="main_content", 
         height="stretch", 
         horizontal_alignment="center", 
         vertical_alignment="center"
     ):
+        # Row 1
         with st.container(width=CONTENT_WIDTH):
             st.space(15)
-            col_left, col_mid, col_right = st.columns([width_left, WIDTH_MID_1, WIDTH_RIGTH_1])
+            col_left, col_mid, col_right = st.columns(
+                [width_left, WIDTH_MID_1, WIDTH_RIGTH_1])
+            # Column 1 - object registration
             with col_left:
-                object_recorder.register_object("reg_object", registration_keys, width_left, highlight_html)
+                object_recorder.register_object(
+                    "reg_object", 
+                    registration_keys, 
+                    width_left, 
+                    highlight_html)
+            # Column 2 - main object table
             with col_mid:
-                data_viewer.table_view("main_data", "main", table_style, table_height)
+                data_viewer.table_view(
+                    "main_data", 
+                    "main", 
+                    table_style, 
+                    table_height)
+            # Column 3 - secondary object table
             with col_right:
-                data_viewer.table_view("secondary_data", "secondary", table_style, table_height)
+                data_viewer.table_view(
+                    "secondary_data", 
+                    "secondary", 
+                    table_style, 
+                    table_height)
         st.space()
+
+        # Row 2
         with st.container(width=CONTENT_WIDTH, height="content"):
             col_left, col_right = st.columns([width_left, WIDTH_TOT_RIGHT])
+            # Column 1 - progress tracker
             with col_left:
-                height = progress_tracker.progress_meter("progress", prog_meter_keys, width_left, highlight_html)
+                height = progress_tracker.progress_meter(
+                    "progress", 
+                    prog_meter_keys, 
+                    width_left, 
+                    highlight_html)
+            # Column 2 - timeline / calculator and statistics
             with col_right:
                 tab_1, tab_2 = st.tabs(["Timeline", "Calculate"])
                 with tab_1:
@@ -91,15 +195,50 @@ def horizontal_view(registration_keys, prog_meter_keys, highlight_html, table_st
                     with col_mid:
                         cal.calculator("calc", WIDTH_MID_2, highlight_html, height)
                     with col_right:
-                        data_analysis.small_stats("smallstat", registration_keys, WIDTH_RIGTH_2, height)
+                        data_analysis.small_stats(
+                            "smallstat", 
+                            registration_keys, 
+                            WIDTH_RIGTH_2, 
+                            height)
 
 
-def vertical_view(registration_keys, prog_meter_keys, highlight_html, table_style):
+def vertical_view(registration_keys:list[str], 
+                  prog_meter_keys:list[str], 
+                  highlight_html:str, 
+                  table_style:str):
     """
-    Construct piled vertical layout, optimal for more narrow screens/windows
+    Vertical view builder 
+    
+    Manages setup and placement for main content features 
+    in stacked placement:
+    - update library
+    - main and secondary object history tables
+    - progress tracker
+    - bottom tabs:
+        - tab 1: timline
+        - tab 2: calculator and statistiscs
+
+    Args:
+        registration_keys (list): 
+            keys for object registration settings
+        prog_meter_keys (list): 
+            keys for object progress tracker settings
+        highlight_html (str): 
+            css style for highlights
+        table_style (str): 
+            css style for tables
     """
-    st.html("<style> .st-key-main_content {width: 100vw; min-width: 800px; max-width: 1000px;} .st-key-content_frame {padding: 1rem;} </style>")
+
+    logger.info("Running constructor.vertical_view")
+
+    st.html("""
+        <style> 
+        .st-key-main_content {width: 100vw; min-width: 800px; max-width: 1000px;} 
+        .st-key-content_frame {padding: 1rem;} 
+        </style>""")
     table_height = 300
+
+    # Main container
     with st.container(
         key="main_content", 
         height="stretch", 
@@ -108,19 +247,37 @@ def vertical_view(registration_keys, prog_meter_keys, highlight_html, table_styl
         vertical_alignment="center"
     ):
         width_left = "stretch"
-        # st.space(50)
-        # with col_left:
-        with st.container(key="content_frame", width=width_left, horizontal_alignment="center"):
-            object_recorder.register_object("reg_object", registration_keys, width_left, highlight_html)
+        # Content frame
+        with st.container(
+            key="content_frame", 
+            width=width_left, 
+            horizontal_alignment="center"
+        ):
+            # Object registration
+            object_recorder.register_object(
+                "reg_object", 
+                registration_keys, 
+                width_left, 
+                highlight_html)
             st.space()
-            height = progress_tracker.progress_meter("progress", prog_meter_keys, width_left, highlight_html)
+
+            # Progress tracker
+            height = progress_tracker.progress_meter(
+                "progress", 
+                prog_meter_keys, 
+                width_left, 
+                highlight_html)
             col_mid, col_right = st.columns([WIDTH_MID_1, WIDTH_RIGTH_1])
+
+            # Main and secondary object history
             with col_mid:
                 st.space("xxsmall")
                 data_viewer.table_view("main_data", "main", table_style, table_height)
             with col_right:
                 st.space("xxsmall")
                 data_viewer.table_view("secondary_data", "secondary", table_style, table_height)
+            
+            # Timeline / calculator and statistics
             tab_1, tab_2 = st.tabs(["Timeline", "Calculate"])
             with tab_1:
                 timeline.timeline("timeline", height)
@@ -130,4 +287,10 @@ def vertical_view(registration_keys, prog_meter_keys, highlight_html, table_styl
                     cal.calculator("calc", WIDTH_MID_2, highlight_html, height)
                 with col_right:
                     pass
-                    data_analysis.small_stats("smallstat", registration_keys, WIDTH_RIGTH_2, height)
+                    data_analysis.small_stats(
+                        "smallstat", 
+                        registration_keys, 
+                        WIDTH_RIGTH_2, 
+                        height
+                    )
+

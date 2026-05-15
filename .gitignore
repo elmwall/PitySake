@@ -7,8 +7,9 @@ settings/
 settings_dev/
 __pycache__/
 venv/
-ui/
+unused/
 .streamlit/
+logs/
 
 PitySake.lnk
 test.py
