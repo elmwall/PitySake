@@ -10,6 +10,17 @@
 - Display history of subject event data
 - Minor supporting features for statistics and calculations
 
+#### Example uses
+- Collection tracking:
+    - Tag: topic/category, source
+    - Add a value or number of attempts before collection
+- Record challenges
+    - Tag: type of activity, place of challenge, setup
+    - Add scores at different events dates
+- Learning path and courses:
+    - Tag: type of course, topic, medium
+    - Record number of excersises/chapters/lessons finished
+
 #### System features
 
 Backend systems

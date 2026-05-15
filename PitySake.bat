@@ -1,3 +1,3 @@
 @echo off
-streamlit run ui.py
+streamlit run main.py
 pause

@@ -1,10 +1,18 @@
+import logging
+
 import streamlit as st
 
 from .file_manager import Archivist
 import app.data_access as hold
 
-# from settings.config import TERMS, DIRECTORIES, DATAPATH
-from app.config_hub import TERMS, DIRECTORIES, SETTINGS, DATAPATH
+
+logger = logging.getLogger(__name__)
+logger.info("Loading progress_tracker")
+
+DATAPATH = st.session_state["DATAPATH"]
+DIRECTORIES = st.session_state["DIRECTORIES"]
+SETTINGS = st.session_state["SETTINGS"]
+TERMS = st.session_state["TERMS"]
 
 
 
@@ -17,11 +25,12 @@ statedet_ref = TERMS["state_det"]
 
 
 def progress_meter(component_key, sub_keys, feature_size_left, highlight_html): 
+    logger.info("Running progress_tracker.progress_meter")
 
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     attempts = hold.load_progress_data()
-    active_theme = hold.load_themes()["active"]
-    widget_color = hold.load_themes()[active_theme]["input_field"]
+    active_theme = st.session_state["themes"]["active"]
+    widget_color = st.session_state["themes"][active_theme]["input_field"]
     height, html_label, html_add10 = _feature_style(component_key, widget_color)
 
     if st.session_state["header_switch"]:
@@ -152,7 +161,8 @@ def progress_meter(component_key, sub_keys, feature_size_left, highlight_html):
     
     
 def _feature_style(component_key, widget_color):
-    # height = 75 * (len(attempts.keys()) - 0) + 65
+    logger.info("Running progress_tracker._feature_style")
+
     height = 282
     st.html("<style> .st-key-REF {min-width: 1000px;} </style>".replace("REF", component_key))
     html_label = "<style> .st-key-REF button {background-color: transparent; border: none;} </style>"
@@ -161,6 +171,8 @@ def _feature_style(component_key, widget_color):
 
 
 def _initiate(attempts, category, init_values, i):
+    logger.info("Running progress_tracker._initiate")
+
     init_values.append(attempts[category][attempt_ref])
     keys = {
         "label": f"label_{i}",
@@ -182,28 +194,38 @@ def _initiate(attempts, category, init_values, i):
 
 
 def _sync_from_num(idx):
+    logger.info("Running progress_tracker._sync_from_num")
     new_val = st.session_state[f"num_{idx}"]
     st.session_state[f"val_{idx}"] = new_val
     st.session_state[f"slider_{idx}"] = new_val
+
 def _sync_from_slider(idx):
+    logger.info("Running progress_tracker._sync_from_slider")
     new_val = st.session_state[f"slider_{idx}"]
     st.session_state[f"val_{idx}"] = new_val
     st.session_state[f"num_{idx}"] = new_val
+
 def _increment_counter(idx, increment_value=10):
+    logger.info("Running progress_tracker._increment_counter")
     st.session_state[f"val_{idx}"] += increment_value
     st.session_state[f"num_{idx}"] += increment_value 
     st.session_state[f"slider_{idx}"] += increment_value 
+
 def _reset(attempts, init_values, idx): 
+    logger.info("Running progress_tracker._reset")
     for i in range(len(attempts.keys())):
         st.session_state[f"val_{i}"], st.session_state[f"num_{i}"], st.session_state[f"slider_{i}"] = [init_values[i]]*3
 
 
 def _column_style():
+    logger.info("Running progress_tracker._column_style")
     proggroup_column_size = [0.05, 0.22, 0.15, 0.08, 0.42, 0.08]
     return st.columns(proggroup_column_size, gap="xxsmall", vertical_alignment="center")
 
 
 def _update_progress(arciv, hold, attempts, category, value, option):
+    logger.info("Running progress_tracker._update_progress")
+    
     if option == attempt_ref:
         attempts[category][attempt_ref] = value
     elif option == state_ref:
