@@ -10,6 +10,8 @@ install/
 .streamlit/
 settings_dev/
 src/
+logs/
+unused/
 
 test.py
 test.ipynb
