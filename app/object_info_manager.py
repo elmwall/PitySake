@@ -1,26 +1,37 @@
+"""
+Assistant functionality for object registration
+
+Secretary (class):
+- Collect database and retrieve info about object
+- User input
+- Direct backup and save of data to file
+"""
+
 import copy
 import logging
 
 import streamlit as st
 
+from .file_manager import Archivist
 import app.data_access as hold
 
 
-logger = logging.getLogger(__name__)
-logger.info("Loading object_info_manager")
-
+DATAPATH = st.session_state["DATAPATH"]
+DIRECTORIES = st.session_state["DIRECTORIES"]
 SETTINGS = st.session_state["SETTINGS"]
+TERMS = st.session_state["TERMS"]
+logger = logging.getLogger(__name__)
+arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
 
 class Secretary:
-    def __init__(self, arciv, DATAPATH, TERMS, data_options, attempts, component_key, sub_keys):
+    def __init__(self, data_options: dict, attempts: dict, 
+                 component_key: str, sub_keys: list):
         """
-        Collection of all tools needed for accessing files and data necessary for editing object library.
+        Tools needed for accessing files and data necessary for editing object library.
         """
+        logger.info("Initiating Secretary")
 
-        logger.info("Running object_info_manager.Secretary.__init__")
-
-        self.arciv = arciv
         self.paths = DATAPATH
         self.options = data_options
         self.attempts = attempts
@@ -41,24 +52,22 @@ class Secretary:
         self.utility_sec_ref = TERMS["secondary_utility"]
 
 
-    def settings(self, data_type):
-        logger.info("Running object_info_manager.Secretary.settings")
+    def settings(self) -> tuple:
+        """
+        Returns options for selection 
+        - collects options from database and project data options
+        - defines setting values for all registration options 
 
-        if not st.session_state["reg_type"]: 
-            data_type = self.main_ref
-        else: 
-            data_type = st.session_state["reg_type"]
-            
-        if data_type == self.main_ref:
-            object_database = hold.load_main_database()
-        if data_type == self.secondary_ref:
-            object_database = hold.load_secondary_database()
-        
+        Returns:
+            Tuple (dict, dict, list):
+                selectable_options (dict): lists of options for all widgets
+                registration_options: sets keys and bools for add/delete/edit info
+                required_keys: required data for compiling
+        """
         try:
             options_object = list(st.session_state["current_database"].keys())
         except:
             options_object = list(hold.load_main_database().keys())
-
 
         selectable_options = {
             "options_utility": self.options[self.main_ref][self.utility_ref],
@@ -69,7 +78,9 @@ class Secretary:
             "options_source": self.options["source"]
         }
 
-        preset_keys = ["reg_utility", "reg_attribute", "reg_origin", "reg_name", "reg_object_type", "reg_state", "reg_source", "reg_attempt", "reg_date"]
+        required_keys = [
+            "reg_utility", "reg_attribute", "reg_origin", "reg_name", 
+            "reg_object_type", "reg_state", "reg_source", "reg_attempt", "reg_date"]
 
         registration_options = {
             "add_new": {
@@ -104,14 +115,12 @@ class Secretary:
             }
         }
 
-        return object_database, options_object, selectable_options, registration_options, preset_keys
+        return selectable_options, registration_options, required_keys
     
 
-    def collect_object_info(self, object_database, reg_selection):
-        logger.info("Running object_info_manager.Secretary.collect_object_info")
-
+    def collect_object_info(self, reg_selection: str):
+        "Retrieves info from existing object in library to session state."
         # Predefined settings collected from object details in library
-        name, data_type = st.session_state["reg_name"], st.session_state["reg_type"]
         if st.session_state["reg_name"] not in st.session_state["current_database"].keys():
             pass
         elif st.session_state["reg_name"] and not reg_selection == "add_new":
@@ -128,308 +137,129 @@ class Secretary:
 
 
     def collect_database(self):
-        logger.info("Running object_info_manager.Secretary.collect_database")
-
-        if st.session_state["reg_object_type"] == self.main_ref or not st.session_state["reg_object_type"]:
-            st.session_state["current_database"] = copy.deepcopy(hold.load_main_database())
+        "Retrieves database self-contained deepcopy of databases to session state."
+        object_is_main = st.session_state["reg_object_type"] == self.main_ref
+        no_selection = not st.session_state["reg_object_type"]
+        if object_is_main or no_selection:
+            st.session_state["current_database"] = copy.deepcopy(
+                hold.load_main_database())
             st.session_state["reg_type"] = self.main_ref
             return hold.load_main_database()
         if st.session_state["reg_object_type"] == self.utility_ref:
-            st.session_state["current_database"] = copy.deepcopy(hold.load_secondary_database())
+            st.session_state["current_database"] = copy.deepcopy(
+                hold.load_secondary_database())
             st.session_state["reg_type"] = self.secondary_ref
             return hold.load_secondary_database()
+        
+
+    @st.dialog(f"Removing object data")
+    def confirm_deletion(self, name: str, object_type: str, 
+                    new_data: dict, reg_setting: str, reg_selection: str, 
+                    removal_date: str):
+        """
+        User confirmation dialog box.
+        - Called to confirm removal of object or event            
+        """
+        st.session_state["dialog_active"] = True
+
+        # Info section
+        if reg_selection == "del_entry":
+            st.markdown(f"Remove from library?")
+            st.markdown(f"### **{name}**")
+        elif reg_selection == "del_event":
+            st.markdown(f"Remove from library?")
+            st.markdown(f"### {TERMS["event"]} of {name}")
+            st.markdown(f"""at 20{removal_date[:2]}-
+                        {removal_date[2:4]}-{removal_date[4:6]}?""")
+        
+        # Confirm/Cancel user interaction
+        st.space("xsmall")
+        col_left, col_right = st.columns(2)
+        if col_left.button(
+                "Confirm", type="secondary", width="stretch"):
+            st.session_state["reg_object_type"] = None
+            self.update_object(
+                name, object_type, new_data, reg_setting, None)
+        if col_right.button(
+                "Cancel", type="secondary", width="stretch"):
+            st.rerun()
     
 
     @st.dialog(f"Editing library entry")
-    def rename(self, name, object_type, new_data, reg_setting, highlight_html):
-        logger.info("Running object_info_manager.Secretary.rename @st.dialog")
-
+    def rename(self, name: str, object_type: str, new_data: dict, 
+               reg_setting: str, highlight_html: str):
+        """
+        If edit object info selected, object name can be changed here.  
+        Copies all previously defined options as-is.
+        """
         active_theme = st.session_state["themes"]["active"]
         highlight_textstyle = st.session_state["themes"][active_theme]["highlight_text"]
+
+        # User selection - edit name or not
         st.write(f"You are editing {name}")
         new_name = name
         keep_name = st.checkbox("Keep previous name", value=True)
-        name_update = st.text_input("Rename", placeholder="Enter name", disabled=keep_name, label_visibility="collapsed")
+
+        # Enter new name
+        name_update = st.text_input(
+            "Rename", placeholder="Enter name", 
+            disabled=keep_name, label_visibility="collapsed")
+        
         if not name_update and not keep_name:
             not_updated, appearance, new_name = True, "secondary", None
         elif keep_name:
-            st.html(highlight_html.replace("KEY_REF", "rename").replace("COLOR_REF", highlight_textstyle))
+            st.html(highlight_html.replace("KEY_REF", "rename")
+                    .replace("COLOR_REF", highlight_textstyle))
             not_updated, appearance, new_name = False, "primary", name
         else:
             st.html(highlight_html.replace("COLOR_REF", highlight_textstyle))
             not_updated, appearance, new_name = False, "primary", name_update
-        if st.button("Confirm", key="rename", type=appearance, disabled=not_updated):
-            self.update_object(name, object_type, new_data, reg_setting, new_name.title())
+        if st.button(
+                "Confirm", key="rename", type=appearance, disabled=not_updated):
+            self.update_object(
+                name, object_type, new_data, reg_setting, new_name.title())
             # Reload the update the list of objects and auto-close dialog box
             st.rerun()
 
 
-    def update_object(self, name, object_type, new_data, reg_setting, new_name):
+    def update_object(self, name: str, object_type: str, 
+                      new_data: dict, reg_setting: str, new_name: str):
+        """
+        Saving registered info to file
+        - Directs settings for correct editing of database
+        - Sends data for backup then to file editing
+        """
         logger.info("Running object_info_manager.Secretary.update_object")
 
         # Rename truth-check also carries new name, define as new_name from rename
         if reg_setting["for_renaming"]: reg_setting["for_renaming"] = new_name
         datafile = self.paths[object_type]
         backup_frequency = [101, 31, 11, 2]
-        # Secure data in case of errors
-        self.arciv.catch_data(
-            new_data, 
-            datafile, 
-            object_type, 
-            name, 
-            reg_setting["for_deletion"], 
-            reg_setting["for_renaming"], 
-            join_path="data", 
-            need_sorting=True, 
-            is_static=reg_setting["is_static"],
-            stage="pre_backup",
-            prefix=object_type
-        )
+        # Secure new data in case of errors
+        arciv.catch_data(
+            new_data, datafile, object_type, name, 
+            reg_setting["for_deletion"], reg_setting["for_renaming"], 
+            join_path="data", need_sorting=True, is_static=reg_setting["is_static"],
+            stage="pre_backup", prefix=object_type)
         updated_library = False
-        if self.arciv.backup(backup_frequency, object_type, other_file=datafile): 
-            updated_library, action_verification = self.arciv.join_data(
-                new_data, 
-                name, 
-                reg_setting["for_deletion"], 
-                reg_setting["for_renaming"], 
-                other_file=datafile, 
-                join_path="data", 
-                need_sorting=True, 
-                is_static=reg_setting["is_static"]
-            )
+        # Backup old data before save
+        if arciv.backup(backup_frequency, object_type, other_file=datafile): 
+            updated_library, action_verification = arciv.join_data(
+                new_data, name, reg_setting["for_deletion"], reg_setting["for_renaming"], 
+                other_file=datafile, join_path="data", 
+                need_sorting=True, is_static=reg_setting["is_static"])
+        # Save to file
         if updated_library:
-            self.arciv.writer(
-                updated_library, 
-                object_type, 
-                other_file=datafile, 
-                join_path="data"
-            )
-            print(f"\nLibrary updated, {action_verification}!\n")
+            arciv.writer(
+                updated_library, object_type, other_file=datafile, join_path="data")
             if object_type == self.main_ref:
                 st.session_state["processed_edits"] = True
-                # hold.load_main_database.clear()
             elif object_type == self.utility_ref:
                 st.session_state["processed_edits"] = True
-                # hold.load_secondary_database.clear()
             st.rerun()
 
 
-    @st.dialog("Edit options")
-    def edit_options(self):
-        logger.info("Running object_info_manager.Secretary.edit_options @st.dialog")
 
-        st.session_state["edit_options_complete"] = False
-        st.session_state["dialog_active"] = False
-        col_main, col_p = st.columns([1, 0.01])
-        col_1, col_2, col_3, col_4, col_5 = st.columns([2, 3, 3, 3, 2])
-        st.session_state["edited_options"] = list()
-        with col_main:
-            with st.container(border=False, height=310):
-                name_edit, selection, no_options, requirements, option_ref = self._initiate_option_edit()     
-                if name_edit:
-                    if st.checkbox("Remove option", value=False, key="remove_option"):
-                        placeholder = "No removable options" if no_options else None
-                        st.selectbox("Select option", options=st.session_state["remove_options"], key="selected_removal", on_change=self._reset_changes, disabled=no_options, placeholder=placeholder)
-                        if col_2.button("Confirm", disabled=no_options, width="stretch"):
-                            if selection == option_ref["edit_source"]:
-                                st.session_state["changed_options"]["source"].remove(st.session_state["selected_removal"].capitalize())
-                                st.session_state["changed_options"]["limit"].pop(st.session_state["selected_removal"].capitalize())
-                                st.session_state["changed_progress"].pop(st.session_state["selected_removal"].capitalize())
-                            else:
-                                st.session_state["changed_options"][self.main_ref][selection].remove(st.session_state["selected_removal"])
-                            st.session_state["edit_options_complete"] = True
-                    else:
-                        not_valid = True
-                        if selection in [option_ref["edit_utility"], option_ref["edit_attribute"], option_ref["edit_origin"]]:
-                            st.text_input("Enter name for new option. Mind spelling.", key="new_option")
-                            if st.session_state["new_option"]:
-                                not_valid, msg = self._validity_check(name=st.session_state["new_option"])
-                                if msg: st.markdown(f":red[{msg}]")
-                            if col_2.button("Confirm", disabled=not_valid, width="stretch"): 
-                                st.session_state["changed_options"][self.main_ref][selection].append(st.session_state["new_option"].capitalize())
-                                st.session_state["edited_options"].append(selection)
-                                st.session_state["edit_options_complete"] = True
-                        elif selection == option_ref["edit_source"]:
-                            st.text_input(f"Enter name for new {self.source_ref}. Mind spelling.", key="new_option")
-                            col_left, col_right = st.columns(2)
-                            new_limit = col_left.number_input(f"Enter new max value.", min_value=1)
-                            state_options = [f"{self.staterand_ref}", "Constant"]
-                            selected_state = col_right.selectbox("Set state options", options=state_options)
-                            new_state = None if selected_state == "Constant" else f"{self.staterand_ref}"
-                            if st.session_state["new_option"]:
-                                not_valid, msg = self._validity_check(name=st.session_state["new_option"], number=new_limit)
-                                if msg: st.markdown(f":red[{msg}]")
-                            if col_2.button("Confirm", disabled=not_valid, width="stretch"):
-                                st.session_state["changed_options"]["source"].append(st.session_state["new_option"].capitalize())
-                                st.session_state["changed_options"]["limit"][st.session_state["new_option"].capitalize()] = new_limit
-                                st.session_state["changed_progress"][st.session_state["new_option"].capitalize()] = {
-                                    f"{self.attempt_ref}": 0,                                
-                                    f"{self.state_ref}": new_state,
-                                    "limit": new_limit,                             
-                                }
-                                st.session_state["edited_options"].append(selection)
-                                st.session_state["edit_options_complete"] = True
-                elif selection == option_ref["change_limits"]:
-                    limit_options = self.options["limit"]
-                    limit_cat = st.selectbox("Select category to change", options=limit_options.keys())
-                    if type(limit_options[limit_cat]) is dict:
-                        limit_subcat_options = limit_options[limit_cat].keys()
-                        no_sub = False
-                    else:
-                        limit_subcat_options = None
-                        no_sub = True
-                    
-                    limit_subcat = st.selectbox("Select subcategory", options=limit_subcat_options, disabled=no_sub)
-                    current_value = limit_options[limit_cat] if no_sub else limit_options[limit_cat][limit_subcat]
-                    new_limit = st.number_input(f"Enter new max value. Current value: {current_value}", min_value=0)
-                    not_valid, msg = self._validity_check(number=new_limit)
-                    if col_2.button("Confirm", disabled=not_valid, width="stretch"):
-                        if no_sub:
-                            st.session_state["changed_options"]["limit"][limit_cat.capitalize()] = new_limit
-                            st.session_state["changed_progress"][limit_cat.capitalize()]["limit"] = new_limit
-                        else:
-                            st.session_state["changed_options"]["limit"][limit_cat.capitalize()][limit_subcat] = new_limit
-                            st.session_state["changed_progress"][f"{limit_cat.capitalize()} {limit_subcat.capitalize()}"]["limit"] = new_limit
-                        st.session_state["edited_options"].append(selection)
-                        st.session_state["edit_options_complete"] = True
-                    
-            no_changes = False
-            if col_3.button("Reset", disabled=no_changes, width="stretch"):
-                self._reset_changes()
-            edited_str = str()
-
-        not_complete = not st.session_state["edit_options_complete"]
-        if col_4.button("Save", disabled=not_complete, width="stretch"):
-            
-            if st.session_state["options_to_edit"] in [option_ref["edit_source"], option_ref["change_limits"]]:
-                self.arciv.writer(st.session_state["changed_progress"], object_type=self.progress_ref, other_file=self.paths["progress"], join_path="data")
-            self.arciv.catch_data(st.session_state["changed_options"], SETTINGS["Options"], "options")
-            if self.arciv.backup([7, 5, 3, 1], "options", other_file=SETTINGS["Options"]): 
-                self.arciv.writer(st.session_state["changed_options"], other_file=SETTINGS["Options"], join_path="settings")
-            st.session_state["processed_edits"] = True
-            st.rerun()
-
-        for x in st.session_state["edited_options"]:
-            edited_str += f"{x} "
-        if len(edited_str) > 0: 
-            st.markdown(f"Changes made in: {edited_str}")
-        else:
-            st.markdown("No changes")
-
-        with st.container(height=150):
-            st.json(st.session_state["changed_options"])
-        with st.container(height=150):
-            st.json(st.session_state["changed_progress"])
-
-
-    def _initiate_option_edit(self, full=True, prev_sel=None):
-        logger.info("Running object_info_manager.Secretary._initiate_option_edit")
-
-        if "changed_options" not in st.session_state:
-            st.session_state["changed_options"] = copy.deepcopy(hold.load_options())
-        elif not st.session_state["changed_options"]:
-            st.session_state["changed_options"] = copy.deepcopy(hold.load_options())
-        
-        if "changed_options" not in st.session_state:
-            st.session_state["changed_progress"] = copy.deepcopy(hold.load_progress_data())
-        elif not st.session_state["changed_progress"]:
-            st.session_state["changed_progress"] = copy.deepcopy(hold.load_progress_data())
-            
-        option_ref = {
-            "edit_utility": self.utility_ref,
-            "edit_attribute": self.attribute_ref,
-            "edit_origin": self.origin_ref,
-            "edit_source": self.source_ref,
-            "change_limits": f"{self.attempt_ref} limits"
-        }
-        st.session_state["changed_progress"] = self.attempts
-
-        if full:
-            selection = st.selectbox("Select option to edit", options=list(option_ref.values()), key="options_to_edit", on_change=self._reset_changes)
-        else:
-            selection = prev_sel
-        name_edit = False
-        remove_options, no_options, requirements = [None]*3
-        name_options = list(option_ref.values())
-        name_options.remove(option_ref["change_limits"])
-        object_options = name_options.copy()
-        object_options.remove(option_ref["edit_source"])
-        if selection in name_options: 
-            name_edit = True
-
-            if selection in object_options:
-                requirements = self.options[f"{self.main_ref}_required"][selection]
-                remove_options = [x for x in self.options[self.main_ref][selection] if x not in requirements]
-            elif selection == option_ref["edit_source"]:
-                requirements = self.options["source_required"]
-                remove_options = [x for x in self.options["source"] if x not in requirements]
-            no_options = len(remove_options) < 1
-
-        st.session_state["remove_options"] = remove_options
-
-        if full:
-            return name_edit, selection, no_options, requirements, option_ref
-        else:
-            remove_options
-
-
-    def _reset_changes(self):
-        logger.info("Running object_info_manager.Secretary._reset_changes")
-
-        st.session_state["changed_options"] = hold.load_options()
-        st.session_state["changed_progress"] = hold.load_progress_data()
-        st.session_state["edit_options_complete"] = False
-
-
-    def _validity_check(self, name=False, number=False):
-        logger.info("Running object_info_manager.Secretary._validity_check")
-
-        msg, msg_len, msg_sym, msg_ini, msg_val = [str()]*5
-        
-        if name:
-            max_length = 40
-            min_length = 0
-            msg_len = "Too long. "
-            length_check = len(name) > min_length and len(name) < max_length
-
-            if length_check:
-                symbol_check = True
-                if not name.isalnum():
-                    for symbol in name:
-                        if not symbol.isalnum() and symbol not in ("-", " "):
-                            symbol_check = False
-                            msg_sym = "Invalid characters. "
-                if "  " in name:
-                    symbol_check = False
-                    msg_sym = "Double whitespace. "
-                if name[0] in ("-", " "):
-                    symbol_check = False
-                    msg_ini = "Invalid first character. "
-            else:
-                symbol_check = None        
-        else:
-            symbol_check = True
-            length_check = True
-        if number:
-            num_check = True
-            max_value = None
-            min_value = 0
-            if min_value:
-                if number < min_value:
-                    num_check = False
-                    msg_val = "Too low. "
-            if max_value:
-                if number > max_value:
-                    num_check = False
-                    msg_val = "Too-high. "
-        else:
-            num_check = True
-
-        msg += f"{msg_len}{msg_sym}{msg_ini}{msg_val}"
-        if all([length_check, symbol_check, num_check]):
-            return False, None
-        else:
-            return True, msg
             
 
         

@@ -2,9 +2,9 @@
 Interactive calculation assistant
 
 Builds and manages:
-- progress calculator interface
+- progress_display_value calculator interface
 - input validation logic and processing
-- result display of progress value
+- result display of progress_display_value value
 """
 
 import logging
@@ -17,45 +17,33 @@ import app.data_access as hold
 logger = logging.getLogger(__name__)
 
 
-def calculator(component_key:str, 
-               set_width: int|str, 
-               highlight_html:str, 
-               set_height: int|str):
+def calculator(component_key: str, feature_width: int | str, 
+               highlight_html: str, feature_height: int | str):
     """
     Render calculation assistant feature
-
-    Allows user to compare progress states based on:
-    - page
-    - row
-    - project-specific limit
+    - compare progress_display_value states based on pages and rows
+    - highlight ivalid combinations 
+    - blocks impossible processing 
+    - displays calculated result from valid input
 
     Args:
         component_key (str): 
             session state key for feature
-        highlight_html (str): 
-            styling settings for highlights
-        set_width (int|str):
-            value for container width
-        set_height (int|str): 
-            value for container height
-
-    Behaviour:
-    - highlight ivalid combinations 
-    - blocks impossible processing 
-    - displays calculated result from valid input
     """
-    logger.info("Running calculate_progress.calculator")
+    logger.info("Running calculate_progress_display_value.calculator")
     st.error("test")
 
     # Feature header
     if st.session_state["header_switch"]:
-        with st.container(key=f"{component_key}_head", 
-                          width=set_width, height="content"):
+        with st.container(
+                key=f"{component_key}_head", 
+                width=feature_width, height="content"):
             st.markdown("##### *Calculate*", text_alignment="left")
 
     # Main container
-    with st.container(border=True, key=f"{component_key}_main", 
-                      width=set_width, height=set_height):
+    with st.container(
+            border=True, key=f"{component_key}_main", 
+            width=feature_width, height=feature_height):
 
         # Evaluate validity of UI selection
         limit = hold.load_options()["value_limits"]["general_limit"]
@@ -81,16 +69,12 @@ def calculator(component_key:str,
                     st.button("*Page*", key="page_label", type="tertiary")
                 with col_left:
                     st.selectbox(
-                        "*Last event*", 
-                        options=range(250)[1:], 
-                        key="curr_page", 
-                        label_visibility="collapsed")
+                        "*Last event*", options=range(250)[1:], 
+                        key="curr_page", label_visibility="collapsed")
                 with col_right:
                     st.selectbox(
-                        "*Previous event*", 
-                        options=range(250)[1:], 
-                        key="prev_page", 
-                        label_visibility="collapsed")
+                        "*Previous event*", options=range(250)[1:], 
+                        key="prev_page", label_visibility="collapsed")
                     
             # Input data row for latest and previous
             with st.container(width=num_width):
@@ -100,16 +84,12 @@ def calculator(component_key:str,
                     st.button("*Row*", key="row_label", type="tertiary")
                 with col_left:
                     st.selectbox(
-                        "Last event row", 
-                        options=curr_opt, 
-                        key="curr_row", 
-                        label_visibility="collapsed")
+                        "Last event row", options=curr_opt, 
+                        key="curr_row", label_visibility="collapsed")
                 with col_right:
                     st.selectbox(
-                        "Previous event row", 
-                        options=range(6)[1:], 
-                        key="prev_row", 
-                        label_visibility="collapsed")
+                        "Previous event row", options=range(6)[1:], 
+                        key="prev_row", label_visibility="collapsed")
                 st.space(5)
 
             # Field for submit and result
@@ -133,10 +113,8 @@ def calculator(component_key:str,
                     width="stretch"
                 ):
                     output = _submit(
-                        st.session_state["prev_page"],
-                        st.session_state["curr_page"],
-                        st.session_state["prev_row"],
-                        st.session_state["curr_row"],
+                        st.session_state["prev_page"], st.session_state["curr_page"],
+                        st.session_state["prev_row"], st.session_state["curr_row"],
                         is_invalid)
                 else:
                     output = None
@@ -172,21 +150,19 @@ def calculator(component_key:str,
 
 def _validation(limit: int) -> tuple:
     """
-    Data validation for calculator input
-
-    Validation ensures:
-    - distance current-previous not exceeding project limit
+    Data validation for calculator input, checks
+    - distance current-to-previous not exceeding project limit
     - logically possible row and page combinations
 
     Args:
         limit (int):
-            Maximum allowed progress value from project settings
+            Maximum allowed progress_display_value value from project settings
     
     Returns:
         Tuple (bool, bool, str, str, str):
-            bool for current and previous value validity  
+            bools: current and previous validity  
             message string for button display  
-            incorrecting current or previous user tip string for output display
+            user tip strings for correcting input
     """
 
     msg = "Calculate"
@@ -194,30 +170,27 @@ def _validation(limit: int) -> tuple:
     usertip_previous = None
     is_current_valid = False
 
-    # Conditions for latest data
+    # Conditions for current data
     if int(st.session_state["curr_row"]) == 5: 
         prev_page_min = int(st.session_state["curr_page"]) + 1
     else: 
         prev_page_min = int(st.session_state["curr_page"])
 
-    # Comparing latest data against previous data and conditions 
+    # Comparing current data against previous data and conditions 
     # formats style highlights if needed
     if int(st.session_state["prev_page"]) < prev_page_min: 
         st.html(
             "<style> .st-key-curr_page * {color: COLOR_REF} </style>"
-            .replace("COLOR_REF", st.session_state["negative_color"])
-        )
+            .replace("COLOR_REF", st.session_state["negative_color"]))
         st.html(
             "<style> .st-key-curr_row * {color: COLOR_REF} </style>"
-            .replace("COLOR_REF", st.session_state["negative_color"])
-        )
+            .replace("COLOR_REF", st.session_state["negative_color"]))
         msg, usertip_current = "Out of range", "Page of last must be lower"
     elif int(st.session_state["curr_page"]) == int(st.session_state["prev_page"]): 
         if st.session_state["curr_row"] >= st.session_state["prev_row"]:
             st.html(
                 "<style> .st-key-curr_row * {color: COLOR_REF} </style>"
-                .replace("COLOR_REF", st.session_state["negative_color"])
-            )
+                .replace("COLOR_REF", st.session_state["negative_color"]))
             msg, usertip_current = "Out of range", "Row of last must be lower"
         else:
             is_current_valid = True,
@@ -251,37 +224,19 @@ def _validation(limit: int) -> tuple:
     return is_current_valid, is_previous_valid, msg, usertip_current, usertip_previous
 
 
-def _submit(prev_page: int, 
-            curr_page: int, 
-            prev_row: int, 
-            curr_row: int, 
+def _submit(prev_page: int, curr_page: int, 
+            prev_row: int, curr_row: int, 
             is_invalid: bool) -> (int | None):
     """
-    Calculate progress from validated selectbox input
+    Calculate progress_display_value from validated selectbox input
     
     For valid input, calculates:  
     `Amount = 5⋅( [previous page] - [current page] ) 
             + [previous row] - [current row]`
-
-    Args:
-        prev_page (int):
-            page input for previous event
-        curr_page (int): 
-            page input for current event
-        prev_row (int): 
-            row input for previous event
-        curr_row (int): 
-            row input for current event
-        is_invalid (bool): 
-            validation for calculation
-
-    Returns:
-        progress (int | None):
-            Value for display
     """
 
     if not is_invalid: 
-        progress = 5*(prev_page - curr_page) + prev_row - curr_row
-        return progress
+        progress_display_value = 5*(prev_page - curr_page) + prev_row - curr_row
+        return progress_display_value
     else:
         return None

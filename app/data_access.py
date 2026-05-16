@@ -20,97 +20,60 @@ import streamlit as st
 from .file_manager import Archivist
 
 
-logger = logging.getLogger(__name__)
 DATAPATH = st.session_state["DATAPATH"]
 DIRECTORIES = st.session_state["DIRECTORIES"]
 SETTINGS = st.session_state["SETTINGS"]
 TERMS = st.session_state["TERMS"]
+logger = logging.getLogger(__name__)
 arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
 
 @st.cache_data
 def load_main_database() -> dict:
-    """
-    Loads main database via file_manager, and caches data
-    
-    Returns:
-        (dict):
-            main object database
-    """
-    
+    "Loads main database via file_manager, and caches data"
     datafile = DATAPATH[TERMS["main"]]
     return arciv.reader(datafile, join_path="data")
 
 
 @st.cache_data
 def load_secondary_database() -> dict:
-    """
-    Loads secondary database via file_manager, and caches data
-    
-    Returns:
-        (dict):
-            secondary object database
-    """
-
+    "Loads secondary database via file_manager, and caches data"
     datafile = DATAPATH[TERMS["secondary"]]
     return arciv.reader(datafile, join_path="data")
 
 
 @st.cache_data
 def load_progress_data() -> dict:
-    """
-    Loads progress data via file_manager, and caches it
-    
-    Returns:
-        (dict):
-            progress
-    """
-
+    "Loads progress data via file_manager, and caches it"
     datafile = DATAPATH["progress"]
     return arciv.reader(datafile, join_path="data")
 
 
 @st.cache_data
 def load_options() -> dict:
-    """
-    Loads project-unique data options, and caches data
-    
-    Returns:
-        (dict):
-            data options
-    """
-
+    "Loads project-unique data options, and caches data"
     options_file = SETTINGS["Options"]
-    
     return arciv.reader(other_file=options_file, join_path="settings")
 
 
 # For best syncronization after editing theme, 
 # these settings are best kept in session state
 def load_themes() -> dict:
-    """
-    Loads theme settings, and stores in session state
-    
-    Returns:
-        (dict):
-            themes
-    """
-
+    "Loads theme settings, and stores in session state"
     options_file = SETTINGS["Themes"]
     return arciv.reader(other_file=options_file, join_path="settings")
 
 
 @st.cache_data
-def process_collection_db(database:dict, datatype:str):
+def process_collection_db(database: dict, datatype: str):
     """
     Database processing for data view featrues
-
-    Manages processing for data depending on datatype for
-    - main object table view and timeline
-    - secondary object table view
+    - manages processing for data depending on datatype
+    - main for table view and timeline, secondary object for table view
 
     Args:
         database (dict):
+            main or secondary database
         datatype (str):
             defines "main" or "secondary" object type
 
@@ -138,7 +101,9 @@ def process_collection_db(database:dict, datatype:str):
     # Recording main object type collected
     object_count = dict()
     # Data for pandas/st.dataframe
-    rows_for_table = list()         
+    rows_for_table = list()
+    # Label lists
+    # utility, attribute, origin = [list()]*3
 
     # For counting object labels - Define dictionary with category keys and data keys 
     if datatype == "main": 
@@ -154,6 +119,7 @@ def process_collection_db(database:dict, datatype:str):
             for category, options in counts.items():
                 object_option = info[category]
                 counts[category][object_option] += 1
+
         
         # Collect event data
         for event_id, event_data in info[TERMS["event"]].items(): 
@@ -169,6 +135,7 @@ def process_collection_db(database:dict, datatype:str):
                 object_collection = f"C{object_count[name]}"
             else:
                 object_collection = ""
+
 
             # Collect attempt and state
             # For objects without attempts registered, skip both
@@ -196,16 +163,26 @@ def process_collection_db(database:dict, datatype:str):
             graph_data["state"].append(state_value)
             graph_data["attempt"].append(attempt_value)
 
-        # Create list of row sets for pandas
-        rows_for_table.append({
-            "Date": date,
-            " ": object_collection,
-            "Name": name,
-            TERMS["attempt"]: attempt_value,
-            "source": source,
-            TERMS["state"]: state,
-            "Index": index
-        })
+            # Create list of row sets for pandas
+            if datatype == "main": 
+                utility = info[TERMS["utility"]]
+                attribute = info[TERMS["attribute"]]
+                origin = info[TERMS["origin"]]
+
+                rows_for_table.append({
+                    "Date": date, "#": object_collection, "Name": name,
+                    TERMS["attempt"]: attempt_value, TERMS["source"]: source,
+                    TERMS["origin"]: origin, TERMS["attribute"]: attribute, 
+                    TERMS["utility"]: utility, 
+                    TERMS["state"]: state, "Index": index})
+            else:
+                utility = info["Type"]
+
+                rows_for_table.append({
+                    "Date": date, " ": object_collection, "Name": name,
+                    TERMS["attempt"]: attempt_value, TERMS["source"]: source,
+                    TERMS["utility"]: utility, 
+                    TERMS["state"]: state, "Index": index})
 
     return {
         "counts": counts,
@@ -213,18 +190,13 @@ def process_collection_db(database:dict, datatype:str):
         "last_event": last_event,
         "success_fail": success_fail, 
         "table_data": rows_for_table,
-        "graph_data": graph_data
-    }
+        "graph_data": graph_data}
 
 
 @st.cache_data
-def data_to_dataframe(rows:list, object_type:str):
+def data_to_dataframe(rows: list, object_type: str):
     """
-    Database processing for table view
-
-    Manages data processing for:
-    - main object
-    - secondary object
+    Database processing for table view (main or secondary)
 
     Args:
         rows (list):
@@ -242,8 +214,7 @@ def data_to_dataframe(rows:list, object_type:str):
     # Use index for sorting, then discard
     processed_dataframe = (
         dataframe.sort_values(["Date", "Index"], ascending=False)
-        .drop(columns=["Index", f"{TERMS["state"]}"])
-    )
+        .drop(columns=["Index", f"{TERMS["state"]}"]))
 
     # Collection value disregarded for secondary type
     if object_type == "secondary": 

@@ -1,6 +1,12 @@
 """
-Module managing session state keys and directs cache.
+App initialization
+
+Manages:
+- Ordered system startup session state initialization
+- Directs database and settings cache
+- System resets
 """
+
 import copy
 import datetime
 import logging
@@ -9,19 +15,17 @@ import streamlit as st
 
 from app.file_manager import Archivist
 import app.data_access as hold
+import app.error_handler as error
 
 
 logger = logging.getLogger(__name__)
 logger.info("Loading initialize")
-
 
 # Keys requiring initial values or simply existing
 INIT_STATE = {
     # Main
     "pending_backup": False,
     "pending_save": False,
-    # "is_initial_state_1:": True,
-    # "state_key_2:": "init",
     "vertical_view": False,
     # Constructor
     "show_theme_settings": False,
@@ -37,6 +41,8 @@ INIT_STATE = {
     "current_database": "state_import",
     # Object info manager - main
     "dialog_active": False,
+    # "prior_regset": None,
+    "regset": "add_new",
     "reg_attempt": "state_import",
     "reg_attribute": None,
     "reg_date": datetime.date.today(),
@@ -47,7 +53,7 @@ INIT_STATE = {
     "reg_state": "state_import",
     "reg_type": "state_import",
     "reg_utility": None,
-    "values": dict(),
+    "translated_values": dict(),
     # Object info manager - edit options
     "changed_options": None,
     "changed_progress": None,
@@ -62,30 +68,28 @@ INIT_STATE = {
     "theme_edited": 0,
     # Progress tracker
     "initiated": False
-    # # Loading indicators
-    # "loading": "state_import"
 }
 PRINT_SPACER = 80
 
 
 def initialize():
     """
-    Function initiating and securing correct state of keys and call for cache.
+    Initiating and securing correct state of data at startup
+    - initialize session state: list of essential keys
+    - initialize session states requiring external info
+    - loads data for cache
     """
 
     logger.info("Running initialize.initialize")
-    
-    # directory = os.path.join(f"{file}/settings")
-    # hub = ConfigHub()
-    # , "config.json"
-    
     DIRECTORIES = st.session_state["DIRECTORIES"]
     DATAPATH = st.session_state["DATAPATH"]
     TERMS = st.session_state["TERMS"]
     
     # Special case: immidiate need for checking previous activity and loading data
-    if "cleared_cache" not in st.session_state: st.session_state["cleared_cache"] = False
-    if "rerun" not in st.session_state: st.session_state["rerun"] = 0
+    if "cleared_cache" not in st.session_state: 
+        st.session_state["cleared_cache"] = False
+    if "rerun" not in st.session_state: 
+        st.session_state["rerun"] = 0
 
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     # Cache databases and collect the needed 
@@ -97,12 +101,6 @@ def initialize():
     if "themes" not in st.session_state:
         st.session_state["themes"] = hold.load_themes()
     themes = st.session_state["themes"]
-
-    # Loading indicators
-    if "loading" not in st.session_state:
-        st.session_state["loading"] = {
-            "reg_details": False
-        }
 
     # Special case: define values from external sources 
     state_import = {
@@ -116,8 +114,7 @@ def initialize():
         "reg_type": TERMS["main"],
         # Style
         "active_theme": themes["active"],
-        "active_theme_temp": themes["active"]
-    }
+        "active_theme_temp": themes["active"]}
 
     # Initiate all keys
     for key, state in INIT_STATE.items():
@@ -134,7 +131,8 @@ def initialize():
                 else:
                     st.session_state[key] = state
             except Exception as e:
-                print(f"{f"initialize.initialize: initializing {key}":{PRINT_SPACER}} Failed")
+                error.notify(f"Could not initialize key.", stage="Initialize", name=key)
+    
     # Initialize theme setting keys
     for key in themes[st.session_state["active_theme"]].keys():
         if key not in st.session_state:
@@ -145,17 +143,20 @@ def initialize():
 
 def fetch_databases():
     """
-    Fetch all working data for cache. 
-    Tries for a set number of times in case of a file being written, then aborts.
+    Initiate all working data
+    - loads for cache: object and progress databases, options
+    - loads for session state: theme
+    - tries for a set number of times, then aborts
     """
 
     logger.info("Running initialize.fetch_databases")
-
-    msg = "First attempt" if st.session_state["rerun"] == 0 else "Retrying"
-    print(f"{f"initialize.fetch_database: fetching":{PRINT_SPACER}} {msg}")
+    n = 0
+    database_list = ["load_options", "load_themes", 
+                    "load_main_database", "load_secondary_database", 
+                    "load_progress_data"]
     try:
-        n = 1
         done = True
+        problematic = set()
         # Call data_acces for all databases
         for database in [
             hold.load_options(),
@@ -164,9 +165,10 @@ def fetch_databases():
             hold.load_secondary_database(),
             hold.load_progress_data()
         ]:
-            print(f"{f"initialize.fetch_database: database {n}":{PRINT_SPACER}} Attempting...")
+            logger.info("Fetching databases: {n}")
             if not database:
                 done = False
+                problematic.add(database_list[n])
                 print(f"{f" ":{PRINT_SPACER}} Failed")
             else:
                 print(f"{f" ":{PRINT_SPACER}} Success")
@@ -175,29 +177,30 @@ def fetch_databases():
         if done: 
             st.session_state["cleared_cache"] = False
             st.session_state["rerun"] = 0
-            print(f"{f" ":{PRINT_SPACER}} Done")
-            st.rerun()
-    except Exception:
-        # Attempt to fetch againt until limit exceeded
-        if st.session_state["rerun"] < 6:
-            print(f"{f"initialize.fetch_database: database {n}":{PRINT_SPACER}} Not fetched, retrying.")
-            st.session_state["rerun"] += 1
             st.rerun()
         else:
-            print(f"{f"initialize.fetch_database: database {n}":{PRINT_SPACER}} Not fetched, quitting.")
-            st.error("")
+            logger.info(f"Failed to read database(s): {database_list}")
+            error.notify(
+                f"Failed to read database(s).", 
+                stage="Fetch", 
+                info_list=database_list)
+    except Exception:
+        logger.exception(f"Failed to collect database at stage: {database_list[n]}")
+        error.notify(
+            f"Failed to collect database.", 
+            stage="Fetch", 
+            name={database_list[n]})
 
 
 def refresh():
     """
-    Clean slate: function clears all databases and removes keys.
-    Sets check values for proper initialization.
+    Perform clean slate
+    - clears all databases and removes keys
+    - sets check values for proper initialization
     """
-
     logger.info("Running initialize.refresh")
 
     hold.load_options.clear(),
-    # hold.load_themes.clear(),
     hold.load_main_database.clear(),
     hold.load_secondary_database.clear(),
     hold.load_progress_data.clear()

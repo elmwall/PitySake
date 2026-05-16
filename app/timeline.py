@@ -1,3 +1,7 @@
+"""
+add info
+"""
+
 import logging
 
 import streamlit as st
@@ -6,14 +10,11 @@ import plotly.graph_objects as go
 import app.data_access as hold
 
 
-logger = logging.getLogger(__name__)
-logger.info("Loading timeline")
-
 TERMS = st.session_state["TERMS"]
+logger = logging.getLogger(__name__)
 
 
-
-def timeline(component_key, set_height): 
+def timeline(component_key: str, set_height: int): 
     logger.info("Running timeline.timeline")
 
     if st.session_state["header_switch"]:
@@ -56,50 +57,34 @@ def timeline(component_key, set_height):
                     dot_col = theme["text"]
 
                 # Draw line
-                fig.add_trace(go.Scatter(
-                    x=[dates[i], dates[i]],
-                    y=[0, value[i]],
-                    mode='lines',
-                    line=dict(color=hightlight_col, width=1),
-                    hoverlabel=dict(
-                        bgcolor="rgba(0, 0, 0, 1)"
-                    ),
-                    showlegend=False
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=[dates[i], dates[i]], y=[0, value[i]], mode='lines',
+                        line=dict(color=hightlight_col, width=1),
+                        hoverlabel=dict(bgcolor="rgba(0, 0, 0, 1)"),
+                        showlegend=False))
 
                 # Draw dot
-                fig.add_trace(go.Scatter(
-                    x=[dates[i]],
-                    y=[value[i]],
-                    mode='markers+text',
-                    hovertemplate=f"<b>{names[i]} - {value[i]}</b><br>{dates[i]}<extra></extra>",
-                    marker=dict(color=dot_col, size=10, line=dict(color=theme["background"], width=2)),
-                    hoverlabel=dict(
-                        bgcolor="rgba(0, 0, 0, 0)"
-                    ),
-                    name=names[i],
-                    showlegend=False
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=[dates[i]], y=[value[i]], mode='markers+text',
+                        hovertemplate=f"<b>{names[i]}: {value[i]}</b><br>{dates[i]}<extra></extra>",
+                        marker=dict(
+                            color=dot_col, size=10, 
+                            line=dict(color=theme["background"], width=2)),
+                        hoverlabel=dict(bgcolor="rgba(0, 0, 0, 0)"),
+                        name=names[i], showlegend=False))
 
         # Axes
         fig.update_xaxes(
-            tickfont_color=theme["text"],
-            gridcolor='white',
-        )
+            tickfont_color=theme["text"], gridcolor='white')
         fig.update_yaxes(
-            zeroline=False,
-            tickfont_color=theme["text"],
-            gridcolor=theme["subarea"],
-            range=[-5, None],
-        )
+            zeroline=False, tickfont_color=theme["text"],
+            gridcolor=theme["subarea"], range=[-5, None])
 
         # Layout
         fig.update_layout(
-            height=fheight-40,
-            margin=dict(l=0, r=00, t=20, b=0),
-            template="plotly_dark",
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)', 
-        )
+            height=fheight-40, margin=dict(l=0, r=00, t=20, b=0), template="plotly_dark", 
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
 
         st.plotly_chart(fig, width="stretch")
