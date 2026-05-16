@@ -1,14 +1,21 @@
+"""
+Logging
+
+Generates log files per project for debugging.
+"""
+
 import logging
 from pathlib import Path
 
 import streamlit as st
 
 
+# Set log path/file
 log_directory = Path("logs")
 log_directory.mkdir(exist_ok=True)
 project = st.session_state["project"]
-
 logger = logging.getLogger(project)
+# Set level of logging - silence irrelevant messages
 logging.getLogger("PIL").setLevel(logging.WARNING)
 logging.getLogger("streamlit").setLevel(logging.WARNING)
 

@@ -14,8 +14,8 @@ import streamlit as st
 import app.data_access as hold
 
 
-logger = logging.getLogger(__name__)
 TERMS = st.session_state["TERMS"]
+logger = logging.getLogger(__name__)
 active_attempt_ref = TERMS["active_attempts"]
 attempt_ref = TERMS["attempt"]
 event_ref = TERMS["event"]
@@ -23,14 +23,10 @@ main_ref = TERMS["main"]
 secondary_ref = TERMS["secondary"]
 
 
-def small_stats(component_key:str, 
-                sub_keys:list, 
-                set_width:int|str, 
-                set_height:int|str):
+def small_stats(component_key: str, sub_keys: list, 
+                set_width: int | str, set_height: int | str):
     """
     Render statistics feature
-
-    Retrieves processed data and generates view:
     - Progress overview:
         - Last event progress
         - Median progress per event
@@ -39,26 +35,20 @@ def small_stats(component_key:str,
     - Label collection:
         - counts for objects with each label
     """
-
     logger.info("Running data_analysis.small_stats")
     
     # Feature header
     if st.session_state["header_switch"]:
         with st.container(
-            key=f"{component_key}_head", 
-            width=set_width, 
-            height="content"
-        ):
+                key=f"{component_key}_head", 
+                width=set_width, height="content"):
             st.markdown("##### *Statistics*", text_alignment="left")
 
     # Main container
     feat_height = "content" if set_height > 400 else "stretch"
     with st.container(
-        border=True, 
-        key=f"{component_key}_main", 
-        width=set_width, 
-        height=feat_height
-    ):
+            border=True, key=f"{component_key}_main", 
+            width=set_width, height=feat_height):
         st.markdown("")
 
         counts, total_val, last, att_median, success_rate = _analyze_data()
@@ -72,43 +62,35 @@ def small_stats(component_key:str,
             with col_1:
                 # Top row
                 with st.container(
-                    border=True, 
-                    key=sub_keys[4], 
-                    width="stretch", 
-                    height=245
-                ):
+                        border=True, key=sub_keys[4], 
+                        width="stretch", height=245):
                     with st.container():
                         col_l, col_r = st.columns(2)
                         col_l.metric(
                             f"Last {event_ref.lower()}", 
-                            value=last, 
-                            help=f"For {main_ref.lower()}s", 
-                            delta=f"{last - att_median}", 
-                            delta_color="inverse", 
-                            border=False, 
-                            width="stretch", 
-                            delta_description="vs med")
+                            value=last, help=f"For {main_ref.lower()}s", 
+                            delta=f"{last - att_median}", delta_color="inverse", 
+                            border=False, width="stretch", delta_description="vs med")
+                        median_help_text = f"""From {main_ref.lower()} {event_ref.lower()}s. 
+                            Median: mid-value, half above/half below."""
                         col_r.metric(
-                            f"Median", value=att_median, 
-                            help=f"From {main_ref.lower()} {event_ref.lower()}s. Median: mid-value, half above/half below.", 
-                            border=False, 
-                            width="stretch")
+                            f"Median", value=att_median, help=median_help_text, 
+                            border=False, width="stretch")
                         st.space(18)
                     # Bottom row
                     with st.container():
                         col_l, col_r = st.columns(2)
+                        rate_help_text = f"""From {main_ref.lower()} 
+                            and {secondary_ref.lower()} {event_ref.lower()}s"""
                         col_l.metric(
-                            "Win rate", 
-                            value=f"{success_rate}%", 
-                            help=f"From {main_ref.lower()} and {secondary_ref.lower()} {event_ref.lower()}s", 
+                            "Win rate", value=f"{success_rate}%", 
+                            help=rate_help_text, 
                             border=False, 
                             width="stretch")            
                         col_r.metric(
-                            f"Total {active_attempt_ref.lower()}", 
-                            value=total_val, 
+                            f"Total {active_attempt_ref.lower()}", value=total_val, 
                             help=f"Estimated from {event_ref.lower()}s and {attempt_ref.lower()}", 
-                            border=False, 
-                            width="stretch")
+                            border=False, width="stretch")
             
             # Label count
             with col_2:

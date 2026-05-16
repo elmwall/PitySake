@@ -23,7 +23,7 @@ import datetime
 
 import streamlit as st
 
-from app.config_hub import initialize_constants
+from app.project_configuration import initialize_constants
 if "SETTINGS" not in st.session_state:
     project = os.path.splitext(
         os.path.basename(__file__))[0]

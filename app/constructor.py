@@ -22,7 +22,6 @@ import app.timeline as timeline
 import app.style as page
 
 
-logger = logging.getLogger(__name__)
 # Constants for layout dimensions
 CONTENT_WIDTH = 1800
 WIDTH_TOT_LEFT = 950
@@ -33,32 +32,27 @@ WIDTH_MID_2 = 350
 WIDTH_RIGTH_2 = WIDTH_TOT_RIGHT - WIDTH_MID_2
 
 TERMS = st.session_state["TERMS"]
+logger = logging.getLogger(__name__)
 
 
 def header():
     """
     Header builder 
-    
-    Manages setup, placement and interactions for header elements.
-
-    Behaviour:
+    - setup, placement and interactions for header elements.
     - title: display-only button
     - vertical toggle: adjusts session state key bool
     - refresh: triggers refresh of cache and session state keys
-    - theme: 
-        - presets theme editing keys
-        - adjusting theme dialog check for it to open at proper time
+    - theme: preset theme keys and control theme dialog activation
     """
 
     logger.info("Running constructor.border")
     
     # Sets whole-page width area for header
     with st.container(
-        border=False, 
-        key="settings_main",
-        height=40, 
-        vertical_alignment="center"
-    ):
+            border=False, 
+            key="settings_main",
+            height=40, 
+            vertical_alignment="center"):
         # Creates columns for buttons and for title
         c1, col_options, col_title, c3 = st.columns([0.1, 5, 2, 5])
         with col_options:
@@ -77,12 +71,8 @@ def header():
         col_view.toggle("Vertical view", key="vertical_view")
 
         if col_refr.button(
-            "Refresh page", 
-            key="reload_page", 
-            icon=":material/refresh:", 
-            type="tertiary",
-            width="content"
-        ): 
+                "Refresh page", key="reload_page", 
+                icon=":material/refresh:", type="tertiary", width="content"): 
             init.refresh()
 
         # Theme dialog is controlled via session state key "theme_edited" bool
@@ -102,10 +92,8 @@ def header():
                             st.session_state["theme_edited"] = 0
 
 
-def horizontal_view(registration_keys: list, 
-                    prog_meter_keys: list, 
-                    highlight_html: str, 
-                    table_style: str):
+def horizontal_view(registration_keys: list, prog_meter_keys: list, 
+                    highlight_html: str, table_style: str):
     """
     Horizontal view builder 
     
@@ -126,10 +114,6 @@ def horizontal_view(registration_keys: list,
             keys for object registration settings
         prog_meter_keys (list): 
             keys for object progress tracker settings
-        highlight_html (str): 
-            css style for highlights
-        table_style (str): 
-            css style for tables
     """
 
     logger.info("Running constructor.horizontal_view")
@@ -142,11 +126,10 @@ def horizontal_view(registration_keys: list,
 
     # Main container
     with st.container(
-        key="main_content", 
-        height="stretch", 
-        horizontal_alignment="center", 
-        vertical_alignment="center"
-    ):
+            key="main_content", 
+            height="stretch", 
+            horizontal_alignment="center", 
+            vertical_alignment="center"):
         # Row 1
         with st.container(width=CONTENT_WIDTH):
             st.space(15)
@@ -155,24 +138,18 @@ def horizontal_view(registration_keys: list,
             # Column 1 - object registration
             with col_left:
                 object_recorder.register_object(
-                    "reg_object", 
-                    registration_keys, 
-                    width_left, 
-                    highlight_html)
+                    "reg_object", registration_keys, 
+                    width_left, highlight_html)
             # Column 2 - main object table
             with col_mid:
                 data_viewer.table_view(
-                    "main_data", 
-                    "main", 
-                    table_style, 
-                    table_height)
+                    "main_data", "main", 
+                    table_style, table_height)
             # Column 3 - secondary object table
             with col_right:
                 data_viewer.table_view(
-                    "secondary_data", 
-                    "secondary", 
-                    table_style, 
-                    table_height)
+                    "secondary_data", "secondary", 
+                    table_style, table_height)
         st.space()
 
         # Row 2
@@ -181,10 +158,8 @@ def horizontal_view(registration_keys: list,
             # Column 1 - progress tracker
             with col_left:
                 height = progress_tracker.progress_meter(
-                    "progress", 
-                    prog_meter_keys, 
-                    width_left, 
-                    highlight_html)
+                    "progress", prog_meter_keys, 
+                    width_left, highlight_html)
             # Column 2 - timeline / calculator and statistics
             with col_right:
                 tab_1, tab_2 = st.tabs(["Timeline", "Calculate"])
@@ -196,16 +171,12 @@ def horizontal_view(registration_keys: list,
                         cal.calculator("calc", WIDTH_MID_2, highlight_html, height)
                     with col_right:
                         data_analysis.small_stats(
-                            "smallstat", 
-                            registration_keys, 
-                            WIDTH_RIGTH_2, 
-                            height)
+                            "smallstat", registration_keys, 
+                            WIDTH_RIGTH_2, height)
 
 
-def vertical_view(registration_keys:list[str], 
-                  prog_meter_keys:list[str], 
-                  highlight_html:str, 
-                  table_style:str):
+def vertical_view(registration_keys: list[str], prog_meter_keys: list[str], 
+                  highlight_html: str, table_style: str):
     """
     Vertical view builder 
     
@@ -223,29 +194,21 @@ def vertical_view(registration_keys:list[str],
             keys for object registration settings
         prog_meter_keys (list): 
             keys for object progress tracker settings
-        highlight_html (str): 
-            css style for highlights
-        table_style (str): 
-            css style for tables
     """
 
     logger.info("Running constructor.vertical_view")
 
     st.html("""
         <style> 
-        .st-key-main_content {width: 100vw; min-width: 800px; max-width: 1000px;} 
-        .st-key-content_frame {padding: 1rem;} 
+            .st-key-main_content {width: 100vw; min-width: 800px; max-width: 1000px;} 
+            .st-key-content_frame {padding: 1rem;} 
         </style>""")
     table_height = 300
 
     # Main container
     with st.container(
-        key="main_content", 
-        height="stretch", 
-        width="stretch", 
-        horizontal_alignment="center", 
-        vertical_alignment="center"
-    ):
+            key="main_content", height="stretch", width="stretch", 
+            horizontal_alignment="center", vertical_alignment="center"):
         width_left = "stretch"
         # Content frame
         with st.container(
@@ -255,18 +218,13 @@ def vertical_view(registration_keys:list[str],
         ):
             # Object registration
             object_recorder.register_object(
-                "reg_object", 
-                registration_keys, 
-                width_left, 
-                highlight_html)
+                "reg_object", registration_keys, 
+                width_left, highlight_html)
             st.space()
 
             # Progress tracker
             height = progress_tracker.progress_meter(
-                "progress", 
-                prog_meter_keys, 
-                width_left, 
-                highlight_html)
+                "progress", prog_meter_keys, width_left, highlight_html)
             col_mid, col_right = st.columns([WIDTH_MID_1, WIDTH_RIGTH_1])
 
             # Main and secondary object history
@@ -288,9 +246,5 @@ def vertical_view(registration_keys:list[str],
                 with col_right:
                     pass
                     data_analysis.small_stats(
-                        "smallstat", 
-                        registration_keys, 
-                        WIDTH_RIGTH_2, 
-                        height
-                    )
+                        "smallstat", registration_keys, WIDTH_RIGTH_2, height)
 
