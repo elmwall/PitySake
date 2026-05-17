@@ -35,7 +35,7 @@ def small_stats(component_key: str, sub_keys: list,
     - Label collection:
         - counts for objects with each label
     """
-    logger.info("Running data_analysis.small_stats")
+    logger.info("Running")
     
     # Feature header
     if st.session_state["header_switch"]:

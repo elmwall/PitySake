@@ -11,7 +11,6 @@ import time
 
 import streamlit as st
 
-import app.data_access as hold
 import app.progress_tracker as progress_tracker
 import app.object_recorder as object_recorder
 import app.calculate_progress as cal
@@ -20,6 +19,7 @@ import app.data_analysis as data_analysis
 import app.data_viewer as data_viewer
 import app.timeline as timeline
 import app.style as page
+import app.logger as log
 
 
 # Constants for layout dimensions
@@ -45,14 +45,12 @@ def header():
     - theme: preset theme keys and control theme dialog activation
     """
 
-    logger.info("Running constructor.border")
+    logger.info("Running")
     
     # Sets whole-page width area for header
     with st.container(
-            border=False, 
-            key="settings_main",
-            height=40, 
-            vertical_alignment="center"):
+            border=False, key="settings_main",
+            height=40, vertical_alignment="center"):
         # Creates columns for buttons and for title
         c1, col_options, col_title, c3 = st.columns([0.1, 5, 2, 5])
         with col_options:
@@ -62,10 +60,8 @@ def header():
         # Button is used for title display because:
         # markdown or write causes bad alignment of column contents
         col_title.button(
-            f"***{TERMS["ui_title"]}***", 
-            key="page_title",
-            type="tertiary", 
-            width="content")
+            f"***{TERMS["ui_title"]}***", key="page_title",
+            type="tertiary", width="content")
         
         # View orientation selection - always horizontal at start
         col_view.toggle("Vertical view", key="vertical_view")
@@ -84,6 +80,7 @@ def header():
                 if st.button("Theme", type="secondary"):
                     st.session_state["show_theme_settings"] = True
                 if st.session_state["show_theme_settings"]:
+                    # Set theme temp keys here for editing to have them available when dialog is opened
                     st.session_state["active_theme_temp"] = st.session_state["themes"]["active"]
                     page.theme()
                     if "theme_edited" in st.session_state:
@@ -116,20 +113,19 @@ def horizontal_view(registration_keys: list, prog_meter_keys: list,
             keys for object progress tracker settings
     """
 
-    logger.info("Running constructor.horizontal_view")
+    logger.info("Running")
 
-    st.html("""<style> 
-            .st-key-main_content {width: 100vw; min-width: 1800px;} 
+    st.html("""
+            <style> 
+                .st-key-main_content {width: 100vw; min-width: 1800px;} 
             </style>""")
     width_left = WIDTH_TOT_LEFT
     table_height = "stretch"
 
     # Main container
     with st.container(
-            key="main_content", 
-            height="stretch", 
-            horizontal_alignment="center", 
-            vertical_alignment="center"):
+            key="main_content", height="stretch", 
+            horizontal_alignment="center", vertical_alignment="center"):
         # Row 1
         with st.container(width=CONTENT_WIDTH):
             st.space(15)
@@ -138,18 +134,15 @@ def horizontal_view(registration_keys: list, prog_meter_keys: list,
             # Column 1 - object registration
             with col_left:
                 object_recorder.register_object(
-                    "reg_object", registration_keys, 
-                    width_left, highlight_html)
+                    "reg_object", registration_keys, width_left, highlight_html)
             # Column 2 - main object table
             with col_mid:
                 data_viewer.table_view(
-                    "main_data", "main", 
-                    table_style, table_height)
+                    "main_data", "main", table_style, table_height)
             # Column 3 - secondary object table
             with col_right:
                 data_viewer.table_view(
-                    "secondary_data", "secondary", 
-                    table_style, table_height)
+                    "secondary_data", "secondary", table_style, table_height)
         st.space()
 
         # Row 2
@@ -158,8 +151,7 @@ def horizontal_view(registration_keys: list, prog_meter_keys: list,
             # Column 1 - progress tracker
             with col_left:
                 height = progress_tracker.progress_meter(
-                    "progress", prog_meter_keys, 
-                    width_left, highlight_html)
+                    "progress", prog_meter_keys, width_left, highlight_html)
             # Column 2 - timeline / calculator and statistics
             with col_right:
                 tab_1, tab_2 = st.tabs(["Timeline", "Calculate"])
@@ -171,8 +163,7 @@ def horizontal_view(registration_keys: list, prog_meter_keys: list,
                         cal.calculator("calc", WIDTH_MID_2, highlight_html, height)
                     with col_right:
                         data_analysis.small_stats(
-                            "smallstat", registration_keys, 
-                            WIDTH_RIGTH_2, height)
+                            "smallstat", registration_keys, WIDTH_RIGTH_2, height)
 
 
 def vertical_view(registration_keys: list[str], prog_meter_keys: list[str], 
@@ -196,7 +187,7 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
             keys for object progress tracker settings
     """
 
-    logger.info("Running constructor.vertical_view")
+    logger.info("Running")
 
     st.html("""
         <style> 
@@ -212,10 +203,7 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
         width_left = "stretch"
         # Content frame
         with st.container(
-            key="content_frame", 
-            width=width_left, 
-            horizontal_alignment="center"
-        ):
+                key="content_frame", width=width_left, horizontal_alignment="center"):
             # Object registration
             object_recorder.register_object(
                 "reg_object", registration_keys, 
@@ -248,3 +236,8 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
                     data_analysis.small_stats(
                         "smallstat", registration_keys, WIDTH_RIGTH_2, height)
 
+
+def error_field():
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2.container(border=True, key="error_field_main", width="stretch"):
+        log.notify()

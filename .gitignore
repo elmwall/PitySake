@@ -11,6 +11,7 @@ unused/
 .streamlit/
 logs/
 
+meta.json
 PitySake.lnk
 test.py
 test.ipynb

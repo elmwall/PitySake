@@ -29,13 +29,11 @@ if "SETTINGS" not in st.session_state:
         os.path.basename(__file__))[0]
     initialize_constants(project)
     st.session_state["project"] = project
-    import app.logger
     logger = logging.getLogger(__name__)
     logger.info(f"\n\n::::: {"PITYSAKE":^35} :::::")
     now = datetime.datetime.now()
     logger.info(f"New session: {now}")
 else:
-    import app.logger
     logger = logging.getLogger(__name__)
     logger.info("")
     now = datetime.datetime.now()
@@ -44,8 +42,7 @@ else:
 import app.initialize as init
 import app.style as page
 import app.constructor as construct
-
-
+import app.error_handler as error
 
 
 # Previous essential database/option changes resets system
@@ -69,6 +66,8 @@ elif not st.session_state["vertical_view"]:
     construct.horizontal_view(registration_keys, prog_meter_keys, highlight_html, table_style)
 elif st.session_state["vertical_view"]:
     construct.vertical_view(registration_keys, prog_meter_keys, highlight_html, table_style)
+if st.session_state["error"]:
+    construct.error_field()
 
 st.json(st.session_state)
 

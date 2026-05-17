@@ -30,8 +30,7 @@ def calculator(component_key: str, feature_width: int | str,
         component_key (str): 
             session state key for feature
     """
-    logger.info("Running calculate_progress_display_value.calculator")
-    st.error("test")
+    logger.info("Running")
 
     # Feature header
     if st.session_state["header_switch"]:

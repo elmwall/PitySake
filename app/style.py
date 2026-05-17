@@ -1,5 +1,13 @@
 """
-add info
+Styling module
+
+Manages:
+- settings of theme and layout
+- editing theme settings saved in json and config files
+
+Not managed:
+- horizontal/vertical view (in contructor module)
+- specific settings of in-feature subcontainers and widgets
 """
 
 import logging
@@ -16,60 +24,80 @@ DIRECTORIES = st.session_state["DIRECTORIES"]
 SETTINGS = st.session_state["SETTINGS"]
 TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
+# from app.initialize import ar
 
 
 def settings():
+    """
+    Sets basic layout and style settings
+    - set_page_config
+    - HTML/CSS settings connected to header, certain elements and feature keys
+    """
     logger.info("Running style.settings")
 
     st.set_page_config(
         page_title='PitySake', page_icon = "accessories/icon1.ico", layout="wide")
+    
+    # Adjusting standard features
     st.html("""
         <style> 
-            
+            /* Remove page header presets */
             .block-container {
                 margin: 0rem 0rem; 
                 padding: 0rem 0rem;
             } 
-
+            header {
+                visibility: hidden;
+            } 
+            
+            /* Feature spacing */
             [data-testid='stVerticalBlock'] {
                 gap: 0.2rem;
             } 
 
         </style>""")
+    
+    # Adjusting custom style - theme independent
     st.html("""
         <style> 
-            .st-key-settings_main, .st-key-smallstat > div {
-                white-space: nowrap;
-            } 
-
-            header {
-                visibility: hidden;
-            } 
-
+            /* Custom page header */
             .st-key-border_options {
                 width: 400px; min-width: 350px;
             } 
-
+            /* Page header buttons */
             .st-key-border_options button {
                 min-width: 80px;
             } 
-
+            /* Page header title button */
             .st-key-page_title button {
                 width: 280px; 
                 margin: 0rem 1rem;
+            } 
+
+            /* Progress calculator result display */
+            .st-key-result_disp {
+                overflow-y: hidden;
             } 
         </style>""")
 
     feature_keys = [
         "reg_object", "progress", "calc", "smallstat", "main_object_data", 
-        "secondary_object_data", "timeline", "settings"]
+        "secondary_object_data", "timeline", "settings", "error_field"]
     progress_calc_keys = ["tool", "attribute", "origin"]
 
     return feature_keys, progress_calc_keys
 
 
 def style(feature_keys, keylist_prog_calc):
+    """
+    Style initiation
+    - sets theme dependent styles
+    - generates keys for certain features
+    - standardizes appearance for features by cycling HTML with specific keys
+    - defines HTML to be set within features
+    """
     logger.info("Running style.style")
+
     themes = st.session_state["themes"]
     active_theme = themes["active"]
     active_theme_settings = themes[active_theme]
@@ -125,7 +153,9 @@ def style(feature_keys, keylist_prog_calc):
     
     # Progress meter feature
     prog_meter_keys = list()
-    for x in range(10):
+    source_options = hold.load_options()["source"]
+    for x in range(len(source_options)):
+        # Generate a key per source for progress tracker sub-component 
         key = f"sub2_{str(x)}"
         x = prog_meter_keys.append(key)
         style_subcontainer = html_widget.replace("REF", key)
@@ -148,19 +178,6 @@ def style(feature_keys, keylist_prog_calc):
             } 
         </style>""".replace("COLOR_REF", active_theme_settings["highlight_text"])
 
-    # Progress calculator feature
-    st.html("""
-        <style> 
-            span.katex-display span.katex span.katex-html {
-                font-size: 3rem; 
-                margin-top: 0rem;
-            } 
-
-            .st-key-result_disp {
-                overflow-y: hidden;
-            } 
-        </style>
-        """)
     # Feature details
     detail_pill_style = """
         <style>  
@@ -181,9 +198,18 @@ def style(feature_keys, keylist_prog_calc):
 
 @st.dialog(f"Change theme", width="small")
 def theme():
-    logger.info("Running style.theme @st.dialog")
+    """
+    Theme selector and editor
+    - select defined themes
+    - edit selected theme colors and headers
+    - session state temp keys are copied from original keys in contructor for editing
+    - edited temp session state values are written to original keys when applied
+    """
+    from app.initialize import arciv
+    st.session_state["dialog_active"] = True
+    logger.info("Opened theme dialog")
 
-    arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
+    # arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     themes = st.session_state["themes"]
     active_theme = themes["active"]
 
@@ -193,18 +219,22 @@ def theme():
     theme_options = list(themes.keys())
     theme_options.remove("active")
 
+    # Selecting theme resets the temp colors for the to-be new theme
     with col_left:
         selected_theme = st.selectbox(
             "themes", options=theme_options, key="active_theme_temp", 
             on_change=_reset_colors, args=(themes,), 
             label_visibility="collapsed")
+    # Editing settings will automatically rerun and close dialog
+    # Select to have it remain open after rerun
     if col_right.checkbox("Dont close on change"):
         st.session_state["leave_theme_open"] = True
+    # Select to edit settings within selected theme
     with col_right:
         select_colors = st.checkbox(
             "Edit theme", key="change_colors", 
             on_change=_reset_colors, args=(themes,))
-    
+    # Render color selector field
     if select_colors:
         with st.container(horizontal_alignment="center"):
             if "background_temp" in st.session_state.keys():
@@ -213,15 +243,18 @@ def theme():
     st.space()
     col_1, col_2, col_3, col_4 = st.columns([1, 1, 1, 1])
 
+    # Apply button to trigger save to file and change of active theme settings
     with st.container(width="stretch", horizontal_alignment="center"):
         if col_2.button("Apply", type="secondary", width="stretch"):
             st.session_state["show_theme_settings"] = True
             themes["active"] = selected_theme
+            # Config file non-theme-related settings
             config_base = """
-                [server]\n
-                runOnSave = true\n\n
+[server]
+runOnSave = true\n
             """
             if select_colors:
+                # Sync theme settings with temporary states (edited or not)
                 themes[selected_theme] = {
                     "background": st.session_state["background_temp"],
                     "input_field": st.session_state["input_field_temp"],
@@ -238,23 +271,25 @@ def theme():
                     "header_switch": st.session_state["header_switch_temp"]
                 }
 
+                # Adjust theme in config file with edited colors
                 config = config_base + f"""
-                    [theme]\n
-                    backgroundColor = '{st.session_state["background_temp"]}'\n
-                    secondaryBackgroundColor = '{st.session_state["input_field_temp"]}'\n
-                    primaryColor = '{st.session_state["highlights_temp"]}'\n
-                    textColor = '{st.session_state["text_color_temp"]}'\n
-                    font = 'sans serif'
-                """
+[theme]
+backgroundColor = '{st.session_state["background_temp"]}'
+secondaryBackgroundColor = '{st.session_state["input_field_temp"]}'
+primaryColor = '{st.session_state["highlights_temp"]}'
+textColor = '{st.session_state["text_color_temp"]}'
+font = 'sans serif'
+"""         
+            # Adjust theme in config file with predefined theme colors
             else:
                 config = config_base + f"""
-                    [theme]\n
-                    backgroundColor = '{themes[selected_theme]["background"]}'\n
-                    secondaryBackgroundColor = '{themes[selected_theme]["input_field"]}'\n
-                    primaryColor = '{themes[selected_theme]["highlights"]}'\n
-                    textColor = '{themes[selected_theme]["text_color"]}'\n
-                    font = 'sans serif'
-                """
+[theme]
+backgroundColor = '{themes[selected_theme]["background"]}'
+secondaryBackgroundColor = '{themes[selected_theme]["input_field"]}'
+primaryColor = '{themes[selected_theme]["highlights"]}'
+textColor = '{themes[selected_theme]["text_color"]}'
+font = 'sans serif'
+"""
             for x in themes[selected_theme].keys():
                 st.session_state[x] = st.session_state[f"{x}_temp"]
             st.session_state["theme_edited"] = time.perf_counter()
@@ -263,8 +298,10 @@ def theme():
                     f.write(config.strip())
             except Exception as e:
                 raise RuntimeError(f"Error from {e} occurred while attempting to write to config.toml")
-            arciv.writer(themes, other_file="ui_themes.json", join_path="settings")
-            print("Theme updated.")
+            logger.info(f"Update called for ui_themes.json")
+            if arciv.writer(themes, other_file="ui_themes.json", join_path="settings"):
+                logger.info("Theme updated")
+            st.rerun()
 
         if col_3.button("Done", type="secondary", width="stretch"):
             select_colors = False
@@ -273,17 +310,28 @@ def theme():
 
 
 def _reset_colors(themes):
+    "Sets temp color for theme up for consideration or editing"
     for cat, col in themes[st.session_state["active_theme_temp"]].items():
         st.session_state[f"{cat}_temp"] = col
 
 
 def _color_selector(themes, active_theme):
+    """
+    Color selector
+    - button visualize current setting and its role
+    - color selector or HEX code to select new color
+    """
     for x in themes[active_theme].keys():
         if f"{x}_temp" not in st.session_state:
             st.session_state[f"{x}_temp"] = themes[st.session_state["active_theme_temp"]][x]
 
     st.space("small")
     col_1, col_2, col_3, col_4 = st.columns([0.6, 0.4, 0.6, 0.4])
+
+    # Button field with helper indications of what they control
+    # NOTE: DO NOT try to loop - session state hell
+    # All COLOR_REF signify the value saved in theme file
+    # VIS_REF or no ref are just demo
 
     # Background color - in config
     st.html("""
@@ -359,7 +407,8 @@ def _color_selector(themes, active_theme):
                 color: COLOR_REF; 
                 border-color: COLOR_REF;
             } 
-        </style>""".replace("COLOR_REF", themes[active_theme]["highlights"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+        </style>""".replace("COLOR_REF", themes[active_theme]["highlights"])
+        .replace("VIS_REF", themes[active_theme]["main_container"]))
     col_3.button("Highlights", key="hl_col", width="stretch")
     col_4.color_picker("Highlights", key="highlights_temp", label_visibility="collapsed")
     
@@ -376,7 +425,8 @@ def _color_selector(themes, active_theme):
             .st-key-hl_txt button * {
                 font-weight: 600;
             } 
-        </style>""".replace("COLOR_REF", themes[active_theme]["highlight_text"]).replace("VIS_REF", themes[active_theme]["highlights"]))
+        </style>""".replace("COLOR_REF", themes[active_theme]["highlight_text"])
+        .replace("VIS_REF", themes[active_theme]["highlights"]))
     col_3.button("Highlight text", key="hl_txt", width="stretch")
     col_4.color_picker("Highlight text", key="highlight_text_temp", label_visibility="collapsed")
 
@@ -389,7 +439,8 @@ def _color_selector(themes, active_theme):
                 border-color: 
                 COLOR_REF;
             } 
-        </style>""".replace("COLOR_REF", themes[active_theme]["positive_color"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+        </style>""".replace("COLOR_REF", themes[active_theme]["positive_color"])
+        .replace("VIS_REF", themes[active_theme]["main_container"]))
     col_3.button("Positive", key="pos_col", width="stretch")
     col_4.color_picker("Positive", key="positive_color_temp", label_visibility="collapsed")
     
@@ -401,7 +452,8 @@ def _color_selector(themes, active_theme):
                 color: COLOR_REF; 
                 border-color: COLOR_REF;
             } 
-        </style>""".replace("COLOR_REF", themes[active_theme]["neutral_color"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+        </style>""".replace("COLOR_REF", themes[active_theme]["neutral_color"])
+        .replace("VIS_REF", themes[active_theme]["main_container"]))
     col_3.button("Neutral", key="neu_col", width="stretch")
     col_4.color_picker("Neutral", key="neutral_color_temp", label_visibility="collapsed")
     
@@ -413,7 +465,8 @@ def _color_selector(themes, active_theme):
                 color: COLOR_REF; 
                 border-color: COLOR_REF;
             } 
-        </style>""".replace("COLOR_REF", themes[active_theme]["negative_color"]).replace("VIS_REF", themes[active_theme]["main_container"]))
+        </style>""".replace("COLOR_REF", themes[active_theme]["negative_color"])
+        .replace("VIS_REF", themes[active_theme]["main_container"]))
     col_3.button("Negative", key="neg_col", width="stretch")
     col_4.color_picker("Negative", key="negative_color_temp", label_visibility="collapsed")
     
@@ -422,10 +475,9 @@ def _color_selector(themes, active_theme):
         <style> 
             .st-key-tx_col button {
                 color: COLOR_REF; 
-                border-color: transparent;
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["text_color"]))
-    col_3.button("Text", key="tx_col", width="stretch")
+    col_3.button("Text/border", key="tx_col", width="stretch")
     col_4.color_picker("Text", key="text_color_temp", label_visibility="collapsed")
 
     col_l, col_r = st.columns(2)

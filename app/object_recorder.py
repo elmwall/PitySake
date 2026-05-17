@@ -1,7 +1,11 @@
 """
-Object registration feature
+Object registration module
 
-
+Renders tool and manages
+- directs info from and to object_info_manager to manage databases and options
+- interactive setup of options and values in widgets
+- validates input before enabling save and compiles for saving
+- gateway to edit project options dialog
 """
 
 import copy
@@ -56,7 +60,7 @@ def register_object(component_key: str, sub_keys: list,
     - blocks submitting invalid data
     - for event source, collects progress from corresponding tracker
     """
-    logger.info("Running object_recorder.register_object")
+    logger.info("Running")
     
     _feature_style(component_key)
     attempts = copy.deepcopy(hold.load_progress_data())
@@ -259,16 +263,16 @@ def register_object(component_key: str, sub_keys: list,
             # Attempt/progress input 
             # - limit from progress data limits
             # - suggested value from progress tracker
-            if not source == gift_ref:  
-                limit = attempts[source]["limit"]
-                st.number_input(
-                    f"{attempt_ref}", min_value=0, 
-                    max_value=limit, key="reg_attempt")
-            else:
+            if not source or source == gift_ref or source == TERMS["temp"]:
                 limit = 0
                 st.number_input(
                     f"{attempt_ref}", min_value=0, max_value=limit, 
                     key="reg_attempt", disabled=True)
+            elif not source == gift_ref:  
+                limit = attempts[source]["limit"]
+                st.number_input(
+                    f"{attempt_ref}", min_value=0, 
+                    max_value=limit, key="reg_attempt")
 
             # Change options
             with st.container(height="stretch", vertical_alignment="bottom"):
@@ -393,16 +397,15 @@ def _translate_source(data_type: str, source: str,
         source (str):
             reference to relevant source for progress data
     """
-    if source == TERMS["temp"]:
+    if source == TERMS["temp"] and data_type:
         if data_type == main_ref:
             source = f"{main_ref} {source}"  
         else: 
             f"{secondary_ref} {source}"
-    elif source == common_ref:
+    elif source == common_ref and data_type:
         st.session_state["reg_state"] = None
-    # If none selected, "temp" is standard
     elif not data_type:
-        source = TERMS["temp"]
+        source = None
     return source
 
 

@@ -1,13 +1,40 @@
 """
 Logging
 
-Generates log files per project for debugging.
+Generates log files per project for debugging.  
+Renders feature for user notification for non-critical errors.
 """
 
 import logging
 from pathlib import Path
 
 import streamlit as st
+
+
+def notify():
+    """
+    User notification of error.
+    """
+
+    error = st.session_state["error"]
+    info = str()
+    if error:
+        if error["stage"]: info += f"Stage: {error["stage"]}:  \n"
+        if error["name"]: info += f"Name: {error["name"]}  \n"
+        if error["file"]: info += f"File: {error["file"]}  \n"
+        if error["info_list"]:
+            for x in error["info_list"]:
+                info += f"- {x}  "
+
+    col_1, col_2, col_3 = st.columns([1, 6, 1])
+    col_1.markdown("### Error!")
+    col_2.error(error["message"])
+    with col_2.expander("Details"):
+        st.markdown(info)
+
+    if col_3.button("Ok", width="stretch"): 
+        st.session_state["error"] = False
+        st.rerun()
 
 
 # Set log path/file
@@ -24,7 +51,7 @@ logging_config = {
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": "%(levelname)s: %(message)s"
+            "format": "%(asctime)s %(levelname)s | %(lineno)-3d %(module)-20s .%(funcName)-20s %(message)s"
         }
     },
     "handlers": {
@@ -39,8 +66,8 @@ logging_config = {
             "level": "DEBUG",
             "formatter": "simple",
             "filename": f"logs/{project}.log",
-            "maxBytes": 10000,
-            "backupCount": 6
+            "maxBytes": 400000,
+            "backupCount": 5
         }
     },
     "loggers": {
