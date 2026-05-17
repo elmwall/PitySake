@@ -12,16 +12,19 @@ import logging
 
 import streamlit as st
 
-from .file_manager import Archivist
+# from .file_manager import Archivist
 import app.data_access as hold
+import app.error_handler as error
+from app.initialize import arciv
 
 
 DATAPATH = st.session_state["DATAPATH"]
 DIRECTORIES = st.session_state["DIRECTORIES"]
 SETTINGS = st.session_state["SETTINGS"]
 TERMS = st.session_state["TERMS"]
+DIAGNOSTICS = False
 logger = logging.getLogger(__name__)
-arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
+# arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
 
 class Secretary:
@@ -125,7 +128,6 @@ class Secretary:
             pass
         elif st.session_state["reg_name"] and not reg_selection == "add_new":
             settings = st.session_state["current_database"][st.session_state["reg_name"]]
-            print(st.session_state["reg_type"], settings)
             if st.session_state["reg_type"] == self.main_ref:
                 st.session_state["reg_utility"] = settings[self.utility_ref]
                 st.session_state["reg_attribute"] = settings[self.attribute_ref]
@@ -229,14 +231,15 @@ class Secretary:
         - Directs settings for correct editing of database
         - Sends data for backup then to file editing
         """
-        logger.info("Running object_info_manager.Secretary.update_object")
 
         # Rename truth-check also carries new name, define as new_name from rename
         if reg_setting["for_renaming"]: reg_setting["for_renaming"] = new_name
         datafile = self.paths[object_type]
+        if DIAGNOSTICS: datafile = "nofile.json"
+        logger.info(f"Update called for {datafile}")
         backup_frequency = [101, 31, 11, 2]
         # Secure new data in case of errors
-        arciv.catch_data(
+        error.catch_data(
             new_data, datafile, object_type, name, 
             reg_setting["for_deletion"], reg_setting["for_renaming"], 
             join_path="data", need_sorting=True, is_static=reg_setting["is_static"],
@@ -244,11 +247,12 @@ class Secretary:
         updated_library = False
         # Backup old data before save
         if arciv.backup(backup_frequency, object_type, other_file=datafile): 
-            updated_library, action_verification = arciv.join_data(
+            updated_library = arciv.join_data(
                 new_data, name, reg_setting["for_deletion"], reg_setting["for_renaming"], 
                 other_file=datafile, join_path="data", 
                 need_sorting=True, is_static=reg_setting["is_static"])
         # Save to file
+        if DIAGNOSTICS: updated_library = False
         if updated_library:
             arciv.writer(
                 updated_library, object_type, other_file=datafile, join_path="data")

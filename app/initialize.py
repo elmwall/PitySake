@@ -20,10 +20,15 @@ import app.error_handler as error
 
 logger = logging.getLogger(__name__)
 logger.info("Loading initialize")
+DIRECTORIES = st.session_state["DIRECTORIES"]
+DATAPATH = st.session_state["DATAPATH"]
+TERMS = st.session_state["TERMS"]
+arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
 # Keys requiring initial values or simply existing
 INIT_STATE = {
     # Main
+    "error": False,
     "pending_backup": False,
     "pending_save": False,
     "vertical_view": False,
@@ -78,12 +83,10 @@ def initialize():
     - initialize session state: list of essential keys
     - initialize session states requiring external info
     - loads data for cache
+    - checks meta for last session settings needing correction
     """
 
-    logger.info("Running initialize.initialize")
-    DIRECTORIES = st.session_state["DIRECTORIES"]
-    DATAPATH = st.session_state["DATAPATH"]
-    TERMS = st.session_state["TERMS"]
+    logger.info("Running")
     
     # Special case: immidiate need for checking previous activity and loading data
     if "cleared_cache" not in st.session_state: 
@@ -91,7 +94,6 @@ def initialize():
     if "rerun" not in st.session_state: 
         st.session_state["rerun"] = 0
 
-    arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     # Cache databases and collect the needed 
     data_options = hold.load_options()
     attempts = hold.load_progress_data()
@@ -128,18 +130,39 @@ def initialize():
             try:
                 if state == "state_import":
                     st.session_state[key] = state_import[key]
-                else:
+                elif state is not None:
                     st.session_state[key] = state
             except Exception as e:
-                error.notify(f"Could not initialize key.", stage="Initialize", name=key)
+                st.session_state["error"] = {
+                    "message": "Could not initialize key.",
+                    "stage": "Initialize, initialize",
+                    "name": "name",
+                    "file": None,
+                    "info_list": None
+                }
+                logger.warning(f"initialize could not initialize key: {key}")
     
     # Initialize theme setting keys
     for key in themes[st.session_state["active_theme"]].keys():
         if key not in st.session_state:
             st.session_state[key] = themes[st.session_state["active_theme"]][key]
+    
+    # Correct settings dependent on last project active
+    meta = st.session_state["meta"]
+    active_theme = st.session_state["active_theme"]
+    logger.info(f"""
+        Last session project: {meta["project"]}
+        Current session project: {st.session_state["project"]}
+        Last session theme: {meta["theme"]}
+        Current session theme: {st.session_state["active_theme"]}""")
+    project_nomatch = meta["project"] != st.session_state["project"]
+    theme_nomatch = meta["theme"] != st.session_state["active_theme"]
+    if project_nomatch or theme_nomatch:
+        _settings_correction(themes[active_theme], meta)
+        
     # Follow up backups from prior activity
-    if st.session_state["pending_backup"]: arciv.pending_backup()
-
+    if st.session_state["pending_backup"]: error.pending_backup(arciv)
+    
 
 def fetch_databases():
     """
@@ -149,7 +172,7 @@ def fetch_databases():
     - tries for a set number of times, then aborts
     """
 
-    logger.info("Running initialize.fetch_databases")
+    logger.info("Fetching")
     n = 0
     database_list = ["load_options", "load_themes", 
                     "load_main_database", "load_secondary_database", 
@@ -180,16 +203,22 @@ def fetch_databases():
             st.rerun()
         else:
             logger.info(f"Failed to read database(s): {database_list}")
-            error.notify(
-                f"Failed to read database(s).", 
-                stage="Fetch", 
-                info_list=database_list)
+            st.session_state["error"] = {
+                "message": "Failed to read database(s).",
+                "stage": "Initialize, fetch",
+                "name": None,
+                "file": None,
+                "info_list": database_list
+            }
     except Exception:
         logger.exception(f"Failed to collect database at stage: {database_list[n]}")
-        error.notify(
-            f"Failed to collect database.", 
-            stage="Fetch", 
-            name={database_list[n]})
+        st.session_state["error"] = {
+            "message": "Failed to collect database.",
+            "stage": "Initialize, fetch",
+            "name": {database_list[n]},
+            "file": None,
+            "info_list": None
+        }
 
 
 def refresh():
@@ -198,7 +227,7 @@ def refresh():
     - clears all databases and removes keys
     - sets check values for proper initialization
     """
-    logger.info("Running initialize.refresh")
+    logger.info("Refresh requested")
 
     hold.load_options.clear(),
     hold.load_main_database.clear(),
@@ -211,3 +240,31 @@ def refresh():
     st.session_state["processed_edits"] = False
     st.session_state["cleared_cache"] = True
     st.rerun()
+
+
+def _settings_correction(active_theme_settings, meta):
+    config = f"""
+[server]
+runOnSave = true
+
+[theme]
+backgroundColor = '{active_theme_settings["background"]}'
+secondaryBackgroundColor = '{active_theme_settings["input_field"]}'
+primaryColor = '{active_theme_settings["highlights"]}'
+textColor = '{active_theme_settings["text_color"]}'
+font = 'sans serif'
+"""
+    
+    theme_updated = False
+    try:
+        with open(".streamlit/config.toml", "w") as f:
+            f.write(config.strip())
+            theme_updated = True
+    except Exception as e:
+        raise RuntimeError(f"Error from {e} occurred while attempting to write to config.toml")
+    
+    if theme_updated:
+        meta["project"] = st.session_state["project"]
+        meta["theme"] = st.session_state["active_theme"]
+        arciv.writer(meta, other_file="meta.json")
+        logger.info("Theme corrected")

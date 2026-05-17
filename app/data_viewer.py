@@ -8,7 +8,6 @@ Builds and manages:
 
 import logging
 
-import pandas as pd
 import streamlit as st
 
 import app.data_access as hold
@@ -24,7 +23,7 @@ def table_view(component_key: str, object_type: str,
     Renders table feature for main or secondary object database.
     """
 
-    logger.info(f"Running data_viewer.table_view for data: {object_type}")
+    logger.info(f"Running for {object_type}")
 
     # Feature header
     if st.session_state["header_switch"]:
