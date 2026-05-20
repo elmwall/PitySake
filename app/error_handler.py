@@ -68,7 +68,8 @@ def pending_backup(arciv):
             with st.container(border=False, width="stretch", height=300):
                 st.json(catch["data"], width="stretch")
         except:
-            print("Data could not be reviewed.")
+            st.markdown("Data could not be reviewed.")
+            logger.exception(f"Backup data could not be reviewed for {catch["data"]}.")
 
     # User action selection
     confirm = _confirm_action()
@@ -77,11 +78,10 @@ def pending_backup(arciv):
         data_details = st.session_state["pending_save"]
         if catch["backup_file"] and confirm_backup:
             shutil.copy(catch["file"], catch["backup_file"])
-            print("Data backup done.")
 
         # Continue with joining/updating data for writing
         if catch["datatype"] in [TERMS["main"], TERMS["secondary"]]:
-            st.session_state["updated_library"], action_verification = arciv.join_data(
+            st.session_state["updated_library"] = arciv.join_data(
             data_details["new_data"], 
             data_details["name"], 
             data_details["for_deletion"], 
@@ -92,10 +92,8 @@ def pending_backup(arciv):
             data_details["is_static"])
         elif catch["datatype"] == TERMS["progress"]:
             st.session_state["updated_library"] = data_details["new_data"]
-            action_verification = "progress added"
         elif catch["datatype"] == "options":
             st.session_state["updated_library"] = data_details["new_data"]
-            action_verification = "options edited"
 
         # If library properly updated:
         # - Send data for writing
@@ -107,7 +105,6 @@ def pending_backup(arciv):
                 other_file=data_details["save_file"], 
                 join_path=data_details["path"]
             )
-            print(f"\nLibrary updated, {action_verification}!\n")
             st.session_state["pending_backup"] = False
             st.session_state["pending_save"] = False
             st.session_state["updated_library"] = False
@@ -225,7 +222,5 @@ def dump(stage: str, details: dict, prefix: str = "data"):
         with open(dumpfile, "w", encoding="utf-8") as f:
             f.write(content)
             logger.info(f"Dump created {stage} at {dumpfile}")
-            print(f"Datadump created at {dumpfile}.")
     except:
         logger.exception(f"Creating dump during {stage} at {dumpfile} failed.")
-        print("Could not dump data.")

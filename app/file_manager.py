@@ -52,7 +52,6 @@ class Archivist:
         self.settings_directory = DIRECTORIES["SettingsFolder"]
         self.backup_directory = DIRECTORIES["BackupFolder"]
         self.backup_meta = DATAPATH["backup_meta"]
-        self.print_spacer = 80
         self.diagnostics = False
 
         if initialized:
@@ -224,7 +223,6 @@ class Archivist:
         data = False
         backup_file = False
         for value in backup_frequency:
-            print(file_edit_count, file_edit_count % value)
             if file_edit_count > 0 and file_edit_count % value == 0:
                 backup_file = os.path.join(
                     self.backup_directory, 
@@ -283,7 +281,6 @@ class Archivist:
             return True
         elif confirm_backup:
             shutil.copy(file, backup_file)
-            print("Backup performed")
             logger.info(f"Archivist.backup of {file} in in {backup_file} done.")
             return True
         

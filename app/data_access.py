@@ -102,8 +102,6 @@ def process_collection_db(database: dict, datatype: str):
     object_count = dict()
     # Data for pandas/st.dataframe
     rows_for_table = list()
-    # Label lists
-    # utility, attribute, origin = [list()]*3
 
     # For counting object labels - Define dictionary with category keys and data keys 
     if datatype == "main": 
@@ -113,7 +111,6 @@ def process_collection_db(database: dict, datatype: str):
                 counts[category][x] = 0
     state_value, date, object_collection, name, attempt_value, source, state, index = [None]*8
     for name, info in database.items():
-
         # Only count labels for main type object
         if datatype == "main": 
             for category, options in counts.items():
@@ -136,10 +133,10 @@ def process_collection_db(database: dict, datatype: str):
             else:
                 object_collection = ""
 
-
             # Collect attempt and state
             # For objects without attempts registered, skip both
             attempt_value = event_data[TERMS["attempt"]]
+            state = event_data[TERMS["state"]]
             source = event_data[TERMS["source"]]
             if attempt_value:
                 # Collect all attempt results in a list
@@ -148,8 +145,7 @@ def process_collection_db(database: dict, datatype: str):
                 if int(date) > last_event[0]:
                     last_event = [int(date), attempt_value]
                 # Check event outcome and update list [success, fail] with +1 for success or fail
-                state = event_data[TERMS["state"]]
-                if state:
+                if attempt_value:
                     if state == TERMS["state_win"]:
                         success_fail = [success_fail[0] + 1, success_fail[1]]
                         state_value = True
@@ -158,6 +154,7 @@ def process_collection_db(database: dict, datatype: str):
                         state_value = False
                     else:
                         state_value = None
+
             graph_data["date"].append(formatted_date)
             graph_data["name"].append(name)
             graph_data["state"].append(state_value)
@@ -214,7 +211,7 @@ def data_to_dataframe(rows: list, object_type: str):
     # Use index for sorting, then discard
     processed_dataframe = (
         dataframe.sort_values(["Date", "Index"], ascending=False)
-        .drop(columns=["Index", f"{TERMS["state"]}"]))
+        .drop(columns=["Index"]))
 
     # Collection value disregarded for secondary type
     if object_type == "secondary": 

@@ -46,7 +46,7 @@ INIT_STATE = {
     "current_database": "state_import",
     # Object info manager - main
     "dialog_active": False,
-    # "prior_regset": None,
+    "limit": 0,
     "regset": "add_new",
     "reg_attempt": "state_import",
     "reg_attribute": None,
@@ -54,18 +54,23 @@ INIT_STATE = {
     "reg_name": None,
     "reg_object_type": "state_import",
     "reg_origin": None,
-    "reg_source":"state_import",
+    "reg_source": "state_import",
     "reg_state": "state_import",
     "reg_type": "state_import",
     "reg_utility": None,
     "translated_values": dict(),
+    "selection_limit": "state_import",
+    "limit_disabled": "state_import",
+    "state_disabled": "state_import",
     # Object info manager - edit options
     "changed_options": None,
     "changed_progress": None,
+    "edited_options": list(),
     "edit_options_complete": True,
     "new_option": None,
     "new_state": None,
     "new_limit": None,
+    "progress_changed": None,
     # Style
     "active_theme": "state_import",
     "active_theme_temp": "state_import",
@@ -74,7 +79,6 @@ INIT_STATE = {
     # Progress tracker
     "initiated": False
 }
-PRINT_SPACER = 80
 
 
 def initialize():
@@ -95,10 +99,10 @@ def initialize():
         st.session_state["rerun"] = 0
 
     # Cache databases and collect the needed 
-    data_options = hold.load_options()
-    attempts = hold.load_progress_data()
-    hold.load_main_database(),
-    hold.load_secondary_database(),
+    hold.load_options()
+    hold.load_progress_data()
+    hold.load_main_database()
+    hold.load_secondary_database()
     # Store theme collection
     if "themes" not in st.session_state:
         st.session_state["themes"] = hold.load_themes()
@@ -109,11 +113,14 @@ def initialize():
         # Database
         "current_database": copy.deepcopy(hold.load_main_database()),
         # Object info manager - main
-        "reg_attempt": attempts[f"{TERMS["main"]} {TERMS["temp"]}"][TERMS["attempt"]],
         "reg_object_type": TERMS["main"],
-        "reg_state": data_options["state_alternatives"][0],
-        "reg_source": TERMS["temp"],
+        "reg_state": hold.load_options()["results"][0],
+        "reg_source": list(hold.load_options()["source_limit"].keys())[0],
+        "limit_disabled": hold.load_options()["source_limit"][TERMS["main_source"]] is False,
+        "state_disabled": hold.load_options()["states"][TERMS["main_source"]] is False,
         "reg_type": TERMS["main"],
+        "reg_attempt": hold.load_progress_data()[TERMS["main_source"]][TERMS["attempt"]],
+        "selection_limit": hold.load_options()["source_limit"][TERMS["main_source"]],
         # Style
         "active_theme": themes["active"],
         "active_theme_temp": themes["active"]}
@@ -148,6 +155,7 @@ def initialize():
             st.session_state[key] = themes[st.session_state["active_theme"]][key]
     
     # Correct settings dependent on last project active
+    # Settings in .strealit/config.toml (currently only themes) requires this check
     meta = st.session_state["meta"]
     active_theme = st.session_state["active_theme"]
     logger.info(f"""
@@ -155,6 +163,8 @@ def initialize():
         Current session project: {st.session_state["project"]}
         Last session theme: {meta["theme"]}
         Current session theme: {st.session_state["active_theme"]}""")
+    # Themes are stored as Theme 1, Theme 2 etc, which themselves may differ
+    # between projects, therefore check both project and set theme.
     project_nomatch = meta["project"] != st.session_state["project"]
     theme_nomatch = meta["theme"] != st.session_state["active_theme"]
     if project_nomatch or theme_nomatch:
@@ -192,9 +202,9 @@ def fetch_databases():
             if not database:
                 done = False
                 problematic.add(database_list[n])
-                print(f"{f" ":{PRINT_SPACER}} Failed")
+                logger.warning(f"Failed to read database {n}: {database_list[n]}")
             else:
-                print(f"{f" ":{PRINT_SPACER}} Success")
+                logger.info(f"Collected database {n}: {database_list[n]}")
             n += 1
         # Reset control values if all fine
         if done: 
@@ -243,6 +253,7 @@ def refresh():
 
 
 def _settings_correction(active_theme_settings, meta):
+    "Adjusts config file settings to match project settings."
     config = f"""
 [server]
 runOnSave = true
@@ -256,12 +267,13 @@ font = 'sans serif'
 """
     
     theme_updated = False
+    # Write new toml
     try:
         with open(".streamlit/config.toml", "w") as f:
             f.write(config.strip())
             theme_updated = True
     except Exception as e:
-        raise RuntimeError(f"Error from {e} occurred while attempting to write to config.toml")
+        logger.exception(f"Error from {e} occurred while attempting to write to config.toml")
     
     if theme_updated:
         meta["project"] = st.session_state["project"]

@@ -46,11 +46,11 @@ def header():
     """
 
     logger.info("Running")
-    
+    header_height = "content" if st.session_state["error"] else 40
     # Sets whole-page width area for header
     with st.container(
             border=False, key="settings_main",
-            height=40, vertical_alignment="center"):
+            height=header_height, vertical_alignment="center"):
         # Creates columns for buttons and for title
         c1, col_options, col_title, c3 = st.columns([0.1, 5, 2, 5])
         with col_options:
@@ -87,6 +87,13 @@ def header():
                         if st.session_state["theme_edited"] and not st.session_state["leave_theme_open"]:
                             st.session_state["show_theme_settings"] = True
                             st.session_state["theme_edited"] = 0
+        # Error message for user is rendered in top-right corner 
+        # for visibility without being mixed up with other layout.
+        # Placing it in the rendered layout instead of dialog is preferable, 
+        # since only one dialog is allowed
+        if st.session_state["error"]:
+            with c3.container(border=True, key="error_field_main", width="stretch", height=header_height):
+                log.notify()
 
 
 def horizontal_view(registration_keys: list, prog_meter_keys: list, 
@@ -235,9 +242,3 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
                     pass
                     data_analysis.small_stats(
                         "smallstat", registration_keys, WIDTH_RIGTH_2, height)
-
-
-def error_field():
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2.container(border=True, key="error_field_main", width="stretch"):
-        log.notify()

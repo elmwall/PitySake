@@ -66,10 +66,12 @@ def small_stats(component_key: str, sub_keys: list,
                         width="stretch", height=245):
                     with st.container():
                         col_l, col_r = st.columns(2)
+                        reverse = hold.load_options()["user_indicators"]["reverse_positive"]
+                        delta_color = "inverse" if reverse else "normal"
                         col_l.metric(
                             f"Last {event_ref.lower()}", 
                             value=last, help=f"For {main_ref.lower()}s", 
-                            delta=f"{last - att_median}", delta_color="inverse", 
+                            delta=f"{last - att_median}", delta_color=delta_color, 
                             border=False, width="stretch", delta_description="vs med")
                         median_help_text = f"""From {main_ref.lower()} {event_ref.lower()}s. 
                             Median: mid-value, half above/half below."""
@@ -152,5 +154,4 @@ def _analyze_data() -> tuple:
 
     # Main object label count
     counts = processed_main["counts"]
-    print(type(att_median))
     return counts, total_val, last, att_median, success_rate

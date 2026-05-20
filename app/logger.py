@@ -15,7 +15,6 @@ def notify():
     """
     User notification of error.
     """
-
     error = st.session_state["error"]
     info = str()
     if error:
@@ -26,13 +25,14 @@ def notify():
             for x in error["info_list"]:
                 info += f"- {x}  "
 
-    col_1, col_2, col_3 = st.columns([1, 6, 1])
-    col_1.markdown("### Error!")
+    col_1, col_2, col_3, col_4 = st.columns([2, 6, 6, 1.5])
+    with col_1.container(border=True, width="stretch"):
+        st.markdown("**:red[Error!]**", text_alignment="center")
     col_2.error(error["message"])
-    with col_2.expander("Details"):
+    with col_3.expander("Details"):
         st.markdown(info)
 
-    if col_3.button("Ok", width="stretch"): 
+    if col_4.button("Ok", width="stretch"): 
         st.session_state["error"] = False
         st.rerun()
 
@@ -82,8 +82,3 @@ logging_config = {
 }
 
 logging.config.dictConfig(config=logging_config)
-# logger.debug("debug message")
-# logger.info("info message")
-# logger.warning("warning message")
-# logger.error("error message")
-# logger.critical("critical message")

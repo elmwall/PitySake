@@ -55,15 +55,15 @@ def timeline(component_key: str, set_height: int):
         state = data["state"]
 
         fig = go.Figure()
+        # Set highlights for high/low depending on project settings
+        if options["user_indicators"]["reverse_positive"]:
+            high_color = theme["negative"]
+            low_color = theme["positive"]
+        else:
+            high_color = theme["positive"]
+            low_color = theme["negative"]
         for i in range(len(dates)):
             if value[i] is not None: 
-                # Set highlights for high/low depending on project settings
-                if options["user_indicators"]["reverse_positive"]:
-                    high_color = theme["negative"]
-                    low_color = theme["positive"]
-                else:
-                    high_color = theme["positive"]
-                    low_color = theme["negative"]
                     
                 if value[i] > options["user_indicators"]["high_highlight"]:
                     hightlight_col = high_color
