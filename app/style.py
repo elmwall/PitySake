@@ -24,7 +24,6 @@ DIRECTORIES = st.session_state["DIRECTORIES"]
 SETTINGS = st.session_state["SETTINGS"]
 TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
-# from app.initialize import ar
 
 
 def settings():
@@ -154,7 +153,7 @@ def style(feature_keys, keylist_prog_calc):
     # Progress meter feature
     prog_meter_keys = list()
     source_options = hold.load_options()["source"]
-    for x in range(len(source_options)):
+    for x in range(len(source_options) + 5):
         # Generate a key per source for progress tracker sub-component 
         key = f"sub2_{str(x)}"
         x = prog_meter_keys.append(key)
@@ -209,7 +208,6 @@ def theme():
     st.session_state["dialog_active"] = True
     logger.info("Opened theme dialog")
 
-    # arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
     themes = st.session_state["themes"]
     active_theme = themes["active"]
 
@@ -297,7 +295,7 @@ font = 'sans serif'
                 with open(".streamlit/config.toml", "w") as f:
                     f.write(config.strip())
             except Exception as e:
-                raise RuntimeError(f"Error from {e} occurred while attempting to write to config.toml")
+                logger.exception(f"Error from {e} occurred while attempting to write to config.toml")
             logger.info(f"Update called for ui_themes.json")
             if arciv.writer(themes, other_file="ui_themes.json", join_path="settings"):
                 logger.info("Theme updated")

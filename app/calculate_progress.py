@@ -105,12 +105,8 @@ def calculator(component_key: str, feature_width: int | str,
             # Submit button
             with mid:
                 if st.button(
-                    f"{msg}", 
-                    key="calc_button", 
-                    type=appearance, 
-                    disabled=is_invalid, 
-                    width="stretch"
-                ):
+                        f"{msg}", key="calc_button", type=appearance, 
+                        disabled=is_invalid, width="stretch"):
                     output = _submit(
                         st.session_state["prev_page"], st.session_state["curr_page"],
                         st.session_state["prev_row"], st.session_state["curr_row"],
@@ -124,13 +120,8 @@ def calculator(component_key: str, feature_width: int | str,
             left, mid, right = st.columns(calc_columns)
             with mid:
                 with st.container(
-                    border=True, 
-                    key="result_disp", 
-                    width="stretch", 
-                    height=60, 
-                    horizontal_alignment="center", 
-                    vertical_alignment="center"
-                ):
+                        border=True, key="result_disp", width="stretch", height=60, 
+                        horizontal_alignment="center", vertical_alignment="center"):
                     html_output = """<div style=' font-size: 30px; margin: 0; padding: 0; 
                                 line-height: 1; text-align: center;'>REF</div>"""
                     if output is not None:

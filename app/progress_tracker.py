@@ -10,7 +10,6 @@ import logging
 
 import streamlit as st
 
-# from .file_manager import Archivist
 import app.data_access as hold
 import app.error_handler as error
 from app.initialize import arciv
@@ -20,7 +19,6 @@ DATAPATH = st.session_state["DATAPATH"]
 DIRECTORIES = st.session_state["DIRECTORIES"]
 SETTINGS = st.session_state["SETTINGS"]
 TERMS = st.session_state["TERMS"]
-# arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 logger = logging.getLogger(__name__)
 attempt_ref = TERMS["attempt"]
 progress_ref = TERMS["progress"]
@@ -76,31 +74,40 @@ def progress_meter(component_key: list, sub_keys: list,
             st.space("xxsmall")
             # Define a key for each subfeature and initiate their init value
             init_values, shared_init, keys = _initiate(attempts, category, init_values, i)
-            limit = attempts[category]["limit"]
+            limit = hold.load_options()["source_limit"][category]
             with st.container(key=sub_keys[i]):
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()
                 with col_state:
                     is_static = False
-                    is_active = None
+                    color = st.session_state["themes"][active_theme]["text_color"]
                     # Indicate prognisis state of source
                     if attempts[category][state_ref]:
                         if attempts[category][state_ref] == staterand_ref:
-                            symbol = ["**%**"]
+                            symbol = f"**{TERMS["state_rand_symbol"]}**"
                             switch_to = statedet_ref
-                        else:
-                            symbol = ["**☆**"]
-                            is_active = symbol
+                        elif attempts[category][state_ref] == statedet_ref:
+                            symbol = f"**{TERMS["state_det_symbol"]}**"
                             switch_to = staterand_ref
+                            color = st.session_state["themes"][active_theme]["highlights"]
                         state_values = (attempts, category, switch_to, state_ref)
                     # Disable state for static state sources
                     else:
                         is_static = True
-                        symbol = ["**⦸**"]
+                        symbol = "**⦸**"
                         state_values = (None,)
-                    st.pills(
-                        "state", options=symbol, default=is_active, key=keys["state"], 
-                        width="stretch", on_change=_update_progress, args=state_values, 
-                        disabled=is_static, label_visibility="collapsed")
+                    st.html("""
+                        <style>
+                            .st-key-KEY_REF button {
+                                border-radius: 30px;
+                                border-color: COLOR_REF;
+                                color: COLOR_REF;
+                            }
+                        </style>
+                        """.replace("KEY_REF", keys["state"]).replace("COLOR_REF", color))
+                    st.button(
+                        f"{symbol}", key=keys["state"], 
+                        width="stretch", on_click=_update_progress, args=state_values, 
+                        disabled=is_static)
                 
                 # Category title
                 label_style = html_label.replace("REF", keys["label"])

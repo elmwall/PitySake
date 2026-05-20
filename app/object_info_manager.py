@@ -72,13 +72,14 @@ class Secretary:
         except:
             options_object = list(hold.load_main_database().keys())
 
-        selectable_options = {
+        preset_options = {
             "options_utility": self.options[self.main_ref][self.utility_ref],
             "options_object": options_object,
             "options_attribute": self.options[self.main_ref][self.attribute_ref],
             "options_origin": self.options[self.main_ref][self.origin_ref],
             "options_type": [self.main_ref, self.secondary_ref],
-            "options_source": self.options["source"]
+            "options_source": list(self.options["source_limit"].keys()),
+            "options_states": self.options["results"]
         }
 
         required_keys = [
@@ -118,7 +119,8 @@ class Secretary:
             }
         }
 
-        return selectable_options, registration_options, required_keys
+
+        return preset_options, registration_options, required_keys
     
 
     def collect_object_info(self, reg_selection: str):
@@ -163,7 +165,6 @@ class Secretary:
         - Called to confirm removal of object or event            
         """
         st.session_state["dialog_active"] = True
-
         # Info section
         if reg_selection == "del_entry":
             st.markdown(f"Remove from library?")

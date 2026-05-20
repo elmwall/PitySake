@@ -66,8 +66,6 @@ elif not st.session_state["vertical_view"]:
     construct.horizontal_view(registration_keys, prog_meter_keys, highlight_html, table_style)
 elif st.session_state["vertical_view"]:
     construct.vertical_view(registration_keys, prog_meter_keys, highlight_html, table_style)
-if st.session_state["error"]:
-    construct.error_field()
 
 st.json(st.session_state)
 

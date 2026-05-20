@@ -111,13 +111,13 @@ def register_object(component_key: str, sub_keys: list,
             with col_name:
                 # For new object --> enter name
                 try:
-                    label = st.session_state["reg_object_type"]
+                    object_viewname = st.session_state["reg_object_type"]
                 except:
-                    label = "Object"
+                    object_viewname = "Object"
                 if reg_selection == "add_new":
                     st.text_input(
                         "Name", key="reg_name", 
-                        placeholder=f"Enter new {label.lower()}", 
+                        placeholder=f"Enter new {object_viewname.lower()}", 
                         label_visibility="collapsed")
                 elif not reg_selection:
                     st.text_input(
@@ -126,10 +126,21 @@ def register_object(component_key: str, sub_keys: list,
                         label_visibility="collapsed")
                 # For old object --> select name
                 else:
+                    object_options = st.session_state.get("current_database", dict()).keys()
+                    
+                    if not st.session_state["current_database"]:
+                        disable_selection = True
+                        message = f"Select {object_viewname.lower()}"
+                    elif len(st.session_state["current_database"]) == 0:
+                        disable_selection = True
+                        message = "No objects in library"
+                    else:
+                        disable_selection = False
+                        message = f"Select {object_viewname.lower()}"
                     st.selectbox(
-                        f"{label}s", 
-                        options=list(st.session_state["current_database"].keys()),
-                        placeholder=f"Select {label.lower()}", key="reg_name", 
+                        f"{object_viewname}s", 
+                        options=object_options,
+                        placeholder=message, disabled=disable_selection, key="reg_name", 
                         on_change=secretary.collect_object_info, 
                         args=(reg_selection,), label_visibility="collapsed")
             # Option type 
@@ -195,8 +206,8 @@ def register_object(component_key: str, sub_keys: list,
             event_length, old_event_data = [None]*2
             current_database = st.session_state["current_database"]
             if st.session_state["reg_name"] is not None: 
-                reg_name = st.session_state["reg_name"]
-                object_in_library = reg_name.title() in current_database
+                reg_name = st.session_state["reg_name"].title()
+                object_in_library = reg_name in current_database
                 if reg_name.title() in current_database:
                     event_length = len(current_database[reg_name][event_ref])
                     old_event_data = current_database[reg_name][event_ref]
@@ -243,38 +254,25 @@ def register_object(component_key: str, sub_keys: list,
             st.selectbox(
                 f"{source_ref}", options=preset_options["options_source"], 
                 index=0, key="reg_source", help=source_help_text,
-                on_change=_update_progress, 
-                args=(
-                    attempts, st.session_state["reg_object_type"]), 
+                on_change=_update_source_progress, 
+                args=(st.session_state["reg_object_type"],), 
                 label_visibility="visible")
             # State selector
-            source = _translate_source(
-                st.session_state["reg_object_type"], st.session_state["reg_source"],
-                main_ref, secondary_ref)
-            options_state = data_options["state_alternatives"]
-            single_state = False
-            if st.session_state["reg_source"] in [common_ref, gift_ref]: 
-                single_state = True
+            # - controlled by source selection
             st.selectbox(
-                "Success", options_state, index=0, key="reg_state", 
-                placeholder="Outcome", disabled=single_state, 
+                "Outcome", options=preset_options["options_states"], index=0, key="reg_state", 
+                placeholder="Outcome", disabled=st.session_state["state_disabled"], 
                 label_visibility="collapsed")
 
             # Attempt/progress input 
             # - limit from progress data limits
             # - suggested value from progress tracker
-            if not source or source == gift_ref or source == TERMS["temp"]:
-                limit = 0
-                st.number_input(
-                    f"{attempt_ref}", min_value=0, max_value=limit, 
-                    key="reg_attempt", disabled=True)
-            elif not source == gift_ref:  
-                limit = attempts[source]["limit"]
-                st.number_input(
-                    f"{attempt_ref}", min_value=0, 
-                    max_value=limit, key="reg_attempt")
+            # - controlled by source selection
+            st.number_input(
+                f"{attempt_ref}", min_value=0, max_value=st.session_state["selection_limit"], key="reg_attempt", 
+                disabled=st.session_state["limit_disabled"])
 
-            # Change options
+            # Project configuration - change options
             with st.container(height="stretch", vertical_alignment="bottom"):
                 st.button(
                     "Edit options", key="edit_options", 
@@ -348,7 +346,7 @@ def _date_viewer(data_options: dict,
             key="reg_date", disabled=not_ready, label_visibility="visible")    
 
 
-def _update_progress(attempts: dict, data_type: str):
+def _update_source_progress(data_type: str):
     """
     Adjust progress/attempt field
 
@@ -362,51 +360,23 @@ def _update_progress(attempts: dict, data_type: str):
         data_type (str):
             identifier for object data type
     """
-    source = _translate_source(
-        data_type, 
-        st.session_state["reg_source"], 
-        main_ref, secondary_ref)
-    if not source == gift_ref: 
-        st.session_state["reg_attempt"] = attempts[source][attempt_ref]
+    reg_source = st.session_state["reg_source"]
+    data_type = st.session_state["reg_object_type"]
+    if reg_source and data_type: 
+        if hold.load_options()["source_limit"][reg_source]:
+            st.session_state["limit_disabled"] = False
+            st.session_state["selection_limit"] = hold.load_options()["source_limit"][reg_source]
+            st.session_state["reg_attempt"] = hold.load_progress_data()[reg_source][TERMS["attempt"]]
+        else:
+            st.session_state["limit_disabled"] = True
+            st.session_state["selection_limit"] = 0
+            st.session_state["reg_attempt"] = 0
+        st.session_state["state_disabled"] = hold.load_options()["states"][reg_source] is False
     else:
-        st.session_state["reg_attempt"] = None
-
-
-# Convert source name to collect correct attempt data
-def _translate_source(data_type: str, source: str, 
-                      main_ref: str, secondary_ref: str) -> str:
-    """
-    Convert source name for correct reference and setting
-
-    Actions:
-    - converts "temp" type source to progress database key for 
-    main temp or secondary temp
-    - "common" type source sets source state None
-
-    Args:
-        data_type (str):
-            identifier for object type
-        source (str):
-            selected source
-        main_ref (str):
-            reference to main object
-        secondary_ref (str):
-            reference to secondary object
-    
-    Returns:
-        source (str):
-            reference to relevant source for progress data
-    """
-    if source == TERMS["temp"] and data_type:
-        if data_type == main_ref:
-            source = f"{main_ref} {source}"  
-        else: 
-            f"{secondary_ref} {source}"
-    elif source == common_ref and data_type:
-        st.session_state["reg_state"] = None
-    elif not data_type:
-        source = None
-    return source
+        st.session_state["selection_limit"] = 0
+        st.session_state["limit_disabled"] = True
+        st.session_state["reg_attempt"] = 0
+        st.session_state["state_disabled"] = True
 
 
 def _data_validation(preset_keys: list, reg_selection: str, 
@@ -429,7 +399,7 @@ def _data_validation(preset_keys: list, reg_selection: str,
             is_secondary (bool)
     """
     # Adjust validity check and "save"-button message for clarity
-    # 1. Collect state translated_values
+    # Collect state translated_values
     for x in preset_keys:
         st.session_state["translated_values"][x] = st.session_state[x]
     if type(st.session_state["reg_date"]) is str:
