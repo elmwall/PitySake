@@ -24,7 +24,6 @@ SETTINGS = st.session_state["SETTINGS"]
 TERMS = st.session_state["TERMS"]
 DIAGNOSTICS = False
 logger = logging.getLogger(__name__)
-# arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
 
 class Secretary:

@@ -67,12 +67,15 @@ def small_stats(component_key: str, sub_keys: list,
                     with st.container():
                         col_l, col_r = st.columns(2)
                         reverse = hold.load_options()["user_indicators"]["reverse_positive"]
+                        compare_to_median = int(last - att_median)
+                        sign = "+" if compare_to_median > 0 else "-"
                         delta_color = "inverse" if reverse else "normal"
+                        last_help = f"For {main_ref.lower()}s. {sign} {compare_to_median} compared to median"
                         col_l.metric(
                             f"Last {event_ref.lower()}", 
-                            value=last, help=f"For {main_ref.lower()}s", 
-                            delta=f"{last - att_median}", delta_color=delta_color, 
-                            border=False, width="stretch", delta_description="vs med")
+                            value=last, help=last_help, 
+                            delta=f"{compare_to_median}", delta_color=delta_color, 
+                            border=False, width="stretch")
                         median_help_text = f"""From {main_ref.lower()} {event_ref.lower()}s. 
                             Median: mid-value, half above/half below."""
                         col_r.metric(

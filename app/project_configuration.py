@@ -80,7 +80,7 @@ def edit_options(attempts: dict, options: dict):
     col_main, col_p = st.columns([1, 0.01])
     col_1, col_2, col_3, col_4, col_5 = st.columns([2, 3, 3, 3, 2])
     with col_main:
-        with st.container(border=False, height=330):
+        with st.container(border=False, height=380):
             # User selection and configuration:
             # - collect databases and define references for editing
             # - set up session state environment and editable options for selection
@@ -185,6 +185,8 @@ def edit_options(attempts: dict, options: dict):
                                 name=st.session_state["new_option"], number=new_limit)
                             if msg: st.markdown(f":red[{msg}]")
                         
+                        st.markdown("***Note:** pages and rows for calculation can be defined in 'Calculate' feature.*")
+                        
                         # Confirm input
                         if col_2.button("Confirm", disabled=not_valid, width="stretch"):
                             # Ajust format and add to editing database
@@ -196,7 +198,11 @@ def edit_options(attempts: dict, options: dict):
                             if progress_is_selected:
                                 st.session_state["changed_progress"][new_option] = {
                                     f"{TERMS["attempt"]}": 0,
-                                    f"{TERMS["state"]}": new_state}
+                                    f"{TERMS["state"]}": new_state,
+                                    "sets": {
+                                        "pages": 200,
+                                        "rows": 5
+                                    }}
                             st.session_state["edited_options"].append(selection)
                             st.session_state["edit_options_complete"] = True
 
@@ -291,10 +297,11 @@ def edit_options(attempts: dict, options: dict):
     # Indication for user that changes are registered
     for x in st.session_state["edited_options"]:
         edited_str += f"{x} "
+    st.space()
     if len(edited_str) > 0: 
-        st.markdown(f"Changes made in: {edited_str}")
+        st.markdown(f"*Changes made in: {edited_str}*")
     else:
-        st.markdown("No changes")
+        st.markdown("*No changes registered*")
 
 
 def _initiate_option_edit(TERMS):

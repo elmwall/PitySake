@@ -15,7 +15,6 @@ import time
 
 import streamlit as st
 
-from .file_manager import Archivist
 import app.data_access as hold
 
 
@@ -146,7 +145,7 @@ def style(feature_keys, keylist_prog_calc):
                 background-color: COLOR_REF; 
                 margin: 0rem 0rem; 
                 padding: 0.1rem 0rem 0.1rem 0.2rem; 
-                border-radius: 30px;
+                border-radius: 50px;
             } 
         </style>""".replace("COLOR_REF", active_theme_settings["small_widget"])
     

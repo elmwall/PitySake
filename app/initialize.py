@@ -42,6 +42,8 @@ INIT_STATE = {
     "prev_row": 2,
     "message": "",
     "calculation": None,
+    "rows": 5,
+    # "page_range": range(10+1),
     # Database
     "current_database": "state_import",
     # Object info manager - main
