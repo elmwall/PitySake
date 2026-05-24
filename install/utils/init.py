@@ -18,6 +18,10 @@ INIT = {
     "origin": None,
     "project_need_save": "secondary",
     "project_is_changed": False,
+    "event_need_save": "secondary",
+    "event_is_changed": False,
+    "limits_need_save": "secondary",
+    "limits_is_changed": False,
     # Labels
     "label_1_number": 1,
     "label_2_number": 1,

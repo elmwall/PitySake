@@ -3,16 +3,18 @@ import json
 
 import streamlit as st
 
-from src.a_define_project import run_define_project
-from src.b_define_labels import run_define_labels
-from src.c_define_event_terms import run_define_event_terms
-from src.d_define_limits import run_define_event_limits
+from src.a_define_project import define_project
+from src.b_define_labels import define_labels
+from src.c_define_event_terms import define_event_terms
+from src.d_define_limits import define_event_limits
 import utils.init as init
 import utils.tools as tools
 from config import SET_WIDTH, SET_HEIGHT
 # import form
 
 
+with open("config_template.json", "r", encoding="utf-8") as f:
+    settings = json.load(f)
 # col_main, col_dev = st.columns([8, 2])
 
 
@@ -24,8 +26,10 @@ def welcome(set_width, set_height):
         tools.navigate(col_prev, col_next, page=1)
         # col_title.title("Welcome to *PitySake*")
 
+        st.markdown("PitySake is a tool for tracking events or progress tied to a set of subjects.")
+
         st.markdown("""
-        here's somme info
+        Here you can setup a new project or collection and adapt terms, categories and values for your own needs.
         """)
         st.write("test")
 
@@ -51,13 +55,13 @@ if st.session_state["initialized"]:
             # pass
             welcome(SET_WIDTH, SET_HEIGHT)
         elif st.session_state["page"] == 1:
-            run_define_project(SET_WIDTH, SET_HEIGHT)
+            define_project(SET_WIDTH, SET_HEIGHT)
         elif st.session_state["page"] == 2:
-            run_define_labels(SET_WIDTH, SET_HEIGHT)
+            define_labels(SET_WIDTH, SET_HEIGHT)
         elif st.session_state["page"] == 3:
-            run_define_event_terms(SET_WIDTH, SET_HEIGHT)
+            define_event_terms(SET_WIDTH, SET_HEIGHT)
         elif st.session_state["page"] == 4:
-            run_define_event_limits(SET_WIDTH, SET_HEIGHT)
+            define_event_limits(SET_WIDTH, SET_HEIGHT)
     # with col_page_left:
         # pass
     tools.dev_tools()
