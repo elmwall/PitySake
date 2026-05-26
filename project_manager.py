@@ -7,6 +7,7 @@ from src.a_define_project import define_project
 from src.b_define_labels import define_labels
 from src.c_define_event_terms import define_event_terms
 from src.d_define_limits import define_event_limits
+from src.e_finalize import finalize
 import utils.init as init
 import utils.tools as tools
 from config import SET_WIDTH, SET_HEIGHT
@@ -20,18 +21,19 @@ with open("config_template.json", "r", encoding="utf-8") as f:
 
 def welcome(set_width, set_height):
     with st.container(border=False, key="guide", width=set_width, height=set_height, horizontal_alignment="center"):
+        st.progress(1, width="stretch")
         col_prev, col_space, col_title, col_apply, col_next = st.columns([2, 2, 5, 2, 2])
         col_title.markdown("#### Welcome to *PitySake*", text_alignment="center")
-
-        tools.navigate(col_prev, col_next, page=1)
+        tools.navigate(col_prev, col_next)
         # col_title.title("Welcome to *PitySake*")
 
-        st.markdown("PitySake is a tool for tracking events or progress tied to a set of subjects.")
+        col_1, col_2, col_3 = st.columns([1, 1, 1])
+        col_2.markdown("PitySake is a tool for tracking events or progress tied to a set of subjects.")
 
-        st.markdown("""
+        col_2.markdown("""
         Here you can setup a new project or collection and adapt terms, categories and values for your own needs.
         """)
-        st.write("test")
+        col_2.write("test")
 
         # return 
 
@@ -62,6 +64,8 @@ if st.session_state["initialized"]:
             define_event_terms(SET_WIDTH, SET_HEIGHT)
         elif st.session_state["page"] == 4:
             define_event_limits(SET_WIDTH, SET_HEIGHT)
+        elif st.session_state["page"] == 5:
+            finalize(SET_WIDTH, SET_HEIGHT)
     # with col_page_left:
         # pass
     tools.dev_tools()

@@ -5,16 +5,25 @@ from config import PAGES
 
 
 
-def navigate(col_prev=None, col_next=None, page=0):
+def navigate(col_prev=None, col_next=None):
     if not col_prev and not col_next:
         col_prev, col_next = st.columns(2)
     prev_disabled = not st.session_state["page"] > 0
-    if col_prev.button("Previous", key=f"prev_{page}", disabled=prev_disabled, width="stretch"):
+    if col_prev.button("Previous", key=f"prev_page", disabled=prev_disabled, width="stretch"):
         st.session_state["page"] -= 1
         st.rerun()
 
-    next_disabled = not st.session_state["page"] < PAGES
-    if col_next.button("Next", key=f"nex_{page}", disabled=next_disabled, width="stretch"):
+    page_incomplete = st.session_state["page_incomplete"]
+    no_next = st.session_state["page"] == PAGES
+    print(st.session_state["page"])
+    if st.session_state["page"] == 0:
+        next_disabled = False
+    elif page_incomplete or no_next:
+        next_disabled = True
+    else:
+        next_disabled = False
+
+    if col_next.button("Next", key=f"nex_page", disabled=next_disabled, width="stretch"):
         st.session_state["page"] += 1
         st.rerun()
 
@@ -37,11 +46,20 @@ def apply(key, need_save, is_changed, submission_key, submission):
     )
 
 
+
 def submit(save_hightlight, save_disable, submission_key, submission):
     st.session_state[save_hightlight] = "secondary"
     st.session_state[save_disable] = True
     st.session_state["submitted"][submission_key] = submission
+    st.session_state["page_incomplete"] = False
 
+def register(key):
+    st.button(
+        "Register", 
+        key=key, 
+        type="primary", 
+        width="stretch"
+    )
 
 def dev_tools():
     
