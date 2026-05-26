@@ -13,13 +13,13 @@ def define_labels(set_width, set_heigth):
         st.progress(40, width="stretch")
         col_prev, col_space, col_title, col_apply, col_next = st.columns(
             [2, 2, 5, 2, 2])
-        tools.navigate(col_prev, col_next, page=2)
+        tools.navigate(col_prev, col_next)
         col_title.markdown(
             "#### Object labels", text_alignment="center")
         st.space()
 
         # Form
-        submission_key = "project_details"
+        submission_key = "label_details"
         label_need_save = "label_need_save"
         label_is_changed = "label_is_changed"
         with st.container(horizontal_alignment="center"):
@@ -70,7 +70,11 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
         Optimal number: 1-12     
     """)
     
-    label_keys = list()
+    submission = {
+        "utility": [],
+        "attribute": [],
+        "origin": []
+    }
     with col_2.container(border=True):
         st.markdown("##### 1. Main/secondary label", text_alignment="center")
         label1_count = st.number_input(
@@ -79,18 +83,21 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
             key="label_1_number"
         )
         key = "label_utility"
+        utility_keys = list()
         for x in range(label1_count):
             key_txt = f"{key}_{x + 1}"
-            label_keys.append(key_txt)
+            utility_keys.append(key_txt)
             st.text_input(
                 "Utility", 
                 key=key_txt, 
+                help="", 
                 on_change=tools.need_update, 
                 args=(label_need_save, label_is_changed), 
-                help="", 
                 placeholder="Label name", 
                 label_visibility="collapsed"
             )
+        for x in utility_keys:
+            submission["utility"].append(st.session_state[x])
 
     with col_3.container(border=True):
         st.markdown("##### 2. Main label", text_alignment="center")
@@ -100,18 +107,21 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
             key="label_2_number"
         )
         key = "label_attribute"
+        attribute_keys = list()
         for x in range(label2_count):
             key_txt = f"{key}_{x + 1}"
-            label_keys.append(key_txt)
+            attribute_keys.append(key_txt)
             st.text_input(
                 "Attribute", 
                 key=key_txt, 
+                help="", 
                 on_change=tools.need_update, 
                 args=(label_need_save, label_is_changed), 
-                help="", 
                 placeholder="Label name", 
                 label_visibility="collapsed"
             )
+        for x in attribute_keys:
+            submission["attribute"].append(st.session_state[x])
 
     with col_4.container(border=True):
         st.markdown("##### 3. Main label", text_alignment="center")
@@ -121,22 +131,21 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
             key="label_3_number"
         )
         key = "label_origin"
+        origin_keys = list()
         for x in range(label3_count):
             key_txt = f"{key}_{x + 1}"
-            label_keys.append(key_txt)
+            origin_keys.append(key_txt)
             st.text_input(
                 "Origin", 
                 key=key_txt, 
+                help="", 
                 on_change=tools.need_update, 
                 args=(label_need_save, label_is_changed), 
-                help="", 
                 placeholder="Label name", 
                 label_visibility="collapsed"
             )
-
-    submission = {submission_key: {}}
-    for x in label_keys:
-        submission[submission_key][x] = st.session_state[x]
-
+        for x in origin_keys:
+            submission["origin"].append(st.session_state[x])
+    
     return submission
 

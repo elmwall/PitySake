@@ -1,3 +1,2 @@
 @echo off
-streamlit run main.py
-pause
+streamlit run user_project.py

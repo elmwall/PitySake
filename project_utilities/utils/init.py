@@ -7,6 +7,7 @@ INIT = {
     "initialized": False,
     # Page
     "page": 0,
+    "page_incomplete": True,
     # Form
     "submitted": dict(),
     # Names
@@ -20,8 +21,8 @@ INIT = {
     "project_is_changed": False,
     "event_need_save": "secondary",
     "event_is_changed": False,
-    "limits_need_save": "secondary",
-    "limits_is_changed": False,
+    "progress_need_save": "secondary",
+    "progress_is_changed": False,
     # Labels
     "label_1_number": 1,
     "label_2_number": 1,
@@ -33,7 +34,7 @@ INIT = {
     "label_attribute": None,
     "label_origin": None,
     "label_need_save": "secondary",
-    "label_is_changed": False,
+    "label_is_changed": False
 }
 
 def initialize():

@@ -12,7 +12,7 @@ def define_project(set_width, set_heigth):
         st.progress(20, width="stretch")
         col_prev, col_space, col_title, col_apply, col_next = st.columns(
             [2, 2, 5, 2, 2])
-        tools.navigate(col_prev, col_next, page=1)
+        tools.navigate(col_prev, col_next)
         col_title.markdown(
             "#### Naming your project and collections", 
             text_alignment="center")
@@ -59,12 +59,12 @@ def _name_project(project_need_save, project_is_changed, submission_key):
     # Instructions
     col_1.markdown("""You need to name your project and the overall name of your collections/subjects with one major and one minor type (you will see one history table for each).""")
     col_1.markdown("""
-        - **Title** displayed name and project folder name
+        - **Title:** displayed name and project folder name
         - **Main objects:** timeline and more detailed analysis
         - **Secondary objects:** less analysis, no timeline
     """)
     col_1.markdown("""
-        - **Labels:** Can be used for sorting and searchability in data tables. 
+        - **Labels:** Can be used for sorting and searchability in event history tables. 
     """)
 
     with col_2.container(border=True, height="stretch"):
@@ -79,16 +79,16 @@ def _name_project(project_need_save, project_is_changed, submission_key):
         )
 
         help_primary = """
-            Names object in view and database.  
-
-            Main objects have more options for labels  
-            and more in-depth view and data analysis.
+            Actual objects for each suggestion could e.g. be:  
+            - (learning: course) Python Fundamentals
+            - (reading: book) The Two Towers
+            - (collection: figure) Obsidian figurine
+            - (activity: workout) 5K Running Plan
         """
         help_secondary = """
-            Names object in view and database.  
-
-            Use for less complex and non-priority  
-            objects which you still want to record.
+            Use for less complex or non-priority  
+            objects which you still want to record,  
+            or things you want tracked separately.
         """
         st.text_input(
             "Main object", 
@@ -96,7 +96,7 @@ def _name_project(project_need_save, project_is_changed, submission_key):
             on_change=tools.need_update, 
             args=(project_need_save, project_is_changed), 
             help=help_primary, 
-            placeholder="Course / Book /  Figure / Workout"
+            placeholder="Course / Book / Workout / Collectible"
         )
         st.text_input(
             "Secondary object", 
@@ -104,7 +104,7 @@ def _name_project(project_need_save, project_is_changed, submission_key):
             on_change=tools.need_update, 
             args=(project_need_save, project_is_changed), 
             help=help_secondary,
-            placeholder="Workshop / Article / Accessory / Walk"
+            placeholder="Tutorial / Article / Walk / Accessory"
         )
 
     with col_3.container(border=True, height="stretch"):
@@ -115,32 +115,30 @@ def _name_project(project_need_save, project_is_changed, submission_key):
             on_change=tools.need_update, 
             args=(project_need_save, project_is_changed), 
             help="Use a broad label which can apply to both object types",
-            placeholder="Topic / Genre / Series / Effort"
+            placeholder="Topic / Genre / Effort / Series"
         )
         st.text_input(
             "2. Label for main object", 
             key="attribute", 
             on_change=tools.need_update, 
             args=(project_need_save, project_is_changed), 
-            placeholder="Platform / Author / Manufacturer / Type"
+            placeholder="Platform / Author / Type / Manufacturer"
         )
         st.text_input(
             "3. Label for main object", 
             key="origin", 
             on_change=tools.need_update, 
             args=(project_need_save, project_is_changed), 
-            placeholder="Examination / Format / Scale / Muscle group"
+            placeholder="Examination / Format / Muscle group / Scale"
         )
 
     return {
-        submission_key: {
-            "ui_title": st.session_state["ui_title"],
-            "main": st.session_state["main"],
-            "secondary": st.session_state["secondary"],
-            "utility": st.session_state["utility"],
-            "attribute": st.session_state["attribute"],
-            "origin": st.session_state["origin"]
-        }
+        "ui_title": st.session_state["ui_title"],
+        "main": st.session_state["main"],
+        "secondary": st.session_state["secondary"],
+        "utility": st.session_state["utility"],
+        "attribute": st.session_state["attribute"],
+        "origin": st.session_state["origin"]
     }
 
     
