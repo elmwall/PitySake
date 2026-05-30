@@ -1,6 +1,6 @@
 import streamlit as st
 
-import utils.tools as tools
+from utils import tools
 
 
 # Step 1: name project title, objects and label categories
@@ -131,6 +131,15 @@ def _name_project(project_need_save, project_is_changed, submission_key):
             args=(project_need_save, project_is_changed), 
             placeholder="Examination / Format / Muscle group / Scale"
         )
+
+    st.session_state["checklists"]["project_save"] = [
+        st.session_state["ui_title"],
+        st.session_state["main"],
+        st.session_state["secondary"],
+        st.session_state["utility"],
+        st.session_state["attribute"],
+        st.session_state["origin"],
+    ]
 
     return {
         "ui_title": st.session_state["ui_title"],

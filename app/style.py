@@ -79,8 +79,8 @@ def settings():
         </style>""")
 
     feature_keys = [
-        "reg_object", "progress", "calc", "smallstat", "main_object_data", 
-        "secondary_object_data", "timeline", "settings", "error_field"]
+        "reg_object", "progress", "calc", "smallstat", "main_data", 
+        "secondary_data", "timeline", "settings", "error_field"]
     progress_calc_keys = ["tool", "attribute", "origin"]
 
     return feature_keys, progress_calc_keys
@@ -296,7 +296,7 @@ font = 'sans serif'
             except Exception as e:
                 logger.exception(f"Error from {e} occurred while attempting to write to config.toml")
             logger.info(f"Update called for ui_themes.json")
-            if arciv.writer(themes, other_file="ui_themes.json", join_path="settings"):
+            if arciv.writer(themes, set_file="ui_themes.json", join_path="settings"):
                 logger.info("Theme updated")
             st.rerun()
 

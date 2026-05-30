@@ -64,7 +64,7 @@ class Archivist:
             BACKUP: {self.backup_directory}""")
 
 
-    def reader(self, other_file :str = None, join_path: str | None = None, 
+    def reader(self, set_file :str = None, join_path: str | None = None, 
                is_json: bool = True, allow_missing: bool = False, 
                allow_empty: bool = False) -> dict | bool | None:
         """
@@ -73,7 +73,7 @@ class Archivist:
         - manages deviation depending on requirements
 
         Args:
-            other_file (str):
+            set_file (str):
                 path/filename for non-self.file reading.
             join_path (str):
                 file directory for filenames without full path
@@ -82,27 +82,12 @@ class Archivist:
             file content (dict | None):
                 typically json-derived dict
         """
-
-        read_file = self.file if not other_file else other_file
-
-        if join_path == "data":
-            read_file = os.path.join(self.data_directory, read_file)
-        elif join_path == "settings":
-            read_file = os.path.join(self.settings_directory, read_file)
-        elif join_path:
-            logger.info(f"Invalid value of path indicator 'join_path' for {read_file}.")
-            st.session_state["error"] = {
-                "message": "Invalid file path for datafile.",
-                "stage": "Archivist: Reading",
-                "name": None,
-                "file": read_file,
-                "info_list": [f"set path: {join_path}",]
-            }
+        read_file, path_is_resolved = self._resolve_path(
+            join_path, set_file, stage="Reading")
+        if not path_is_resolved:
             return False
         logger.info(f"""file_manager.Archivist.reader request: 
-            FILE: {self.file}, 
-            OTHERFILE: {other_file}, 
-            JOIN_PATH: {join_path}, 
+            FILE: {self.file}, SET_FILE: {set_file}, JOIN_PATH: {join_path}, 
             FULL_PATH: {read_file}""")
         
         if is_json:
@@ -116,13 +101,8 @@ class Archivist:
                     return None
                 else:
                     logger.exception(f"Failed to read file {read_file}.")
-                    st.session_state["error"] = {
-                        "message": "Failed to read file.",
-                        "stage": "Archivist: Reading",
-                        "name": None,
-                        "file": read_file,
-                        "info_list": None
-                    }
+                    error.message("Failed to read file.", "Archivist: Reading", 
+                                  name=None, file=read_file, details=None)
                     return False
             except json.JSONDecodeError:
                 if allow_empty:
@@ -130,23 +110,13 @@ class Archivist:
                     return None
                 else:
                     logger.exception(f"File {read_file} could not be decoded as JSON.")
-                    st.session_state["error"] = {
-                        "message": "File content not be interpreted.",
-                        "stage": "Archivist: Reading",
-                        "name": None,
-                        "file": read_file,
-                        "info_list": None
-                    }
+                    error.message("File content not be interpreted.", "Archivist: Reading", 
+                                  name=None, file=read_file, details=None)
                     return False
             except Exception:
                 logger.exception(f"Archivist.reader failed to read json: {read_file}.")
-                st.session_state["error"] = {
-                    "message": "Failed to read file.",
-                    "stage": "Archivist: Reading",
-                    "name": None,
-                    "file": read_file,
-                    "info_list": None
-                }
+                error.message("Failed to read file.", f"Archivist: Reading", 
+                              name=None, file=read_file, details=None)
                 return False
         else:
             try:
@@ -156,28 +126,18 @@ class Archivist:
             except FileNotFoundError:
                 if allow_missing:
                     logger.exception(f"No file to read: {read_file}. Exception allowed.")
-                    st.session_state["error"] = {
-                        "message": "No file to read.",
-                        "stage": "Archivist: Reading",
-                        "name": None,
-                        "file": read_file,
-                        "info_list": None
-                    }
+                    error.message("No file to read.", f"Archivist: Reading", 
+                                  name=None, file=read_file, details=None)
                     return None
             except Exception:
                 logger.exception(f"Failed to read file {read_file}.")
-                st.session_state["error"] = {
-                    "message": "Failed to read file.",
-                    "stage": "Archivist: Reading",
-                    "name": None,
-                    "file": read_file,
-                    "info_list": None
-                }
+                error.message("Failed to read file.", f"Archivist: Reading", 
+                                name=None, file=read_file, details=None)
                 return False
 
 
     def backup(self, backup_frequency: list[int], 
-               object_type: str, other_file: str | None = None) -> bool:
+               object_type: str, set_file: str | None = None) -> bool:
         """
         Automated backup in multiple files.
         - performes backup at listed intervals
@@ -188,7 +148,7 @@ class Archivist:
             backup_frequency (list):
                 any number of save intervals between backups, 
                 in order [seldom, mid, often]
-            other_file (str):
+            set_file (str):
                 path/filename for non-self.file backup
 
         Returns:
@@ -197,10 +157,10 @@ class Archivist:
         """
 
         # confirm_backup = False
-        if not other_file:
+        if not set_file:
             file = self.file 
         else:
-            file = os.path.join(self.data_directory, other_file)
+            file = os.path.join(self.data_directory, set_file)
             
         # Diagnostic values - uncomment to redirect backup and file
         if self.diagnostics: file = os.path.join(self.data_directory, "nofile.json")
@@ -234,13 +194,10 @@ class Archivist:
                 data = "postpone"
         if backup_file:
             logger.info(f"""file_manager.Archivist.reader request: 
-                FILE: {self.file}, 
-                OTHERFILE: {other_file}, 
-                DATATYPE: {object_type}, 
-                BACKUP_PATH: {backup_file},
-                EDIT_COUNT: {file_edit_count} mod {value}""")
+                FILE: {self.file}, SET_FILE: {set_file}, DATATYPE: {object_type}, 
+                BACKUP_PATH: {backup_file}, EDIT_COUNT: {file_edit_count} mod {value}""")
         edit_meta[file] = file_edit_count + 1
-        self.writer(edit_meta, other_file=meta_file)
+        self.writer(edit_meta, set_file=meta_file)
 
         if self.diagnostics: 
             backup_file = os.path.join(self.backup_directory, "backuptest_nofile.json")
@@ -259,10 +216,8 @@ class Archivist:
         if backup_file and os.path.exists(backup_file):
             backup_length = len(self.reader(backup_file))
             logger.info(f"""Backup control: 
-                        datafile length: {file_length}
-                        datafile location: {file}, 
-                        backup length: {backup_length}
-                        backup location: {backup_file}""")
+                        datafile length: {file_length}, datafile location: {file}, 
+                        backup length: {backup_length}, backup location: {backup_file}""")
         else:
             backup_length = 0
 
@@ -287,7 +242,7 @@ class Archivist:
 
     def join_data(self, new_data: dict, name: str, 
                   for_deletion: bool, for_editing: bool, 
-                  other_file: str | None = None, join_path: str | None = None, 
+                  set_file: str | None = None, join_path: str | None = None, 
                   need_sorting: bool = True, is_static: bool = False):
         """
         Update library with new or edited data.
@@ -303,7 +258,7 @@ class Archivist:
                 validation controller -> datalength should shrink
             for_editing (bool):
                 validation controller -> datalength should remain
-            other_file (str | None):
+            set_file (str | None):
                 path/filename for non-self.file to join
             join_path (str | None):
                 path for datafile if lacking in name
@@ -318,34 +273,16 @@ class Archivist:
             action_verification (str):
                 message phrase for action performed
         """
-
-
-        read_file = self.file if not other_file else other_file
-
-        if join_path == "data":
-            read_file = os.path.join(self.data_directory, read_file)
-            logger.info(f"Running file_manager.Archivist.join_data for {read_file}")
-        elif join_path == "settings":
-            read_file = os.path.join(self.settings_directory, read_file)
-            logger.info(f"Running file_manager.Archivist.join_data for {read_file}")
-        elif join_path is not None:
-            logger.warning(f"""Invalid value of path indicator 
-                           'join_path' for {read_file}.""")
-            st.session_state["error"] = {
-                "message": "Invalid file path for datafile.",
-                "stage": "Archivist: Joining data",
-                "name": None,
-                "file": read_file,
-                "info_list": [f"set path: {join_path}",]
-            }
+        read_file, path_is_resolved = self._resolve_path(
+            join_path, set_file, stage="Joining")
+        if not path_is_resolved:
             return False
         logger.info(f"""file_manager.Archivist.join_data request: 
-            FILE: {read_file}, 
-            ADDITION: {name}, 
+            FILE: {read_file}, ADDITION: {name}, 
             SETTING: for deletion {for_deletion}, editing-only {for_editing}, 
                      static {is_static}           sorting {need_sorting}""")
 
-        data = self.reader(read_file)
+        data = self.reader(set_file=read_file)
         if type(data) is dict: 
             original_length = len(data) 
         else: 
@@ -362,13 +299,8 @@ class Archivist:
             except:
                 logger.exception(f"""Replacing '{name}' in {read_file} 
                                  could not be performed.""")
-                st.session_state["error"] = {
-                    "message": "Update could not be performed.",
-                    "stage": "Archivist: Joining data",
-                    "name": name,
-                    "file": read_file,
-                    "info_list": None
-                }
+                error.message(f"Updating {name} could not be performed.", 
+                              "Archivist: Joining", name=name, file=read_file, details=None)
 
         if for_deletion:
             try:
@@ -378,34 +310,20 @@ class Archivist:
             except KeyError:
                 logger.exception(f"""Key '{name}' not removed, 
                                  already absent from {read_file}.""")
-                st.session_state["error"] = {
-                    "message": "Entry could not be removed, is already absent.",
-                    "stage": "Archivist: Joining data",
-                    "name": name,
-                    "file": read_file,
-                    "info_list": None
-                }
+                error.message(f"{name} could not be removed, is already absent.", 
+                              "Archivist: Joining", name=name, file=read_file, details=None)
                 return False
             except TypeError:
-                st.session_state["error"] = {
-                    "message": "Unable to remove.",
-                    "stage": "Archivist: Joining data",
-                    "name": name,
-                    "file": read_file,
-                    "info_list": None
-                }
+                error.message(
+                    f"Unable to remove {name}.", "Archivist: Joining", 
+                    name=name, file=read_file, details=None)
                 return False
             
             if len(data) != original_length-1 and not for_editing: 
                 logger.exception(f"""Expected a data length decrease 
                                  after removing {name}.""")
-                st.session_state["error"] = {
-                    "message": "Expected a data length decrease not detected.",
-                    "stage": "Archivist: Joining data",
-                    "name": name,
-                    "file": read_file,
-                    "info_list": None
-                }
+                error.message(f"Expected a data length decrease in {read_file} not detected.", 
+                              "Archivist: Joining", name=name, file=read_file, details=None)
                 return False
             
             if not for_editing:
@@ -423,48 +341,28 @@ class Archivist:
         # without a deletion registered
         elif len(data) != original_length and is_static and not for_deletion: 
             logger.exception(f"Data length altered unexpectedly. Update aborted.")
-            st.session_state["error"] = {
-                "message": "Unexpected difference in library data length, not saved.",
-                "stage": "Archivist: Joining data",
-                "name": name,
-                "file": read_file,
-                "info_list": None
-            }
+            error.message(f"Unexpected difference in {read_file} data length, not saved.", 
+                          "Archivist: Joining", name=name, file=read_file, details=None)
             return False
         # Case: add data to a growing library
         else:
             try:
                 data.update(new_data)
             except ValueError:
-                st.session_state["error"] = {
-                    "message": "Unable to update.",
-                    "stage": "Archivist: Joining data",
-                    "name": name,
-                    "file": read_file,
-                    "info_list": None
-                }
+                error.message(f"Unable to update file with {name}.", 
+                              "Archivist: Joining", name=name, file=read_file, details=None)
                 return False
             logger.info(f"{name} was added in data for saving in {read_file}")
         if need_sorting: data = dict(sorted(data.items(), key=lambda item:str(item[0])))
 
         # Checking data validity depending on previous action. 
         if name not in data.keys():
-            st.session_state["error"] = {
-                "message": "Failed to add new data.",
-                "stage": "Archivist: Joining data",
-                "name": name,
-                "file": read_file,
-                "info_list": None
-            }
+            error.message("Failed to add new data.", "Archivist: Joining", 
+                          name=name, file=read_file, details=None)
             return False
         elif len(data) != original_length+1 and not is_static:
-            st.session_state["error"] = {
-                "message": "Expected data length increase didn't happen.",
-                "stage": "Archivist: Joining data",
-                "name": name,
-                "file": read_file,
-                "info_list": None
-            }
+            error.message("Expected data length increase didn't happen.", 
+                          "Archivist: Joining", name=name, file=read_file, details=None)
             return False
         else:
             logger.info(f"{name} data joined to {read_file}.")
@@ -472,7 +370,7 @@ class Archivist:
         
 
     def writer(self, data: dict, object_type: str | None = None, 
-               other_file: str | None = None, join_path: str | None = None):
+               set_file: str | None = None, join_path: str | None = None):
         """
         Save file as JSON.
 
@@ -481,7 +379,7 @@ class Archivist:
                 path/filename for non-self.file reading.
             object_type (str):
                 identifier for datatype
-            other_file (str):
+            set_file (str):
                 filename for non-self.file usage
             join_path (str):
                 file directory for filenames without full path
@@ -490,73 +388,48 @@ class Archivist:
             (bool):
                 success verification
         """
-        save_file = self.file if not other_file else other_file
-
-        if join_path == "data":
-            save_file = os.path.join(self.data_directory, other_file)
-            logger.info(f"Running file_manager.Archivist.writer for {save_file}")
-        elif join_path == "settings":
-            save_file = os.path.join(self.settings_directory, other_file)
-            logger.info(f"Running file_manager.Archivist.writer for {save_file}")
-        elif join_path is not None:
-            logger.warning(f"""Invalid value of pathway indicator 
-                           'join_path' for {save_file}.""")
-            st.session_state["error"] = {
-                "message": "Expected data length increase didn't happen.",
-                "stage": "Archivist: Writing",
-                "name": None,
-                "file": save_file,
-                "info_list": None
-            }
+        save_file, path_is_resolved = self._resolve_path(
+            join_path, set_file, stage="Writing")
         try:
             length = len(data)
         except:
             logger.warning(f"Save in {save_file} with invalid format aborted.")
-            st.session_state["error"] = {
-                "message": "Save with invalid format aborted.",
-                "stage": "Archivist: Writing",
-                "name": None,
-                "file": save_file,
-                "info_list": None
-            }
+            error.message("Save with invalid format aborted.", "Archivist.writer", 
+                          name=None, file=save_file, details=None)
 
         try:
             with open(save_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
                 logger.info(f"""file_manager.Archivist.writer wrote: 
-                    FILE: {save_file}, 
-                    DATATYPE: {object_type}, 
-                    DATA_LENGTH: {length}""")
+                    FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
                 return True
         except json.JSONDecodeError:
-            error.dump("Archivist.writer", {
-                "data": data,
-                "object_type": object_type,
-                "self-file": self.file,
-                "other_file": other_file,
-                "join_path": join_path
-            })
+            error.dump(
+                "Archivist.writer", {
+                    "data": data, "object_type": object_type,
+                    "self-file": self.file, "set_file": set_file, "join_path": join_path})
             logger.exception(f"Could not decode data to save in {save_file}.")
-            st.session_state["error"] = {
-                "message": "Could not interpret new data for JSON.",
-                "stage": "Archivist: Writing",
-                "name": None,
-                "file": save_file,
-                "info_list": None
-            }
+            error.message("Could not interpret new data for JSON.", "Archivist.writer", 
+                          name=None, file=save_file, details=None)
             return False
         except Exception as e:
             logger.exception(f"Could not save to {save_file}.")
-            st.session_state["error"] = {
-                "message": "Could not save data.",
-                "stage": "Archivist: Writing",
-                "name": None,
-                "file": save_file,
-                "info_list": None
-            }
+            error.message("Could not save data.", "Archivist.writer", 
+                          name=None, file=save_file, details=None)
             return False
 
 
-
-
-
+    def _resolve_path(self, join_path, set_file, stage):
+        read_file = self.file if not set_file else set_file
+        path_is_resolved = True
+        if join_path == "data":
+            read_file = os.path.join(self.data_directory, read_file)
+        elif join_path == "settings":
+            read_file = os.path.join(self.settings_directory, read_file)
+        elif join_path is not None:
+            path_is_resolved = False
+            logger.info(f"Invalid value of path indicator 'join_path' for {read_file}.")
+            error.message("Invalid file path for datafile.", f"Archivist: {stage}", 
+                          name=None, file=read_file, details=None)
+        
+        return read_file, path_is_resolved

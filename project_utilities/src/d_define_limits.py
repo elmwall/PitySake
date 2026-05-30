@@ -1,7 +1,7 @@
 import json
 import streamlit as st
 
-import utils.tools as tools
+from utils import tools
 
 
 # Step 4: define limits
@@ -118,6 +118,12 @@ m: milli (÷ 1 000)
         positive, negative = st.session_state["low_value"], st.session_state["high_value"]
     else:
         negative, positive = st.session_state["low_value"], st.session_state["high_value"]
+
+    st.session_state["checklists"]["progress_save"] = [
+        st.session_state["general_limit"],
+        st.session_state["high_value"],
+        st.session_state["low_value"]
+    ] + list(source_dict.keys()) + list(source_dict.values())
 
     return  {
         "sources": source_dict,

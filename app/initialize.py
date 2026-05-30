@@ -47,6 +47,7 @@ INIT_STATE = {
     # Database
     "current_database": "state_import",
     # Object info manager - main
+    "add_event_choice": True,
     "dialog_active": False,
     "limit": 0,
     "regset": "add_new",
@@ -79,7 +80,10 @@ INIT_STATE = {
     "leave_theme_open": False,
     "theme_edited": 0,
     # Progress tracker
-    "initiated": False
+    "initiated": False,
+    # Data viewer tables
+    "main_data_select_view": "main_history",
+    "secondary_data_select_view": "secondary_history"
 }
 
 
@@ -142,13 +146,8 @@ def initialize():
                 elif state is not None:
                     st.session_state[key] = state
             except Exception as e:
-                st.session_state["error"] = {
-                    "message": "Could not initialize key.",
-                    "stage": "Initialize, initialize",
-                    "name": "name",
-                    "file": None,
-                    "info_list": None
-                }
+                error.message("Could not initialize key.", "Initialize: initialize", 
+                                name=key, file=None, details=None)
                 logger.warning(f"initialize could not initialize key: {key}")
     
     # Initialize theme setting keys
@@ -215,22 +214,12 @@ def fetch_databases():
             st.rerun()
         else:
             logger.info(f"Failed to read database(s): {database_list}")
-            st.session_state["error"] = {
-                "message": "Failed to read database(s).",
-                "stage": "Initialize, fetch",
-                "name": None,
-                "file": None,
-                "info_list": database_list
-            }
+            error.message("Failed to read database(s).", "Initialize: fetch", 
+                            name=None, file=None, details=database_list)
     except Exception:
         logger.exception(f"Failed to collect database at stage: {database_list[n]}")
-        st.session_state["error"] = {
-            "message": "Failed to collect database.",
-            "stage": "Initialize, fetch",
-            "name": {database_list[n]},
-            "file": None,
-            "info_list": None
-        }
+        error.message("Failed to collect database.", "Initialize: fetch", 
+                        name=database_list[n], file=None, details=None)
 
 
 def refresh():
@@ -245,6 +234,9 @@ def refresh():
     hold.load_main_database.clear(),
     hold.load_secondary_database.clear(),
     hold.load_progress_data.clear()
+    hold.process_collection_db.clear()
+    hold.history_dataframe.clear()
+    hold.overview_dataframe.clear()
 
     for key in st.session_state.keys():
         del st.session_state[key]
@@ -280,5 +272,5 @@ font = 'sans serif'
     if theme_updated:
         meta["project"] = st.session_state["project"]
         meta["theme"] = st.session_state["active_theme"]
-        arciv.writer(meta, other_file="meta.json")
+        arciv.writer(meta, set_file="meta.json")
         logger.info("Theme corrected")

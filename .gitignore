@@ -10,6 +10,7 @@ venv/
 unused/
 .streamlit/
 logs/
+test/
 
 meta.json
 PitySake.lnk

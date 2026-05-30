@@ -1,7 +1,7 @@
 import json
 import streamlit as st
 
-import utils.tools as tools
+from utils import tools
 
 
 # Step 3: name terms for progress, sources and outcome
@@ -118,6 +118,16 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
             placeholder="Hard / Bad / Fail / Low value")
+        
+        
+    st.session_state["checklists"]["event_save"] = [
+        st.session_state["attempt"],
+        st.session_state["event"],
+        st.session_state["sources_name"],
+        st.session_state["state_det"],
+        st.session_state["state_win"],
+        st.session_state["state_loss"],
+    ]
 
     return  {
         "attempt": st.session_state["attempt"],

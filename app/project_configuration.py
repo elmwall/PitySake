@@ -50,7 +50,7 @@ def initialize_constants(project_name: str):
         st.session_state["DIRECTORIES"][key] = os.path.join(project_name, path)
 
     # Collect project-specific settings to check in initialize
-    st.session_state["meta"] = arch.reader(other_file="meta.json")
+    st.session_state["meta"] = arch.reader(set_file="meta.json")
 
 
 @st.dialog("Edit options")
@@ -102,7 +102,6 @@ def edit_options(attempts: dict, options: dict):
                             source_selection = st.session_state["selected_removal"]
                             # Removing source: remove in both options and progress databases
                             # In progress_data: 
-                            print(source_selection, st.session_state["changed_options"]["source_limit"][source_selection])
                             if st.session_state["changed_options"]["source_limit"][source_selection]:
                                 st.session_state["progress_changed"] = True
                                 st.session_state["changed_progress"].pop(source_selection)
@@ -281,16 +280,16 @@ def edit_options(attempts: dict, options: dict):
             logger.info(f"Update called for {DATAPATH["progress"]}")
             arciv.writer(
                 st.session_state["changed_progress"], object_type=TERMS["progress"], 
-                other_file=DATAPATH["progress"], join_path="data")
+                set_file=DATAPATH["progress"], join_path="data")
         error.catch_data(
             st.session_state["changed_options"], 
             SETTINGS["Options"], "options")
         logger.info(f"Update called for {SETTINGS["Options"]}")
         if arciv.backup(
-                [7, 5, 3, 1], "options", other_file=SETTINGS["Options"]): 
+                [7, 5, 3, 1], "options", set_file=SETTINGS["Options"]): 
             arciv.writer(
                 st.session_state["changed_options"], 
-                other_file=SETTINGS["Options"], join_path="settings")
+                set_file=SETTINGS["Options"], join_path="settings")
         st.session_state["processed_edits"] = True
         st.rerun()
 

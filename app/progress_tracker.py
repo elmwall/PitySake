@@ -46,7 +46,8 @@ def progress_meter(component_key: list, sub_keys: list,
     attempts = hold.load_progress_data()
     active_theme = st.session_state["themes"]["active"]
     widget_color = st.session_state["themes"][active_theme]["input_field"]
-    height, html_label, html_add10 = _feature_style(component_key, widget_color)
+    reset_key = f"reset_key"
+    height, html_label, html_add10 = _feature_style(component_key, widget_color, reset_key)
 
     # Feature header
     if st.session_state["header_switch"]:
@@ -61,7 +62,8 @@ def progress_meter(component_key: list, sub_keys: list,
             col_title.markdown(
                 f"##### *{attempt_ref}meter*", 
                 help=feature_help_text, text_alignment="left")
-            
+    else:
+        col_title, col_res = st.columns([23, 2])
     # Main container
     with st.container(
             border=True, key=f"{component_key}_main", 
@@ -155,24 +157,17 @@ def progress_meter(component_key: list, sub_keys: list,
                         st.button(f"Save", key=keys["button"], type="secondary", width="stretch")
         
         # Reset all values
-        reset_key = f"reset_key"
         with col_res:
-            with st.container(border=False):
-                st.markdown("")
-                st.html("""
-                        <style> 
-                            .st-key-KEY_REF button * {color: COLOR_REF} 
-                            .st-key-KEY_REF button {margin: -2rem 0rem;}
-                        </style>"""
-                        .replace("KEY_REF", reset_key)
-                        .replace("COLOR_REF", st.session_state["positive_color"]))
-                st.button(
-                    "Reset", key=reset_key, type="tertiary", 
-                    on_click=_reset, args=(attempts, init_values), width="stretch")
+            # with st.container(border=False):
+            st.markdown("")
+
+            st.button(
+                "Reset", key=reset_key, type="tertiary", 
+                on_click=_reset, args=(attempts, init_values), width="stretch")
         return height
     
     
-def _feature_style(component_key: str, widget_color: str):
+def _feature_style(component_key: str, widget_color: str, reset_key:str):
     "Runs HTML/CSS settings for components"
     height = 282
     st.html("""
@@ -195,6 +190,13 @@ def _feature_style(component_key: str, widget_color: str):
                 padding-left: -0.9rem;
             } 
         </style>""".replace("COLOR_REF", widget_color)
+    st.html("""
+            <style> 
+                .st-key-KEY_REF button * {color: COLOR_REF} 
+                .st-key-KEY_REF button {margin: -2rem 0rem;}
+            </style>"""
+            .replace("KEY_REF", reset_key)
+            .replace("COLOR_REF", st.session_state["positive_color"]))
     return height, html_label, html_add10
 
 
@@ -292,10 +294,10 @@ def _update_progress(attempts: dict, category: str,
     error.catch_data(attempts, file, progress_ref)
     if arciv.backup(
             [101, 47, 19, 7, 3], progress_ref, 
-            other_file=file):
+            set_file=file):
         arciv.writer(
             attempts, object_type=progress_ref, 
-            other_file=file, join_path="data")
+            set_file=file, join_path="data")
         st.session_state["cleared_cache"] = True
         hold.load_progress_data.clear()
         
