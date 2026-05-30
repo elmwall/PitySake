@@ -4,14 +4,57 @@ Tools for data management during errors
 - dialog backup feature for data review and confirm/deny backup
 """
 
+import datetime
 import logging
 import shutil
 import os
+import secrets
 
 import streamlit as st
 
 
 logger = logging.getLogger(__name__)
+
+
+def message(message=None, stage=None, name=None, 
+            file=None, details=None, id=None):
+    
+    id = f"{datetime.datetime.now().strftime("%H%M")}-{secrets.token_hex(2)}"
+    st.session_state["error"] = {
+        "message": message,
+        "stage": f"Archivist: {stage}",
+        "name": name,
+        "file": file,
+        "info_list": details,
+        "ID": id
+    }
+
+
+def notify():
+    """
+    User notification of error.
+    """
+    error = st.session_state["error"]
+    info = str()
+    if error:
+        if error["stage"]: info += f"Stage: {error["stage"]}:  \n"
+        if error["name"]: info += f"Name: {error["name"]}  \n"
+        if error["file"]: info += f"File: {error["file"]}  \n"
+        if error["info_list"]:
+            for x in error["info_list"]:
+                info += f"- {x}  "
+
+        col_1, col_2, col_3, col_4 = st.columns([2, 6, 6, 1.5])
+        with col_1.container(border=True, width="stretch"):
+            st.markdown(
+                f"**:red[Error!] ID: {error["ID"]}**", text_alignment="center")
+        col_2.error(error["message"])
+        with col_3.expander("Details"):
+            st.markdown(info)
+
+        if col_4.button("Ok", width="stretch"): 
+            st.session_state["error"] = False
+            st.rerun()
 
 
 @st.dialog("Automatic backup: data deviation")
@@ -102,7 +145,7 @@ def pending_backup(arciv):
         if st.session_state["updated_library"]:
             arciv.writer(
                 st.session_state["updated_library"], 
-                other_file=data_details["save_file"], 
+                set_file=data_details["save_file"], 
                 join_path=data_details["path"]
             )
             st.session_state["pending_backup"] = False

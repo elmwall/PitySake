@@ -13,6 +13,7 @@ Manages collection and proper storage of databases:
 
 import datetime
 import logging
+import statistics 
 
 import pandas as pd
 import streamlit as st
@@ -53,7 +54,7 @@ def load_progress_data() -> dict:
 def load_options() -> dict:
     "Loads project-unique data options, and caches data"
     options_file = SETTINGS["Options"]
-    return arciv.reader(other_file=options_file, join_path="settings")
+    return arciv.reader(set_file=options_file, join_path="settings")
 
 
 # For best syncronization after editing theme, 
@@ -61,7 +62,7 @@ def load_options() -> dict:
 def load_themes() -> dict:
     "Loads theme settings, and stores in session state"
     options_file = SETTINGS["Themes"]
-    return arciv.reader(other_file=options_file, join_path="settings")
+    return arciv.reader(set_file=options_file, join_path="settings")
 
 
 @st.cache_data
@@ -101,7 +102,8 @@ def process_collection_db(database: dict, datatype: str):
     # Recording main object type collected
     object_count = dict()
     # Data for pandas/st.dataframe
-    rows_for_table = list()
+    rows_for_history = list()
+    rows_for_overview = list()
 
     # For counting object labels - Define dictionary with category keys and data keys 
     if datatype == "main": 
@@ -116,7 +118,10 @@ def process_collection_db(database: dict, datatype: str):
             for category, options in counts.items():
                 object_option = info[category]
                 counts[category][object_option] += 1
-
+        
+        attempt_per_object = list()
+        # add_prefix = False
+        # add_suffix = False
         
         # Collect event data
         for event_id, event_data in info[TERMS["event"]].items(): 
@@ -128,14 +133,30 @@ def process_collection_db(database: dict, datatype: str):
                 if name in object_count:
                     object_count[name] += 1
                 else:
-                    object_count[name] = 0
-                object_collection = f"C{object_count[name]}"
+                    object_count[name] = data_options["value_limits"]["collection_start_count"]
+                # suffix = str()
+                # prefix = str()
+                # if add_suffix:
+                #     for x in f"{object_count[name]}":
+                #         if x in ["0", "4", "5", "6", "7", "8", "9"]:
+                #             suffix = "th"
+                #         elif x == "1":
+                #             suffix = "st"
+                #         elif x == "2":
+                #             suffix = "nd"
+                #         elif x == "3":
+                #             suffix = "rd"
+                # if add_prefix:
+                #     prefix = "C"
+                # object_collection = f"{prefix}{object_count[name]}{suffix}"
+                object_collection = f"{object_count[name]}"
             else:
                 object_collection = ""
 
             # Collect attempt and state
             # For objects without attempts registered, skip both
             attempt_value = event_data[TERMS["attempt"]]
+            attempt_per_object.append(attempt_value)
             state = event_data[TERMS["state"]]
             source = event_data[TERMS["source"]]
             if attempt_value:
@@ -166,34 +187,68 @@ def process_collection_db(database: dict, datatype: str):
                 attribute = info[TERMS["attribute"]]
                 origin = info[TERMS["origin"]]
 
-                rows_for_table.append({
-                    "Date": date, "#": object_collection, "Name": name,
-                    TERMS["attempt"]: attempt_value, TERMS["source"]: source,
-                    TERMS["origin"]: origin, TERMS["attribute"]: attribute, 
+                rows_for_history.append({
+                    "Date": date, 
+                    "#": object_collection, 
+                    "Name": name,
+                    TERMS["attempt"]: attempt_value, 
+                    TERMS["source"]: source,
+                    TERMS["origin"]: origin, 
+                    TERMS["attribute"]: attribute, 
                     TERMS["utility"]: utility, 
-                    TERMS["state"]: state, "Index": index})
+                    TERMS["state"]: state, 
+                    "Index": index})
             else:
                 utility = info["Type"]
 
-                rows_for_table.append({
-                    "Date": date, " ": object_collection, "Name": name,
-                    TERMS["attempt"]: attempt_value, TERMS["source"]: source,
-                    TERMS["utility"]: utility, 
-                    TERMS["state"]: state, "Index": index})
+                rows_for_history.append({
+                    "Date": date, 
+                    " ": object_collection, 
+                    "Name": name,
+                    TERMS["attempt"]: 
+                    attempt_value, 
+                    TERMS["source"]: source,
+                    "Type": utility, 
+                    TERMS["state"]: state, 
+                    "Index": index})
+        if not any(attempt_per_object):
+            mean_attempt = None
+        else:
+            if None in attempt_per_object:
+                attempt_per_object.remove(None)
+            mean_attempt = "%.1f" % statistics.mean(attempt_per_object)
+        if datatype == "main": 
+            rows_for_overview.append({
+                "Name": name,
+                "Total": len(info[TERMS["event"]]) - 1,
+                "Mean": mean_attempt,
+                TERMS["origin"]: info[TERMS["origin"]],
+                TERMS["attribute"]: info[TERMS["attribute"]],
+                TERMS["utility"]: info[TERMS["utility"]]
+            })
+        else: 
+            rows_for_overview.append({
+                "Name": name,
+                "Total": len(info[TERMS["event"]]) - 1,
+                "Mean": mean_attempt,
+                TERMS["utility"]: info["Type"]
+            })
 
     return {
         "counts": counts,
         "attempt_list": attempt_value_list,
         "last_event": last_event,
         "success_fail": success_fail, 
-        "table_data": rows_for_table,
+        "table_data": rows_for_history,
+        "overview_data": rows_for_overview,
         "graph_data": graph_data}
 
 
 @st.cache_data
-def data_to_dataframe(rows: list, object_type: str):
+def history_dataframe(rows: list, object_type: str):
     """
-    Database processing for table view (main or secondary)
+    Database processing for table view (main or secondary) 
+    for view of object history
 
     Args:
         rows (list):
@@ -202,9 +257,8 @@ def data_to_dataframe(rows: list, object_type: str):
             defines "main" or "secondary" object type
 
     Returns:
-        processed pandas dataframe:
-            label count, attempt values, last event value, 
-            success/fail count, rows for tables, graph data
+        processed pandas dataframe rows:
+            date, consecutive count, name, progress, source, labels, state
     """
     
     dataframe = pd.DataFrame(rows)
@@ -217,12 +271,28 @@ def data_to_dataframe(rows: list, object_type: str):
     if object_type == "secondary": 
         processed_dataframe = (processed_dataframe.drop(columns=[" "]))
 
-    processed_dataframe[TERMS["attempt"]] = pd.to_numeric(
-        processed_dataframe[TERMS["attempt"]], 
-        errors="coerce"
-    ).astype("Int64")
-    
     return processed_dataframe
 
 
+@st.cache_data
+def overview_dataframe(rows: list):
+    """
+    Database processing for table view (main or secondary) 
+    for view of object catalog
+
+    Args:
+        rows (list):
+            list of dictionaries for pandas table view rows
+
+    Returns:
+        processed pandas dataframe rows:
+            name, total count, mean progress, labels
+    """
+    
+    dataframe = pd.DataFrame(rows)
+    # Use index for sorting, then discard
+    processed_dataframe = (
+        dataframe.sort_values(["Name"], ascending=True))
+
+    return processed_dataframe
                     

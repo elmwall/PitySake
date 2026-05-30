@@ -52,7 +52,6 @@ def calculator(component_key: str, feature_width: int | str,
         # Evaluate validity of UI selection
         limit = hold.load_options()["value_limits"]["general_limit"]
         
-        # Input field: UI structured as left for "current" and right for "previous"
         with st.container(horizontal_alignment="center"):
             # Select pages setts for calculation
             # Each progress tracking source has defined sets
@@ -68,42 +67,10 @@ def calculator(component_key: str, feature_width: int | str,
                 _define_sets()
             st.space(5)
 
-            # Group labels
+            # Value selector field: Enter values for calculation
+            # UI structured as left for "current" and right for "previous"
             col_left, col_right, col_label = st.columns([5, 5, 7])
-            col_left.markdown("*Current*", text_alignment="center")
-            col_right.markdown("*Previous*", text_alignment="center")
-            col_label.html('<div style="height: 1.6rem;"></div>')
-
-            # Input page for "current" and "previous" event
-            page_range = st.session_state["page_range"]
-            row_range = st.session_state["row_range"]
-            col_left.selectbox(
-                "*Last event*", options=page_range, 
-                key="curr_page", label_visibility="collapsed")
-            col_right.selectbox(
-                "*Previous event*", options=page_range, 
-                key="prev_page", label_visibility="collapsed")
-                    
-            # Input data row for latest and previous
-            if type(row_range) is int:
-                row_range += 1
-                prev_opt = range(row_range)[1:]
-                curr_opt = range(row_range) if int(st.session_state["curr_page"]) == 1 else range(row_range)[1:]
-            elif type(row_range) is list:
-                prev_opt = range(row_range[st.session_state["prev_page"] - 1] + 1)[1:]
-                if int(st.session_state["curr_page"]) == 1:
-                    curr_opt = range(row_range[st.session_state["curr_page"] - 1] + 1)
-                else:
-                    curr_opt = range(row_range[st.session_state["curr_page"] - 1] + 1)[1:]
-
-            with col_left:
-                st.selectbox(
-                    "Last event row", options=curr_opt, index=0,
-                    key="curr_row", label_visibility="collapsed")
-            with col_right:
-                st.selectbox(
-                    "Previous event row", options=prev_opt, 
-                    key="prev_row", label_visibility="collapsed")
+            _value_selector(col_left, col_right, col_label)
             is_current_valid, is_previous_valid, msg, usertip_current, usertip_previous = _validation(limit)
 
             # Field for submit and result
@@ -114,7 +81,6 @@ def calculator(component_key: str, feature_width: int | str,
             else:
                 is_invalid, appearance = True, "secondary"
                 st.session_state["calculation"] = None
-
             # Submit button
             if col_label.button(
                     f"{msg}", key="calc_button", type=appearance, 
@@ -125,36 +91,9 @@ def calculator(component_key: str, feature_width: int | str,
                     is_invalid)
             else:
                 output = None
-
             # Output viewer field 
             # - views tip for correcting data or result of calculation
-            result_output = f"—"
-            if output is not None:
-                if output:
-                    result_output = f"**{output-1}**"
-                col_label.button(result_output, width="stretch")
-            else:
-                if usertip_current: 
-                    col_label.button(result_output, width="stretch")
-                    st.html("""
-                        <style> 
-                            .st-key-warning {color: COLOR_REF;} 
-                            .st-key-warning_sign button {
-                                margin-top: 6px; 
-                                border-radius: 30px; 
-                                border: solid 0.1rem COLOR_REF;
-                            } 
-                        </style>"""
-                        .replace("COLOR_REF", st.session_state["negative_color"]))
-                    with st.container(key="warning", width="stretch", height="stretch"):
-                        st.markdown(f"*{usertip_current}*", width="stretch")
-                elif usertip_previous: 
-                    col_label.button(result_output, width="stretch")
-                    with st.container(key="warning", width="stretch", height="stretch"):
-                        st.markdown(f"*{usertip_previous}*", width="stretch")
-                else:
-                    col_label.button(result_output, width="stretch")
-
+            _result_viewer(col_label, output, usertip_current, usertip_previous)
 
 
 def _page_sets():
@@ -182,6 +121,44 @@ def _page_sets():
     elif type(st.session_state["sets"]) is list:
         st.session_state["row_range"] = st.session_state["sets"]
         st.session_state["page_range"] = range(len(st.session_state["row_range"]) + 1)[1:]
+
+
+def _value_selector(col_left, col_right, col_label):
+    # Group labels
+    col_left.markdown("*Current*", text_alignment="center")
+    col_right.markdown("*Previous*", text_alignment="center")
+    col_label.html('<div style="height: 1.6rem;"></div>')
+
+    # Input page for "current" and "previous" event
+    page_range = st.session_state["page_range"]
+    row_range = st.session_state["row_range"]
+    col_left.selectbox(
+        "*Last event*", options=page_range, 
+        key="curr_page", label_visibility="collapsed")
+    col_right.selectbox(
+        "*Previous event*", options=page_range, 
+        key="prev_page", label_visibility="collapsed")
+            
+    # Input data row for latest and previous
+    if type(row_range) is int:
+        row_range += 1
+        prev_opt = range(row_range)[1:]
+        curr_opt = range(row_range) if int(st.session_state["curr_page"]) == 1 else range(row_range)[1:]
+    elif type(row_range) is list:
+        prev_opt = range(row_range[st.session_state["prev_page"] - 1] + 1)[1:]
+        if int(st.session_state["curr_page"]) == 1:
+            curr_opt = range(row_range[st.session_state["curr_page"] - 1] + 1)
+        else:
+            curr_opt = range(row_range[st.session_state["curr_page"] - 1] + 1)[1:]
+
+    with col_left:
+        st.selectbox(
+            "Last event row", options=curr_opt, index=0,
+            key="curr_row", label_visibility="collapsed")
+    with col_right:
+        st.selectbox(
+            "Previous event row", options=prev_opt, 
+            key="prev_row", label_visibility="collapsed")
 
 
 def _validation(limit: int) -> tuple:
@@ -332,8 +309,54 @@ def _submit(prev_page: int, curr_page: int,
         return None
     
 
+def _result_viewer(col_label, output: int|None, 
+                   usertip_current: str, usertip_previous: str):
+    """
+    View calculated result, or '-' in no result value.
+
+    Args:
+        col_label (DeltaGenerator):
+            instance object of streamlit column class
+        output (int|None):
+            calculated result from current and previous page and row
+        usertip_current (str):
+            text for giving a hint if invalid input of current value
+        usertip_previous (str):
+            text for giving a hint if invalid input of previous value
+    """
+    result_output = f"—"
+    if output is not None:
+        if output:
+            result_output = f"**{output-1}**"
+        col_label.button(result_output, width="stretch")
+    else:
+        if usertip_current: 
+            col_label.button(result_output, width="stretch")
+            st.html("""
+                <style> 
+                    .st-key-warning {color: COLOR_REF;} 
+                    .st-key-warning_sign button {
+                        margin-top: 6px; 
+                        border-radius: 30px; 
+                        border: solid 0.1rem COLOR_REF;
+                    } 
+                </style>"""
+                .replace("COLOR_REF", st.session_state["negative_color"]))
+            with st.container(key="warning", width="stretch", height="stretch"):
+                st.markdown(f"*{usertip_current}*", width="stretch")
+        elif usertip_previous: 
+            col_label.button(result_output, width="stretch")
+            with st.container(key="warning", width="stretch", height="stretch"):
+                st.markdown(f"*{usertip_previous}*", width="stretch")
+        else:
+            col_label.button(result_output, width="stretch")
+    
+
 @st.dialog("Define sets of sections and sizes")
 def _define_sets():
+    """
+    User form for creating new sets of pages and rows for a specific source.
+    """
     st.session_state["dialog_active"] = True
     progress_data = hold.load_progress_data()
     set_options = list(progress_data.keys())
@@ -416,7 +439,7 @@ def _define_sets():
         error.catch_data(progress_data, file, TERMS["progress"])
         arciv.writer(
             progress_data, object_type=TERMS["progress"], 
-            other_file=file, join_path="data")
+            set_file=file, join_path="data")
         st.session_state["cleared_cache"] = True
         hold.load_progress_data.clear()
         st.rerun()

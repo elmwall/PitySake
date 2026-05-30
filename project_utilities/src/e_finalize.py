@@ -1,6 +1,6 @@
 import streamlit as st
 
-import utils.tools as tools
+from utils import tools
 
 
 # Step 5: finalize and save

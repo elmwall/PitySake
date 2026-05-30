@@ -42,7 +42,9 @@ class Secretary:
 
         self.attempt_ref = TERMS["attempt"]
         self.attribute_ref = TERMS["attribute"]
+        self.common_ref = TERMS["common_source"]
         self.event_ref = TERMS["event"]
+        self.gift_ref = TERMS["gift"]
         self.main_ref = TERMS["main"]
         self.origin_ref = TERMS["origin"]
         self.progress_ref = TERMS["progress"]
@@ -63,8 +65,8 @@ class Secretary:
         Returns:
             Tuple (dict, dict, list):
                 selectable_options (dict): lists of options for all widgets
-                registration_options: sets keys and bools for add/delete/edit info
-                required_keys: required data for compiling
+                registration_options (dict): sets keys and bools for add/delete/edit info
+                required_keys (list): required data for compiling
         """
         try:
             options_object = list(st.session_state["current_database"].keys())
@@ -118,7 +120,6 @@ class Secretary:
             }
         }
 
-
         return preset_options, registration_options, required_keys
     
 
@@ -153,12 +154,139 @@ class Secretary:
                 hold.load_secondary_database())
             st.session_state["reg_type"] = self.secondary_ref
             return hold.load_secondary_database()
-        
+
+
+    def data_validation(self, preset_keys: list, reg_selection: str, 
+                        object_in_library: bool, event_length: int | None) -> tuple: 
+        """
+        Validation control before save-button acitvation
+        - Adjusts selections to valid formats (date formats and None values)
+        - Checks whether action is compatible with database and input states
+        - Sets save button tip text
+
+        Args:
+            preset_keys (list):
+                session state keys for all required values
+            reg_selection (str):
+                action to be performed
+
+        Returns:
+            Tuple (bool, str, bool):
+                data_is_valid (bool)  
+                save_button_msg (str)  
+                is_secondary (bool)
+        """
+        # Adjust validity check and "save"-button message for clarity
+        # Collect state translated_values
+        for x in preset_keys:
+            st.session_state["translated_values"][x] = st.session_state[x]
+        if type(st.session_state["reg_date"]) is str:
+            st.session_state["translated_values"]["reg_date"] = st.session_state["reg_date"]
+        # elif any([not st.session_state["translated_values"]["reg_date"], 
+        #           not st.session_state["add_event_choice"]]):
+        elif not st.session_state["translated_values"]["reg_date"]:
+            pass
+        else:
+            adjusted_date = st.session_state["reg_date"].strftime("%y%m%d")
+            st.session_state["translated_values"]["reg_date"] = adjusted_date
+        if st.session_state["reg_source"] in [self.common_ref, self.gift_ref]: 
+            st.session_state["translated_values"]["reg_state"] = None
+        if st.session_state["reg_source"] == self.gift_ref: 
+            st.session_state["translated_values"]["reg_attempt"] = None
+
+        # "Already in library" 
+        # - to avoid losing data, prevent adding same object more than once
+        if reg_selection == "add_new" and object_in_library:
+            data_is_valid, save_button_msg = False, "Already exists"
+        # "Delete object"
+        elif reg_selection == "del_entry":
+            data_is_valid, save_button_msg = True, f"Delete object"
+        # "Delete object event" 
+        # - removing collection info of object at date
+        elif reg_selection == "del_event":
+            save_button_msg = f"Delete {self.event_ref.lower()}"
+            # Do not attempt if event data is empty 
+            # - should only occur after previous deletion
+            data_is_valid = True if event_length else False
+        # "Save" - use case for adding new object or editing without deletion
+        else:
+            data_is_valid, save_button_msg = True, "Save"
+        # Main type of object or utilitarian object
+        is_secondary = st.session_state[
+            "translated_values"]["reg_object_type"] == self.secondary_ref
+
+        return data_is_valid, save_button_msg, is_secondary
+
+
+    def checklist(self, data_is_valid) -> list:
+        """
+        Checks whether all data which must be included in a save is complete.
+        - name: object name,
+        - labels: utility, attribute, origin 
+            (exceptions for attribute/origin for secondary)
+        - event: date, source, state, attempt 
+            (exceptions depending on settings and choice)
+
+        Args:
+            data_is_valid (bool):
+                prior check of data format and validity
+
+        Returns:
+            (list):
+                bools for all data checks
+        """
+        tasklist = ["name_done", "utility_done", "attribute_done", 
+                    "origin_done", "source_done", "state_done", "attempt_done"]
+        data_checks = dict()
+        for x in tasklist:
+            data_checks[x] = False
+        if data_is_valid:
+            # Secondary object has attribute and origin labels disabled
+            disable_extras = st.session_state[
+                "translated_values"]["reg_object_type"] == self.secondary_ref
+            
+            # Completion checks
+            # Name
+            if st.session_state["translated_values"]["reg_name"]: 
+                data_checks["name_done"] = True
+            # Labels: all for main, only utility for secondary
+            if st.session_state["translated_values"]["reg_utility"]: 
+                data_checks["utility_done"] = True
+            if not disable_extras:
+                if st.session_state["translated_values"]["reg_attribute"]: 
+                    data_checks["attribute_done"] = True
+                if st.session_state["translated_values"]["reg_origin"]: 
+                    data_checks["origin_done"] = True
+            else:
+                data_checks["attribute_done"], data_checks["origin_done"] = True, True
+            # Source
+            if not st.session_state["translated_values"]["reg_source"]:
+                if not st.session_state["add_event_choice"]: 
+                    data_checks["source_done"] = True
+            else:
+                data_checks["source_done"] = True
+            # State
+            if not st.session_state["translated_values"]["reg_state"]:
+                reg_source = st.session_state["translated_values"]["reg_source"]
+                if any(reg_source == self.common_ref, 
+                       reg_source == self.gift_ref, 
+                       not st.session_state["add_event_choice"]): 
+                    data_checks["state_done"] = True
+            else:
+                data_checks["state_done"] = True
+            # Limit
+            if st.session_state["translated_values"]["reg_attempt"] is None:
+                if not st.session_state["add_event_choice"]: 
+                    data_checks["attempt_done"] = True
+            else:
+                data_checks["attempt_done"] = True
+
+        return list(data_checks.values())
+
 
     @st.dialog(f"Removing object data")
-    def confirm_deletion(self, name: str, object_type: str, 
-                    new_data: dict, reg_setting: str, reg_selection: str, 
-                    removal_date: str):
+    def confirm_deletion(self, name: str, object_type: str, new_data: dict, 
+                         reg_setting: dict, reg_selection: str, removal_date: str):
         """
         User confirmation dialog box.
         - Called to confirm removal of object or event            
@@ -189,7 +317,7 @@ class Secretary:
 
     @st.dialog(f"Editing library entry")
     def rename(self, name: str, object_type: str, new_data: dict, 
-               reg_setting: str, highlight_html: str):
+               reg_setting: dict, highlight_html: str):
         """
         If edit object info selected, object name can be changed here.  
         Copies all previously defined options as-is.
@@ -225,7 +353,7 @@ class Secretary:
 
 
     def update_object(self, name: str, object_type: str, 
-                      new_data: dict, reg_setting: str, new_name: str):
+                      new_data: dict, reg_setting: dict, new_name: str):
         """
         Saving registered info to file
         - Directs settings for correct editing of database
@@ -246,25 +374,18 @@ class Secretary:
             stage="pre_backup", prefix=object_type)
         updated_library = False
         # Backup old data before save
-        if arciv.backup(backup_frequency, object_type, other_file=datafile): 
+        if arciv.backup(backup_frequency, object_type, set_file=datafile): 
             updated_library = arciv.join_data(
                 new_data, name, reg_setting["for_deletion"], reg_setting["for_renaming"], 
-                other_file=datafile, join_path="data", 
+                set_file=datafile, join_path="data", 
                 need_sorting=True, is_static=reg_setting["is_static"])
         # Save to file
         if DIAGNOSTICS: updated_library = False
         if updated_library:
             arciv.writer(
-                updated_library, object_type, other_file=datafile, join_path="data")
+                updated_library, object_type, set_file=datafile, join_path="data")
             if object_type == self.main_ref:
                 st.session_state["processed_edits"] = True
             elif object_type == self.utility_ref:
                 st.session_state["processed_edits"] = True
             st.rerun()
-
-
-
-            
-
-        
-                

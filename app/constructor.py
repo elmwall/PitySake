@@ -19,6 +19,7 @@ import app.data_viewer as data_viewer
 import app.timeline as timeline
 import app.style as page
 import app.logger as log
+import app.error_handler as error
 
 
 # Constants for layout dimensions
@@ -92,7 +93,7 @@ def header():
         # since only one dialog is allowed
         if st.session_state["error"]:
             with c3.container(border=True, key="error_field_main", width="stretch", height=header_height):
-                log.notify()
+                error.notify()
 
 
 def horizontal_view(registration_keys: list, prog_meter_keys: list, 

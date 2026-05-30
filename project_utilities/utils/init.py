@@ -5,6 +5,12 @@ import streamlit as st
 
 INIT = {
     "initialized": False,
+    "checklists": {
+        "project_save": None,
+        "label_save": None,
+        "event_save": None,
+        "progress_save": None
+    },
     # Page
     "page": 0,
     "page_incomplete": True,
@@ -48,6 +54,13 @@ def initialize():
         header {visibility: hidden;}  
     </style>
     """)
+
+    st.session_state["checklists"] = {
+        "project_save": [],
+        "b_labels": [],
+        "c_event": [],
+        "d_limit": []
+    }
 
     st.session_state["initialized"] = True
     get_config_template()

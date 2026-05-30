@@ -1,7 +1,7 @@
 import json
 import streamlit as st
 
-import utils.tools as tools
+from utils import tools
 
 
 # Step 2: name object labels
@@ -75,6 +75,8 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
         "attribute": [],
         "origin": []
     }
+
+
     with col_2.container(border=True):
         st.markdown("##### 1. Main/secondary label", text_alignment="center")
         label1_count = st.number_input(
@@ -147,5 +149,10 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
         for x in origin_keys:
             submission["origin"].append(st.session_state[x])
     
+    st.session_state["checklists"]["label_save"] = []
+    for x in ["utility", "attribute", "origin"]:
+        for y in submission[x]:
+            st.session_state["checklists"]["label_save"].append(y)
+
     return submission
 
