@@ -1,3 +1,4 @@
+import copy
 import json
 import streamlit as st
 
@@ -7,15 +8,51 @@ INIT = {
     "initialized": False,
     "checklists": {
         "project_save": None,
+        "objects_save": None,
         "label_save": None,
         "event_save": None,
         "progress_save": None
+    },
+    "submitted": {
+        "project_details": {
+            "ui_title": None,
+            "template": None
+        },
+        "objects_details": {
+            "ui_title": None,
+            "main": None,
+            "secondary": None,
+            "utility": None,
+            "attribute": None,
+            "origin": None
+        },
+        "label_details": {
+            "utility": [None,],
+            "attribute": [None,],
+            "origin": [None,]
+        },
+        "event_terms": {
+            "attempt": None,
+            "event": None,
+            "sources_name": None,
+            "state_det": None,
+            "state_win": None,
+            "state_loss": None
+        },
+        "progress_details": {
+            "sources": None,
+            "unit": None,
+            "general_limit": None,
+            "reverse_positive": None,
+            "positive_value": None,
+            "negative_value": None
+        }
     },
     # Page
     "page": 0,
     "page_incomplete": True,
     # Form
-    "submitted": dict(),
+    # "submitted": dict(),
     # Names
     "ui_title": None,
     "main": None,
@@ -25,6 +62,8 @@ INIT = {
     "origin": None,
     "project_need_save": "secondary",
     "project_is_changed": False,
+    "objects_need_save": "secondary",
+    "objects_is_changed": False,
     "event_need_save": "secondary",
     "event_is_changed": False,
     "progress_need_save": "secondary",
@@ -44,7 +83,8 @@ INIT = {
 }
 
 def initialize():
-    for key, value in INIT.items():
+    init = copy.deepcopy(INIT)
+    for key, value in init.items():
         if key not in st.session_state: st.session_state[key] = value
 
     st.html("""
@@ -55,12 +95,12 @@ def initialize():
     </style>
     """)
 
-    st.session_state["checklists"] = {
-        "project_save": [],
-        "b_labels": [],
-        "c_event": [],
-        "d_limit": []
-    }
+    # st.session_state["checklists"] = {
+    #     "objects_save": [],
+    #     "b_labels": [],
+    #     "c_event": [],
+    #     "d_limit": []
+    # }
 
     st.session_state["initialized"] = True
     get_config_template()

@@ -23,7 +23,7 @@ import app.error_handler as error
 
 
 # Constants for layout dimensions
-CONTENT_WIDTH = 1800
+CONTENT_WIDTH = 1850
 WIDTH_TOT_LEFT = 950
 WIDTH_TOT_RIGHT = CONTENT_WIDTH - WIDTH_TOT_LEFT
 WIDTH_MID_1 = 450
@@ -198,10 +198,10 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
 
     st.html("""
         <style> 
-            .st-key-main_content {width: 100vw; min-width: 800px; max-width: 1000px;} 
+            .st-key-main_content {width: 100vw; min-width: 800px; max-width: WIDTH_REFpx;} 
             .st-key-content_frame {padding: 1rem;} 
-        </style>""")
-    table_height = 300
+        </style>""".replace("WIDTH_REF", f"{WIDTH_TOT_LEFT}"))
+    table_height = 350
 
     # Main container
     with st.container(

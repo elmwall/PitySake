@@ -25,60 +25,49 @@ def define_labels(set_width, set_heigth):
         with st.container(horizontal_alignment="center"):
             submission = _name_labels(label_need_save, label_is_changed, submission_key)
         with col_apply:
-            tools.apply("label_save", label_need_save, label_is_changed, submission_key, submission)
+            tools.apply("label_save", label_need_save, label_is_changed, 
+                        submission_key, submission, all_required=False)
 
-    # Demo
-    with st.expander("View example", width=set_width):
-        col_1, col_2 = st.columns(2)
-        col_1.image(
-            "images/sample_obj.png", 
-            caption="**Main objects** has three group of labels.", 
-            output_format="PNG")
-        col_2.image(
-            "images/sample_obj.png", 
-            caption="**Secondary objects** only has the the first label group.", 
-            output_format="PNG")
-
-
-# def _apply(key, need_save, is_changed, submission_key, submission):
-#     st.button(
-#         "Save", 
-#         key=key, 
-#         on_click=tools.submit, 
-#         args=(need_save, is_changed, submission_key, submission), 
-#         type=st.session_state[need_save], 
-#         disabled=st.session_state[is_changed],
-#         width="stretch"
-#     )
+        # Demo
+        col_d1, col_d2 = st.columns(2)
+        with col_d1.expander("Explanation"):
+            with st.container(border=False, height=300):
+                st.markdown("""
+                - Each objects registered need a single label per category  
+                - Labels help organize, search, and filter objects  
+                - Labels are counted in statistics  
+                - Special cases:  
+                    - If you need cominations:  
+                        e.g. labels 'A/B' for something that is both 'A' and 'B'.
+                    - For objects that do not fit a category, create labels such as 'None', 'Unknown' or 'Not applicable'
+                    """)
+        with col_d2.expander("View example", width=set_width):
+            with st.container(border=False, height=300):
+                st.image(
+                    "images/sample_obj.png", 
+                    caption="**Main objects** has three group of labels.", 
+                    output_format="PNG"
+                )
 
 
 def _name_labels(label_need_save, label_is_changed, submission_key):
     col_1, col_2, col_3, col_4 = st.columns(4)
+    submitted = st.session_state["submitted"]["objects_details"]
+    col_1.markdown(f"""**Name labels for your categories:**""")  
     col_1.markdown("""
-        **Name labels under your three categories:** 1, 2, 3  
-                      
+    - Can be added or edited later
+    - lank labels will be generated for empty fields
+    - Recommended number: 1-12 labels per category
     """)
-    col_1.markdown("""
-        If you save without adding any, each category will have a blank label, which you can change later or add others.
-                      
-        Objects need one label per category; for combined labels, create such e.g. 'First/Second'.
-        
-
-    """)
-    col_1.markdown("""
-        The fields expand with the number of labels.  
-        Optimal number: 1-12     
-    """)
-    
     submission = {
         "utility": [],
         "attribute": [],
         "origin": []
     }
 
-
     with col_2.container(border=True):
-        st.markdown("##### 1. Main/secondary label", text_alignment="center")
+        st.markdown(f"""##### Main & secondary objects""", text_alignment="center")
+        st.markdown(f"""Category: {submitted["utility"]}""", text_alignment="center")
         label1_count = st.number_input(
             "Number of labels", 
             min_value=1, 
@@ -95,14 +84,17 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
                 help="", 
                 on_change=tools.need_update, 
                 args=(label_need_save, label_is_changed), 
+                kwargs={"all_required": False,},
                 placeholder="Label name", 
                 label_visibility="collapsed"
             )
         for x in utility_keys:
-            submission["utility"].append(st.session_state[x])
+            _define_labels(x, submission["utility"])
+        print("util", submission["utility"])
 
     with col_3.container(border=True):
-        st.markdown("##### 2. Main label", text_alignment="center")
+        st.markdown("##### Main objects", text_alignment="center")
+        st.markdown(f"""Category: {submitted["attribute"]}""", text_alignment="center")
         label2_count = st.number_input(
             "Number of labels", 
             min_value=1, 
@@ -119,14 +111,17 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
                 help="", 
                 on_change=tools.need_update, 
                 args=(label_need_save, label_is_changed), 
+                kwargs={"all_required": False,},
                 placeholder="Label name", 
                 label_visibility="collapsed"
             )
         for x in attribute_keys:
-            submission["attribute"].append(st.session_state[x])
+            _define_labels(x, submission["attribute"])
+        print("attr", submission["attribute"])
 
     with col_4.container(border=True):
-        st.markdown("##### 3. Main label", text_alignment="center")
+        st.markdown("##### Main objects", text_alignment="center")
+        st.markdown(f"""Category: {submitted["origin"]}""", text_alignment="center")
         label3_count = st.number_input(
             "Number of labels", 
             min_value=1, 
@@ -143,11 +138,13 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
                 help="", 
                 on_change=tools.need_update, 
                 args=(label_need_save, label_is_changed), 
+                kwargs={"all_required": False,},
                 placeholder="Label name", 
                 label_visibility="collapsed"
             )
         for x in origin_keys:
-            submission["origin"].append(st.session_state[x])
+            _define_labels(x, submission["origin"])
+        print("ori", submission["origin"])
     
     st.session_state["checklists"]["label_save"] = []
     for x in ["utility", "attribute", "origin"]:
@@ -156,3 +153,14 @@ def _name_labels(label_need_save, label_is_changed, submission_key):
 
     return submission
 
+
+def _define_labels(key, submission):
+    submitted_label = st.session_state[key]
+    print(submitted_label)
+    if submitted_label is not None:
+        if len(submitted_label) == 0: submitted_label = None
+    print(submission)
+    if submitted_label not in submission:
+        submission.append(submitted_label)
+    else:
+        st.warning("Multiples excluded")

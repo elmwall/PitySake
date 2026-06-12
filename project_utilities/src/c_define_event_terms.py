@@ -1,4 +1,3 @@
-import json
 import streamlit as st
 
 from utils import tools
@@ -9,13 +8,18 @@ def define_event_terms(set_width, set_heigth):
     with st.container(
             border=False, width=set_width, 
             height="stretch", horizontal_alignment="center"):
+        if not all(st.session_state["submitted"]["event_terms"].values()):
+            st.session_state["page_incomplete"] = True
+        else:
+            st.session_state["page_incomplete"] = False
+
         # Header
         st.progress(60, width="stretch")
         col_prev, col_space, col_title, col_apply, col_next = st.columns(
             [2, 2, 5, 2, 2])
         tools.navigate(col_prev, col_next)
         col_title.markdown(
-            "#### Progress and events", text_alignment="center")
+            "#### Values and events", text_alignment="center")
         st.space()
 
         # Form
@@ -27,62 +31,67 @@ def define_event_terms(set_width, set_heigth):
         with col_apply:
             tools.apply("event_save", event_need_save, event_is_changed, submission_key, submission)
 
-    with st.expander("View example", width=set_width):
-        col_1, col_2 = st.columns(2)
+        # Demo
+        col_d1, col_d2 = st.columns(2)
+        with col_d1.expander("Explanation"):
+            with st.container(border=False, height=300):
+                st.markdown("""
+                ##### Events  
+                Events may be recorded with or without value or outcome, but:  
+                - An event is required for an object event to appear in history
+                - An event with a value is required for timeline visualization
+                - Events without an outcome or with a neutral outcome do not affect evaluation statistics
+                
+                ##### Outcomes  
+                Outcomes do not need to be good or bad states, examples:  
+                - Easy / Medium / Hard  
+                - Legendary / Rare / Common  
+                - Expected / Unexpected / Common
+                
+                The 'positive' and 'negative' states receive have unique color annotations in the timeline and are used when calculating outcome statistics.
+                """)
+        with col_d2.expander("View example", width=set_width):
+            with st.container(border=False, height=300):
+                st.image(
+                    "images/sample_obj.png", 
+                    caption="**Main objects** has three group of labels.", 
+                    output_format="PNG"
+                )
 
-
-
-
-        # In your history you will see events focused on a specific registered object. The timeline shows such events with an associated value in progress. You can also track work in progress, a value associated with a source without an object.
 
 def _name_events(event_need_save, event_is_changed, submission_key):
-
+    submitted = st.session_state["submitted"]["objects_details"]
     col_1, col_2, col_3 = st.columns([1, 1.5, 1.5])
-    col_1.markdown("""
-        You track changes in your project in two ways: progress values and events via a source. 
-    """)
-        
-    col_1.markdown("""
-        - **Progress:** can optionally be added to events, and can be stages complete, efforts or a change in value.  
-        - **Events:** can signify receiving a new object or achieving a goal.  
-        - **Source:** a specific area, subject or collection you count your progress or efforts towards. Here you name your term for sources, in the next step you can register specific sources. 
+    col_1.markdown("Terms regarding values and occurrences")
+    col_1.markdown(f"""
+        - **Value:** a value associated with objects ({submitted["main"]} and {submitted["secondary"]})  
+        - **Events:** object events record information about date, source, outcome, and value  
+        - **Source:** event categories which can be associated with values
     """)
     col_1.markdown("""
-        - **Outcome:** you can optionally mark events with a prognosis an outcome, which can be e.g. difficulty, goal reached, pass/fail.
+        - **Outcome:** for evaluating your events with a particular state (e.g. positive/negative/neutral)
     """)
 
     with col_2.container(border=True, height="stretch"):
-        st.markdown("##### Efforts and events", text_alignment="center")
+        st.markdown("##### Values and events", text_alignment="center")
         st.markdown("")
         st.text_input(
-            "Progress/value", 
+            "Name the term for values", 
             key= "attempt", 
             help="What tasks or value is counted as your progress?", 
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
-            placeholder="Exercises / Chapters / Length / Value")
+            placeholder="Exercises / Length / Value")
         st.text_input(
-            "Event/milestone with associated tasks", 
-            key= "event", 
-            help="A set of tasks completed associated associated with your progress value.", 
-            on_change=tools.need_update, 
-            args=(event_need_save, event_is_changed), 
-            placeholder="Study, Reading, or Workout session / Purchase")
-        st.text_input(
-            "What are your sources/subjects you make progress in?", 
+            "Create a collective term for your event sources", 
             key= "sources_name", 
             help="A broad category within which you track your progress.", 
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
-            placeholder="Track / Category / Program / Collection")
-
-    # with col_3.container(border=True, height="stretch"):
-    #     st.markdown("##### Prognosis", text_alignment="center")
-    #     st.text_input("Expected outcome or state", key="state", help="Simply a term associated with the prognosis.", placeholder="Prognosis")
-    #     st.text_input("Uncertain prognosis", key="state_rand",  help="", placeholder="To be decided")
+            placeholder="Learning track / Workout program / Collection")
 
     with col_3.container(border=True, height="stretch"):
-        st.markdown("##### Outcome", text_alignment="center")
+        st.markdown("##### Outcome evaluations", text_alignment="center")
 
         neu_help = """
             A result neither positive or negative, or that is already determined.  
@@ -95,7 +104,7 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             help=neu_help,
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
-            placeholder="Neutral / Mid / Not applicable / Expected")
+            placeholder="Neutral / Not applicable / Expected")
 
         pos_help = """
             A positive result, will have a positive highlight in your timeline.
@@ -106,7 +115,7 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             help=pos_help, 
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
-            placeholder="Easy / Good / Success / High value")
+            placeholder="Easy / Success / High value")
         
         neg_help = """
             A negative result, will have a negative highlight in your timeline.
@@ -117,12 +126,10 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             help=neg_help, 
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
-            placeholder="Hard / Bad / Fail / Low value")
-        
+            placeholder="Hard / Fail / Low value")
         
     st.session_state["checklists"]["event_save"] = [
         st.session_state["attempt"],
-        st.session_state["event"],
         st.session_state["sources_name"],
         st.session_state["state_det"],
         st.session_state["state_win"],
@@ -131,7 +138,6 @@ def _name_events(event_need_save, event_is_changed, submission_key):
 
     return  {
         "attempt": st.session_state["attempt"],
-        "event": st.session_state["event"],
         "sources_name": st.session_state["sources_name"],
         "state_det": st.session_state["state_det"],
         "state_win": st.session_state["state_win"],
