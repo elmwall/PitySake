@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import streamlit as st
 
 from utils import tools
@@ -8,6 +10,11 @@ def define_project(set_width, set_heigth):
     with st.container(
             border=False, width=set_width, 
             height="stretch", horizontal_alignment="center"):
+        if not all(st.session_state["submitted"]["objects_details"].values()):
+            st.session_state["page_incomplete"] = True
+        else:
+            st.session_state["page_incomplete"] = False
+
         # Header
         st.progress(20, width="stretch")
         col_prev, col_space, col_title, col_apply, col_next = st.columns(
@@ -19,71 +26,73 @@ def define_project(set_width, set_heigth):
         st.space()
 
         # Form
-        submission_key = "project_details"
-        project_need_save = "project_need_save"
-        project_is_changed = "project_is_changed"
+        submission_key = "objects_details"
+        objects_need_save = "objects_need_save"
+        objects_is_changed = "objects_is_changed"
         with st.container(horizontal_alignment="center"):
-            submission = _name_project(project_need_save, project_is_changed, submission_key)
+            submission = _name_objects(objects_need_save, objects_is_changed, submission_key)
         with col_apply:
-            tools.apply("project_save", project_need_save, project_is_changed, submission_key, submission)
+            tools.apply("objects_save", objects_need_save, objects_is_changed, submission_key, submission)
 
-    # Demo
-    with st.expander("View example", width=set_width):
-        col_1, col_2 = st.columns(2)
-        col_1.image(
-            "images/sample_obj.png", 
-            caption="**Main objects** has three group of labels.", 
-            output_format="PNG"
-        )
-        col_2.image(
-            "images/sample_obj.png", 
-            caption="**Secondary objects** only has the the first label group.", 
-            output_format="PNG"
-            )
-
-
-# def _apply(key, need_save, is_changed, submission_key, submission):
-#     st.button(
-#         "Save", 
-#         key=key, 
-#         on_click=tools.submit, 
-#         args=(need_save, is_changed, submission_key, submission), 
-#         type=st.session_state[need_save], 
-#         disabled=st.session_state[is_changed],
-#         width="stretch"
-#     )
+        # Demo
+        col_d1, col_d2 = st.columns(2)
+        with col_d1.expander("Explanation"):
+            with st.container(border=False, height=300):
+                st.markdown("""**Main and secondary objects:**  objects are the items or subjects you want to track. Events associate them with a date with a value and evaluation.  
+                - Main objects support detailed anaysis and statistics  
+                - Secondary are tracked separately with reduced detail  
+                - Appear in separate history tables  
+                - Both contribute to overall totals and evaluations""")
+                st.markdown("""**Labels:** help organizing tables and locating items.  
+                - Sorting and searching tables  
+                - Occurrences are included in statistics""")
+        with col_d2.expander("View example", width=set_width):
+            with st.container(border=False, height=300):
+                st.image(
+                    "images/sample_obj.png", 
+                    caption="**Main objects** has three group of labels.", 
+                    output_format="PNG"
+                )
 
 
-def _name_project(project_need_save, project_is_changed, submission_key):
+def _name_objects(objects_need_save, objects_is_changed, submission_key):
     col_1, col_2, col_3 = st.columns([1, 1.5, 1.5])
     # Instructions
-    col_1.markdown("""You need to name your project and the overall name of your collections/subjects with one major and one minor type (you will see one history table for each).""")
+    col_1.markdown("Define the names used in your project.")
     col_1.markdown("""
-        - **Title:** displayed name and project folder name
-        - **Main objects:** timeline and more detailed analysis
-        - **Secondary objects:** less analysis, no timeline
+        - **Title:** display name and project folder
+        - **Main objects:** your primary tracked item
+        - **Secondary objects:** additional tracked item
     """)
     col_1.markdown("""
-        - **Labels:** Can be used for sorting and searchability in event history tables. 
+        - **Labels:** categories for sorting and searchability 
     """)
 
     with col_2.container(border=True, height="stretch"):
-        st.markdown("##### Title and objects", text_alignment="center")
-        st.text_input(
-            "Project title", 
-            key="ui_title", 
-            on_change=tools.need_update,
-            args=(project_need_save, project_is_changed), 
-            help="Name for folder and display", 
-            placeholder="Learning path / Reading / Collection / Activity"
-        )
+        root = Path(__file__).resolve().parent.parent.parent
+        folder_list = [x.name for x in root.iterdir() if x.is_dir()]
+        print("folders", folder_list)
+
+        st.markdown("##### Objects", text_alignment="center")
+        # st.text_input(
+        #     "Project title", 
+        #     key="ui_title", 
+        #     on_change=tools.need_update,
+        #     args=(objects_need_save, objects_is_changed), 
+        #     help="Name for folder and display", 
+        #     placeholder="e.g. Learning path / Activity log / Collection"
+        # )
+
+        # if st.session_state["ui_title"]:
+        #     objects_folder = st.session_state["ui_title"].lower().replace(" ", "_")
+        #     if objects_folder in folder_list:
+        #         st.error("A project already exists with that name.")
 
         help_primary = """
             Actual objects for each suggestion could e.g. be:  
             - (learning: course) Python Fundamentals
-            - (reading: book) The Two Towers
-            - (collection: figure) Obsidian figurine
             - (activity: workout) 5K Running Plan
+            - (collection: figure) Obsidian figurine
         """
         help_secondary = """
             Use for less complex or non-priority  
@@ -94,17 +103,17 @@ def _name_project(project_need_save, project_is_changed, submission_key):
             "Main object", 
             key="main", 
             on_change=tools.need_update, 
-            args=(project_need_save, project_is_changed), 
+            args=(objects_need_save, objects_is_changed), 
             help=help_primary, 
-            placeholder="Course / Book / Workout / Collectible"
+            placeholder="e.g. Course / Workout / Collectible"
         )
         st.text_input(
             "Secondary object", 
             key="secondary", 
             on_change=tools.need_update, 
-            args=(project_need_save, project_is_changed), 
+            args=(objects_need_save, objects_is_changed), 
             help=help_secondary,
-            placeholder="Tutorial / Article / Walk / Accessory"
+            placeholder="e.g. Tutorial / Walk / Accessory"
         )
 
     with col_3.container(border=True, height="stretch"):
@@ -113,27 +122,27 @@ def _name_project(project_need_save, project_is_changed, submission_key):
             "1. Label for main and secondary objects", 
             key="utility", 
             on_change=tools.need_update, 
-            args=(project_need_save, project_is_changed), 
+            args=(objects_need_save, objects_is_changed), 
             help="Use a broad label which can apply to both object types",
-            placeholder="Topic / Genre / Effort / Series"
+            placeholder="e.g. Topic / Effort / Series"
         )
         st.text_input(
             "2. Label for main object", 
             key="attribute", 
             on_change=tools.need_update, 
-            args=(project_need_save, project_is_changed), 
-            placeholder="Platform / Author / Type / Manufacturer"
+            args=(objects_need_save, objects_is_changed), 
+            placeholder="e.g. Platform / Activity type / Manufacturer"
         )
         st.text_input(
             "3. Label for main object", 
             key="origin", 
             on_change=tools.need_update, 
-            args=(project_need_save, project_is_changed), 
-            placeholder="Examination / Format / Muscle group / Scale"
+            args=(objects_need_save, objects_is_changed), 
+            placeholder="e.g. Examination / Muscle group / Scale"
         )
 
-    st.session_state["checklists"]["project_save"] = [
-        st.session_state["ui_title"],
+    st.session_state["checklists"]["objects_save"] = [
+        # st.session_state["ui_title"],
         st.session_state["main"],
         st.session_state["secondary"],
         st.session_state["utility"],
@@ -142,7 +151,7 @@ def _name_project(project_need_save, project_is_changed, submission_key):
     ]
 
     return {
-        "ui_title": st.session_state["ui_title"],
+        # "ui_title": st.session_state["ui_title"],
         "main": st.session_state["main"],
         "secondary": st.session_state["secondary"],
         "utility": st.session_state["utility"],

@@ -104,6 +104,10 @@ def timeline(component_key: str, set_height: int):
         fig.update_yaxes(
             zeroline=False, tickfont_color=theme["text"],
             gridcolor=theme["subarea"], range=[-5, None])
+        if TERMS["unit"]:
+            fig.update_yaxes(
+                title=f"{TERMS["unit"]} {TERMS["attempt"]}", 
+                title_font_color=theme["text"])
 
         # Layout
         fig.update_layout(

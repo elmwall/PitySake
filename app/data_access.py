@@ -104,6 +104,9 @@ def process_collection_db(database: dict, datatype: str):
     # Data for pandas/st.dataframe
     rows_for_history = list()
     rows_for_overview = list()
+    attempt_title = TERMS["attempt"]
+    if TERMS["unit"]: 
+        attempt_title = f"{TERMS["unit"]} {attempt_title}" 
 
     # For counting object labels - Define dictionary with category keys and data keys 
     if datatype == "main": 
@@ -191,7 +194,7 @@ def process_collection_db(database: dict, datatype: str):
                     "Date": date, 
                     "#": object_collection, 
                     "Name": name,
-                    TERMS["attempt"]: attempt_value, 
+                    attempt_title: attempt_value, 
                     TERMS["source"]: source,
                     TERMS["origin"]: origin, 
                     TERMS["attribute"]: attribute, 
@@ -199,16 +202,15 @@ def process_collection_db(database: dict, datatype: str):
                     TERMS["state"]: state, 
                     "Index": index})
             else:
-                utility = info["Type"]
+                utility = info[TERMS["utility"]]
 
                 rows_for_history.append({
                     "Date": date, 
                     " ": object_collection, 
                     "Name": name,
-                    TERMS["attempt"]: 
-                    attempt_value, 
+                    attempt_title: attempt_value, 
                     TERMS["source"]: source,
-                    "Type": utility, 
+                    TERMS["utility"]: utility, 
                     TERMS["state"]: state, 
                     "Index": index})
         if not any(attempt_per_object):
@@ -231,7 +233,7 @@ def process_collection_db(database: dict, datatype: str):
                 "Name": name,
                 "Total": len(info[TERMS["event"]]) - 1,
                 "Mean": mean_attempt,
-                TERMS["utility"]: info["Type"]
+                TERMS["utility"]: info[TERMS["utility"]]
             })
 
     return {
@@ -241,7 +243,8 @@ def process_collection_db(database: dict, datatype: str):
         "success_fail": success_fail, 
         "table_data": rows_for_history,
         "overview_data": rows_for_overview,
-        "graph_data": graph_data}
+        "graph_data": graph_data,
+        "attempt_title": attempt_title}
 
 
 @st.cache_data

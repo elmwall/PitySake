@@ -43,11 +43,13 @@ INIT_STATE = {
     "message": "",
     "calculation": None,
     "rows": 5,
+    # "start_at_1": False,
+    # "set_limit": 1000,
     # "page_range": range(10+1),
     # Database
     "current_database": "state_import",
     # Object info manager - main
-    "add_event_choice": True,
+    "include_event": True,
     "dialog_active": False,
     "limit": 0,
     "regset": "add_new",
@@ -115,6 +117,10 @@ def initialize():
     themes = st.session_state["themes"]
 
     # Special case: define values from external sources 
+    # For source and progress values, import value for first source in list
+    source_options = hold.load_options()["source"]
+    # limit_disabled = hold.load_options()["source_limit"][source_options[0]]
+    # state_disabled = hold.load_options()["states"][source_options[0]]
     state_import = {
         # Database
         "current_database": copy.deepcopy(hold.load_main_database()),
@@ -122,17 +128,18 @@ def initialize():
         "reg_object_type": TERMS["main"],
         "reg_state": hold.load_options()["results"][0],
         "reg_source": list(hold.load_options()["source_limit"].keys())[0],
-        "limit_disabled": hold.load_options()["source_limit"][TERMS["main_source"]] is False,
-        "state_disabled": hold.load_options()["states"][TERMS["main_source"]] is False,
+        "limit_disabled": hold.load_options()["source_limit"][source_options[0]] is False,
+        "state_disabled": hold.load_options()["states"][source_options[0]] is False,
         "reg_type": TERMS["main"],
-        "reg_attempt": hold.load_progress_data()[TERMS["main_source"]][TERMS["attempt"]],
-        "selection_limit": hold.load_options()["source_limit"][TERMS["main_source"]],
+        "reg_attempt": hold.load_progress_data()[source_options[0]][TERMS["attempt"]],
+        "selection_limit": hold.load_options()["source_limit"][source_options[0]],
         # Style
         "active_theme": themes["active"],
         "active_theme_temp": themes["active"]}
 
     # Initiate all keys
-    for key, state in INIT_STATE.items():
+    init_state = copy.deepcopy(INIT_STATE)
+    for key, state in init_state.items():
         if key not in st.session_state:
             if state == "state_import":
                 st.session_state[key] = state_import[key]

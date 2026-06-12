@@ -55,12 +55,11 @@ def progress_meter(component_key: list, sub_keys: list,
                 key=f"{component_key}_head", 
                 width=feature_size_left, height="content"):
             col_title, col_res = st.columns([23, 2])
-            feature_help_text = f"""
-                Indicate {staterand_ref} or {statedet_ref.lower()} by left-most icon.  
+            feature_help_text = f"""Indicate {TERMS["source"].lower()} status by left-most icon.  
                 Press Save after changing any value to store it.  
                 Reset: restore all values, or re-sync if all values are 0.""" 
             col_title.markdown(
-                f"##### *{attempt_ref}meter*", 
+                f"##### *{attempt_ref} tracker*", 
                 help=feature_help_text, text_alignment="left")
     else:
         col_title, col_res = st.columns([23, 2])

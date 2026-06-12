@@ -46,6 +46,7 @@ def table_view(component_key: str, object_type: str,
         database = hold.load_main_database()
     elif object_type == "secondary":
         database = hold.load_secondary_database()
+    # attempt_title = hold.process_collection_db(database, object_type)["attempt_title"]
         
     # History tab container
     with st.container(
@@ -67,12 +68,13 @@ def table_view(component_key: str, object_type: str,
         # while they can still be shown through scroll
         # and can be used for searching/sorting
         st.dataframe(
-            styled_dataframe, height="stretch", hide_index=True,
+            styled_dataframe, height=table_height, hide_index=True,
             column_config={
                 "#": st.column_config.Column(width=40, alignment="center"),
-                "Name": st.column_config.Column(width=150),
-                TERMS["attempt"]: st.column_config.Column(width=50),
-                TERMS["source"]: st.column_config.Column(width=140),},
+                "Name": st.column_config.Column(width=170),
+                # attempt_title: st.column_config.Column(width=50),
+                TERMS["source"]: st.column_config.Column(width=165),
+            },
             key=f"{component_key}_table_history", placeholder="")
         
     # Overview tab container
@@ -89,11 +91,12 @@ def table_view(component_key: str, object_type: str,
             .format(precision=0))
         # Generate table
         st.dataframe(
-            styled_dataframe_overview, height="stretch", hide_index=True,
+            styled_dataframe_overview, height=table_height, hide_index=True,
             column_config={
                 "Name": st.column_config.Column(width=125),
                 "Total": st.column_config.Column(width=45),
-                TERMS["attempt"]: st.column_config.Column(width=50),},
+                # attempt_title: st.column_config.Column(width=50),
+            },
             key=f"{component_key}_table_overview", placeholder="")
 
 

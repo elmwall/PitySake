@@ -42,9 +42,9 @@ class Secretary:
 
         self.attempt_ref = TERMS["attempt"]
         self.attribute_ref = TERMS["attribute"]
-        self.common_ref = TERMS["common_source"]
+        # self.common_ref = TERMS["common_source"]
         self.event_ref = TERMS["event"]
-        self.gift_ref = TERMS["gift"]
+        # self.gift_ref = TERMS["gift"]
         self.main_ref = TERMS["main"]
         self.origin_ref = TERMS["origin"]
         self.progress_ref = TERMS["progress"]
@@ -53,7 +53,7 @@ class Secretary:
         self.state_ref = TERMS["state"]
         self.staterand_ref = TERMS["state_rand"]
         self.utility_ref = TERMS["utility"]
-        self.utility_sec_ref = TERMS["secondary_utility"]
+        self.utility_sec_ref = TERMS["utility"]
 
 
     def settings(self) -> tuple:
@@ -183,15 +183,15 @@ class Secretary:
         if type(st.session_state["reg_date"]) is str:
             st.session_state["translated_values"]["reg_date"] = st.session_state["reg_date"]
         # elif any([not st.session_state["translated_values"]["reg_date"], 
-        #           not st.session_state["add_event_choice"]]):
+        #           not st.session_state["include_event"]]):
         elif not st.session_state["translated_values"]["reg_date"]:
             pass
         else:
             adjusted_date = st.session_state["reg_date"].strftime("%y%m%d")
             st.session_state["translated_values"]["reg_date"] = adjusted_date
-        if st.session_state["reg_source"] in [self.common_ref, self.gift_ref]: 
+        if not self.options["states"][st.session_state["reg_source"]]: 
             st.session_state["translated_values"]["reg_state"] = None
-        if st.session_state["reg_source"] == self.gift_ref: 
+        if not self.options["source_limit"][st.session_state["reg_source"]]: 
             st.session_state["translated_values"]["reg_attempt"] = None
 
         # "Already in library" 
@@ -261,22 +261,22 @@ class Secretary:
                 data_checks["attribute_done"], data_checks["origin_done"] = True, True
             # Source
             if not st.session_state["translated_values"]["reg_source"]:
-                if not st.session_state["add_event_choice"]: 
+                if not st.session_state["include_event"]: 
                     data_checks["source_done"] = True
             else:
                 data_checks["source_done"] = True
             # State
             if not st.session_state["translated_values"]["reg_state"]:
                 reg_source = st.session_state["translated_values"]["reg_source"]
-                if any(reg_source == self.common_ref, 
-                       reg_source == self.gift_ref, 
-                       not st.session_state["add_event_choice"]): 
+                if any([not self.options["states"][reg_source], 
+                       not st.session_state["include_event"]]): 
                     data_checks["state_done"] = True
             else:
                 data_checks["state_done"] = True
             # Limit
             if st.session_state["translated_values"]["reg_attempt"] is None:
-                if not st.session_state["add_event_choice"]: 
+                if any([not self.options["source_limit"][reg_source],
+                        not st.session_state["include_event"]]): 
                     data_checks["attempt_done"] = True
             else:
                 data_checks["attempt_done"] = True

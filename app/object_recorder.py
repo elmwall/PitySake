@@ -26,16 +26,16 @@ TERMS = st.session_state["TERMS"]
 
 attempt_ref = TERMS["attempt"]
 attribute_ref = TERMS["attribute"]
-common_ref = TERMS["common_source"]
+# common_ref = TERMS["common_source"]
 event_ref = TERMS["event"]
-gift_ref = TERMS["gift"]
+# gift_ref = TERMS["gift"]
 main_ref = TERMS["main"]
 origin_ref = TERMS["origin"]
 secondary_ref = TERMS["secondary"]
 source_ref = TERMS["source"]
 state_ref = TERMS["state"]
 utility_ref = TERMS["utility"]
-utility_sec_ref = TERMS["secondary_utility"]
+utility_sec_ref = TERMS["utility"]
 
 
 def register_object(component_key: str, sub_keys: list, 
@@ -118,10 +118,10 @@ def register_object(component_key: str, sub_keys: list,
             # - controlled by reg action type
             checkbox_disabled = st.session_state["regset"] != "add_new"
             st.checkbox(
-                "Add event", key="add_event_choice", disabled=checkbox_disabled)
+                "Add event", key="include_event", disabled=checkbox_disabled)
             _date_input(data_options)
             event_disabled = any([
-                not st.session_state["add_event_choice"], 
+                not st.session_state["include_event"], 
                 st.session_state["regset"] not in ["add_new", "add_event"]])
             # Event details: source, state, attempts
             _event_details(preset_options, event_disabled)
@@ -200,9 +200,9 @@ def _action_selector(sub_keys: list, reg_options: dict,
 def _update_event_choice():
     "Syncs control value for adding event to session state."
     if st.session_state["regset"] not in ["add_new", "add_event"]:
-        st.session_state["add_event_choice"] = False
+        st.session_state["include_event"] = False
     else:
-        st.session_state["add_event_choice"] = True
+        st.session_state["include_event"] = True
 
 
 def _naming_object(secretary: Secretary, reg_selection: str):
@@ -444,7 +444,7 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
             new_data[name][utility_sec_ref] = st.session_state[
                 "translated_values"]["reg_utility"]
             
-        if st.session_state["add_event_choice"]:
+        if st.session_state["include_event"]:
             new_event = {
                 source_ref: st.session_state["translated_values"]["reg_source"],
                 attempt_ref: st.session_state["translated_values"]["reg_attempt"],
@@ -469,7 +469,7 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
                     event_data = old_event_data
 
                 if st.session_state["regset"] != "del_event": 
-                    if st.session_state["add_event_choice"]:
+                    if st.session_state["include_event"]:
                         now = datetime.datetime.now()
                         hhmmss = now.strftime("%H%M%S")
                         event_data[f"{event_date}-{hhmmss}"] = new_event
@@ -560,8 +560,9 @@ def _event_details(preset_options, event_disabled):
     # - suggested value from progress tracker
     # - controlled by source selection
     limit_disabled = any([event_disabled, st.session_state["limit_disabled"]])
+    num_title = f"{TERMS["unit"]} {attempt_ref}" if TERMS["unit"] else attempt_ref
     st.number_input(
-        f"{attempt_ref}", min_value=0, max_value=st.session_state["selection_limit"], 
+        num_title, min_value=0, max_value=st.session_state["selection_limit"], 
         key="reg_attempt", disabled=limit_disabled)
 
 # _event_details -> 
