@@ -50,6 +50,7 @@ def welcome(set_width, set_height):
             if not submission["template"]:
                 tools.apply("project_save", project_need_save, project_is_changed, submission_key, submission)
             elif submission[["ui_title"]]:
+                st.session_state["submitted"]["project_details"] = submission
                 tools.register("register", use_template=True)
 
         if col_reset.button("Reset", type="primary", disabled=disable_reset, width="stretch"):
@@ -104,6 +105,7 @@ def _define_project(col, project_need_save, project_is_changed, submission_key):
     st.session_state["checklists"]["project_save"] = [st.session_state["ui_title"],]
     return {
         "ui_title": st.session_state["ui_title"],
+        "file_name": str(st.session_state["ui_title"]).lower().replace(" ", "_"),
         "template": selected_template}
 
 
