@@ -84,8 +84,8 @@ def register(key, use_template=False):
             type="primary", 
             width="stretch"):
         
+        submitted = st.session_state["submitted"]
         if not use_template:
-            submitted = st.session_state["submitted"]
             terms = {
                 "attempt": submitted["event_terms"]["attempt"],
                 "attribute": submitted["objects_details"]["attribute"],
@@ -106,15 +106,15 @@ def register(key, use_template=False):
             data_options, progress = _data_options(terms, submitted)
             themes = _themes()
         else:
-            submitted = st.session_state["submitted"]
             template = _collect_template(submitted["template"])
-            title = submitted["ui_title"]
             config = template["config"]
             data_options = template["data_options"]
             progress = template["progress"]
             themes = template["themes"]
+        title = submitted["project_details"]["ui_title"]
+        file_name = submitted["project_details"]["file_name"]
         streamlit_config = _streamlit_config()
-        bat_content = _bat(title)
+        bat_content = _bat(file_name)
 
         # Collect app and project info
         root = Path(__file__).resolve().parent.parent.parent
@@ -122,9 +122,9 @@ def register(key, use_template=False):
         folder_list = [x.name for x in root.iterdir() if x.is_dir()]
 
         # Define new project environment
-        project_folder = root / title
-        project_py = root / f"{title}.py"
-        project_bat = root / f"{title}.bat"
+        project_folder = root / file_name
+        project_py = root / f"{file_name}.py"
+        project_bat = root / f"{file_name}.bat"
         # Prevent overwriting projects
         project_is_vacant = False
         if project_folder in folder_list:
@@ -165,6 +165,9 @@ def register(key, use_template=False):
             print(streamlit_config)
             print("\nbat_content content:")
             print(bat_content)
+            print()
+            print(f"folders:\n   {project_folder},\n   {backup_folder},\n   {data_folder},\n   {settings_folder}")
+            print(f"files\n  copied:\n   {root_py}\n  made:\n   {project_py},   {project_bat}")
         name_ok = False
         # Establish project environment
         if name_ok:
@@ -176,7 +179,7 @@ def register(key, use_template=False):
                 project_is_vacant = True
             except FileExistsError as e:
                 print(e)
-                print(f"A folder with name {title} already exists.")
+                print(f"A folder with name {file_name} already exists.")
                 quit()
         # Create project files
         if project_is_vacant:
@@ -188,7 +191,7 @@ def register(key, use_template=False):
                     "progress": progress,
                     "themes": themes
                 }
-                new_template["config"]["TERMS"]["ui_title"] = None
+                new_template["config"]["TERMS"][title] = None
                 _write(new_template, )
 
             _write(streamlit_config, root, "config.toml", file_type="toml")
@@ -440,7 +443,7 @@ def _write(data, folder, file, file_type="json"):
     elif file_type == "toml":
         config_folder = folder / ".streamlit"
         file_path = config_folder / file
-        with open(file_path, "x", encoding="utf-8") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(data)
     elif file_type == "bat":
         file_path = config_folder / file

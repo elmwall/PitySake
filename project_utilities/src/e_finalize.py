@@ -173,7 +173,7 @@ def _summarize_display(submitted):
         st.markdown(f"""Set unit: {unit}, values will be displayed as e.g. 300{unit}""")
 
 def _summarize_files(submitted, project):
-    file = submitted["project_details"]["ui_title"].lower().replace(" ", "_")
+    file = submitted["project_details"]["file_name"]
     st.markdown(f"""##### File structure""")
     st.markdown("Where your files and data will be located.")
     file_table = {
@@ -183,7 +183,7 @@ def _summarize_files(submitted, project):
             "Folder"
         ],
         "Path/FileName": [
-            f"PitySake/{project}",
+            f"Desktop/{project}  \nPitySake/{project}",
             f"{file}.bat",
             f"PitySake/{file}/"
         ],
