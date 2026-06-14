@@ -79,7 +79,15 @@ INIT = {
     "label_attribute": None,
     "label_origin": None,
     "label_need_save": "secondary",
-    "label_is_changed": False
+    "label_is_changed": False,
+    "label_attribute_multiples": False,
+    "label_origin_multiples": False,
+    "label_utility_multiples": False,
+    "label_fields": {
+        "utility": {},
+        "attribute": {},
+        "origin": {}
+    }
 }
 
 def initialize():

@@ -71,7 +71,7 @@ def _name_objects(objects_need_save, objects_is_changed, submission_key):
     with col_2.container(border=True, height="stretch"):
         root = Path(__file__).resolve().parent.parent.parent
         folder_list = [x.name for x in root.iterdir() if x.is_dir()]
-        print("folders", folder_list)
+        # print("folders", folder_list)
 
         st.markdown("##### Objects", text_alignment="center")
         # st.text_input(
