@@ -169,12 +169,11 @@ def _summarize_display(submitted):
         st.table(highlight_table, border="horizontal", width="stretch")
     else:
         st.markdown("- You have disabled highlights - timeline values will not be color coded")
-    print(type(unit) is str)
     if unit: 
         st.markdown(f"""Set unit: {unit}, values will be displayed as e.g. 300{unit}""")
 
 def _summarize_files(submitted, project):
-    file = submitted["project_details"]["ui_title"].replace(" ", "_")
+    file = submitted["project_details"]["ui_title"].lower().replace(" ", "_")
     st.markdown(f"""##### File structure""")
     st.markdown("Where your files and data will be located.")
     file_table = {

@@ -167,7 +167,7 @@ def _define_sources(progress_need_save, progress_is_changed, submission_key):
     st.session_state["checklists"]["progress_save"] = list(checks.values())
     switches = {
         "unit": unit,
-        "reverse_positive": st.session_state["reverse_positive"],
+        "reverse_positive": not st.session_state["reverse_positive"],
         "use_highlights": st.session_state["use_highlights"]
 
     }

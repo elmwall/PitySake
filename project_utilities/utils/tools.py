@@ -161,8 +161,10 @@ def register(key, use_template=False):
                             print(f"   {z1:20} {z2}")
                     else:
                         print(f"{y:20} {z}")
-            print("streamlit_config", streamlit_config)
-            print("bat_content", bat_content)
+            print("\nstreamlit_config content:")
+            print(streamlit_config)
+            print("\nbat_content content:")
+            print(bat_content)
         name_ok = False
         # Establish project environment
         if name_ok:
@@ -268,14 +270,16 @@ def _data_options(terms, submitted):
     source_limit = dict()
     states = dict()
     for name, details in submitted["progress_details"]["sources"].items():
-        progress[name] = {
-            terms["attempt"]: 0,
-            "State": "Uncertain",
-            "sets": {
-                "pages": 250,
-                "rows": 10
+        if details["limit"]:
+            state = "Uncertain" if details["evaluate"] else None
+            progress[name] = {
+                terms["attempt"]: 0,
+                "State": state,
+                "sets": {
+                    "pages": 250,
+                    "rows": 5
+                }
             }
-        }
         source_limit[name] = details["limit"]
         states[name] = details["evaluate"]
 
