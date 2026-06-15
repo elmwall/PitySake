@@ -28,16 +28,23 @@ def timeline(component_key: str, set_height: int):
     # Feature header
     if st.session_state["header_switch"]:
         with st.container(key=f"{component_key}_head", width="stretch", height="content"):
-            help_text = f"""All {TERMS["event"].lower()}s of {TERMS["main"].lower()}s.  
-                Dot color highlights {TERMS["state_win"].lower()};  
-                Line color highlights rare {TERMS["attempt"].lower()} values, good or bad."""
+            help_text = f"""Timeline of events  
+                - {TERMS["main"]}s with (○) or without (Δ) {TERMS["attempt"]}   
+                - {TERMS["secondary"]}s with (□) or without (∇) {TERMS["attempt"]}    
+                - Fill color highlights outcomes {TERMS["state_win"]} or {TERMS["state_loss"]}  
+                - Line color highlights rare {TERMS["attempt"]} values"""
             st.markdown(f"##### *Timeline*", help=help_text, text_alignment="left")
     fheight = 300 if set_height > 300 else set_height
 
     # Main container
     with st.container(border=True, key=f"{component_key}_main", width="stretch", height=fheight):
-        object_database = hold.load_main_database()
-        data = hold.process_collection_db(object_database, "main")["graph_data"]
+        main_database = hold.load_main_database()
+        secondary_database = hold.load_secondary_database()
+        main_data = hold.process_main_db(main_database)["graph_data"]
+        secondary_data = hold.process_secondary_db(secondary_database)["graph_data"]
+        data = dict()
+        for x in main_data.keys():
+            data[x] = main_data[x] + secondary_data[x]
         
         # Settings: adapted theme; values for date, name, progress, and state
         theme = {
@@ -52,7 +59,7 @@ def timeline(component_key: str, set_height: int):
         dates = data["date"]
         names = data["name"]
         value = data["attempt"]
-        state = data["state"]
+        highlight = data["highlight"]
 
         fig = go.Figure()
         # Set highlights for high/low depending on project settings
@@ -62,19 +69,19 @@ def timeline(component_key: str, set_height: int):
         else:
             high_color = theme["positive"]
             low_color = theme["negative"]
+        
         for i in range(len(dates)):
             if value[i] is not None: 
-                    
-                if value[i] > options["user_indicators"]["high_highlight"]:
+                if highlight[i] is True:
                     hightlight_col = high_color
-                elif value[i] < options["user_indicators"]["low_highligh"]:
+                elif highlight[i] is False:
                     hightlight_col = low_color
-                else:
+                elif highlight[i] is None:
                     hightlight_col = theme["neutral"]
                 
-                if state[i] is True:
+                if data["state"][i] is True:
                     dot_col = theme["positive"]
-                elif state[i] is False:
+                elif data["state"][i] is False:
                     dot_col = theme["negative"]
                 else:
                     dot_col = theme["neutral"]
@@ -86,21 +93,39 @@ def timeline(component_key: str, set_height: int):
                         line=dict(color=hightlight_col, width=1),
                         hoverlabel=dict(bgcolor="rgba(0, 0, 0, 1)"),
                         showlegend=False))
+                
+                if data["type"][i] == "main":
+                    base_symbol = "circle" 
+                    symbol_angle = 0
+                else: 
+                    base_symbol = "square"
+                    symbol_angle = 180
 
+                if data["attempt_made"][i]:
+                    symbol_shape = base_symbol
+                    symbol_size = 10
+                    display_value = value[i]
+                else: 
+                    symbol_shape = "arrow"
+                    symbol_size = 14
+                    display_value = ""
                 # Draw dot
                 fig.add_trace(
                     go.Scatter(
                         x=[dates[i]], y=[value[i]], mode='markers+text',
-                        hovertemplate=f"<b>{names[i]}: {value[i]}</b><br>{dates[i]}<extra></extra>",
+                        hovertemplate=f"<b>{names[i]}: {display_value}</b><br>{dates[i]}<extra></extra>",
                         marker=dict(
-                            color=dot_col, size=10, 
+                            color=dot_col, size=symbol_size, symbol=symbol_shape, angle=symbol_angle,
                             line=dict(color=theme["background"], width=2)),
                         hoverlabel=dict(bgcolor="rgba(0, 0, 0, 0)"),
                         name=names[i], showlegend=False))
 
         # Axes
         fig.update_xaxes(
-            tickfont_color=theme["text"], gridcolor='white')
+            tickfont_color=theme["text"], gridcolor='white',
+            tickformatstops = [
+                dict(dtickrange=[None, 86400000], value="%b %d, %Y")
+            ])
         fig.update_yaxes(
             zeroline=False, tickfont_color=theme["text"],
             gridcolor=theme["subarea"], range=[-5, None])

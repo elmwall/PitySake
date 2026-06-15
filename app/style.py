@@ -294,7 +294,7 @@ font = 'sans serif'
                 with open(".streamlit/config.toml", "w") as f:
                     f.write(config.strip())
             except Exception as e:
-                logger.exception(f"Error from {e} occurred while attempting to write to config.toml")
+                logger.exception(f"\nError: {e}\nOccurred while attempting to write to config.toml")
             logger.info(f"Update called for ui_themes.json")
             if arciv.writer(themes, set_file="ui_themes.json", join_path="settings"):
                 logger.info("Theme updated")
