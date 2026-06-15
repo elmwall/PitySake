@@ -1,6 +1,7 @@
 import copy
 import json
 from pathlib import Path
+import pythoncom
 from pyshortcuts import make_shortcut
 import shutil
 
@@ -120,8 +121,10 @@ def register(key, use_template=False):
         root = Path(__file__).resolve().parent.parent.parent
         root_py = root / "user_project.py"
         folder_list = [x.name for x in root.iterdir() if x.is_dir()]
+        templates_folder = root / "templates"
+        streamlit_config_folder = root / ".streamlit"
 
-        # Define new project environment
+        # Define new project environment 
         project_folder = root / file_name
         project_py = root / f"{file_name}.py"
         project_bat = root / f"{file_name}.bat"
@@ -166,9 +169,11 @@ def register(key, use_template=False):
             print("\nbat_content content:")
             print(bat_content)
             print()
-            print(f"folders:\n   {project_folder},\n   {backup_folder},\n   {data_folder},\n   {settings_folder}")
-            print(f"files\n  copied:\n   {root_py}\n  made:\n   {project_py},   {project_bat}")
-        name_ok = False
+            print("general file name", templates_folder)
+            print("root", root)
+            print(f"folders:\n   {project_folder},\n   {backup_folder},\n   {data_folder},\n   {settings_folder}\n   {templates_folder}")
+            print(f"files\n  copied:\n   {root_py}\n  made:\n   {project_py},\n   {project_bat},\n")
+        # name_ok = False
         # Establish project environment
         if name_ok:
             try:
@@ -176,6 +181,7 @@ def register(key, use_template=False):
                 backup_folder.mkdir(exist_ok=False)
                 data_folder.mkdir(exist_ok=False)
                 settings_folder.mkdir(exist_ok=False)
+                templates_folder.mkdir(exist_ok=False)
                 project_is_vacant = True
             except FileExistsError as e:
                 print(e)
@@ -187,24 +193,24 @@ def register(key, use_template=False):
             if not use_template:
                 new_template = {
                     "config": copy.deepcopy(config),
-                    "data_options": data_folder,
+                    "data_options": data_options,
                     "progress": progress,
                     "themes": themes
                 }
                 new_template["config"]["TERMS"][title] = None
-                _write(new_template, )
+                _write(new_template, templates_folder, file_name)
 
-            _write(streamlit_config, root, "config.toml", file_type="toml")
+            _write(streamlit_config, streamlit_config_folder, "config.toml", file_type="toml")
 
             _write({}, data_folder, "backup_meta.json")
             _write({}, data_folder, "main.json")
             _write(progress, data_folder, "progress.json")
             _write({}, data_folder, "secondary.json")
 
-            _write(config, project_folder, "config.json")
-            _write(data_options, project_folder, "data_options.json")
+            _write(config, settings_folder, "config.json")
+            _write(data_options, settings_folder, "data_options.json")
             # _write({"theme": "Theme 1"}, project_folder, "meta.json")
-            _write(themes, project_folder, "ui_themes.json")
+            _write(themes, settings_folder, "ui_themes.json")
 
             # Create project main module
             shutil.copy(root_py, project_py)
@@ -213,10 +219,11 @@ def register(key, use_template=False):
             # desktop_path = Path.home() / "Desktop"
             # desktop_shortcut = desktop_path / f"{title}.lnk"
             icon_path = root / "accessories/icon1.ico"
-            root_shortcut = root / f"{title}.lnk"
+            root_shortcut = root
             
-            make_shortcut(project_bat, name=f"{title}.lnk", icon=icon_path, desktop=True)
-            make_shortcut(project_bat, name=f"{title}.lnk", icon=icon_path, folder=root_shortcut)
+            pythoncom.CoInitialize()
+            make_shortcut(str(project_bat), name=f"{title}.lnk", working_dir=root, icon=str(icon_path), desktop=True)
+            make_shortcut(str(project_bat), name=f"{title}.lnk", working_dir=root, icon=str(icon_path), folder=str(root_shortcut))
 
 
 def _config(terms):
@@ -236,8 +243,8 @@ def _config(terms):
         },
         "DATAPATH": {
             "backup_meta": "backup_meta.json",
-            "Character": "main.json",
-            "Weapon": "secondary.json",
+            f"{terms["main"]}": "main.json",
+            f"{terms["secondary"]}": "secondary.json",
             "progress": "progress.json"
         },
         "TERMS": {
@@ -261,7 +268,7 @@ def _config(terms):
             "state_rand": "Uncertain",
             "state_rand_symbol": "?",
             "title": "PitySake",
-            "unit": f"{terms["unit"]}",
+            "unit": terms["unit"],
             "utility": f"{terms["utility"]}",
             "ui_title": f"{terms["ui_title"]}"
         }
@@ -435,17 +442,13 @@ def _collect_template(template):
 
 
 def _write(data, folder, file, file_type="json"):
+    file_path = folder / file
     if file_type == "json":
-        settings_folder = folder / "settings"
-        file_path = settings_folder / file
         with open(file_path, "x", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
     elif file_type == "toml":
-        config_folder = folder / ".streamlit"
-        file_path = config_folder / file
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(data)
     elif file_type == "bat":
-        file_path = config_folder / file
         with open(file_path, "x", encoding="utf-8") as f:
             f.write(data)

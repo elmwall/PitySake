@@ -300,7 +300,7 @@ def _select_labels(sub_keys: list, preset_options: dict,
         col_label.markdown(TERMS["utility"])
         col_options.pills(
             "reg_utility", options=preset_options["options_utility"], 
-            key="reg_utility", label_visibility="collapsed", width="stretch")  
+            key="reg_utility", label_visibility="collapsed", width="content")  
 
     # Attribute selection
     with st.container(
@@ -312,7 +312,7 @@ def _select_labels(sub_keys: list, preset_options: dict,
         col_options.pills(
             "reg_attribute", options=preset_options["options_attribute"], 
             key="reg_attribute", disabled=disable_extras, 
-            label_visibility="collapsed", width="stretch")
+            label_visibility="collapsed", width="content")
 
     # Origin selection
     with st.container(
@@ -323,7 +323,7 @@ def _select_labels(sub_keys: list, preset_options: dict,
         col_options.pills(
             "reg_origin", options=preset_options["options_origin"], 
             key="reg_origin", disabled=disable_extras, 
-            label_visibility="collapsed", width="stretch")
+            label_visibility="collapsed", width="content")
 
 
 def _save_data(secretary: Secretary, preset_keys: list, 
@@ -511,10 +511,11 @@ def _date_input(data_options: dict):
         options_dates = None
     # Preset earliest date defined in options file, and latest as today
     date_min = data_options["value_limits"]["date"][0]
-    date_min = datetime.datetime(
-        int("20"+date_min[0:2]),
-        int(date_min[2:4]), 
-        int(date_min[4:6]))
+    if date_min:
+        date_min = datetime.datetime(
+            int("20"+date_min[0:2]),
+            int(date_min[2:4]), 
+            int(date_min[4:6]))
     date_max = datetime.date.today()
     disable_dates = False
     # Option "Delete event" sets the list options as previous event dates

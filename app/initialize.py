@@ -155,7 +155,7 @@ def initialize():
             except Exception as e:
                 error.message("Could not initialize key.", "Initialize: initialize", 
                                 name=key, file=None, details=None)
-                logger.warning(f"initialize could not initialize key: {key}")
+                logger.exception(f"\ninitialize could not initialize key: {key}")
     
     # Initialize theme setting keys
     for key in themes[st.session_state["active_theme"]].keys():
@@ -167,10 +167,10 @@ def initialize():
     meta = st.session_state["meta"]
     active_theme = st.session_state["active_theme"]
     logger.info(f"""
-        Last session project: {meta["project"]}
-        Current session project: {st.session_state["project"]}
-        Last session theme: {meta["theme"]}
-        Current session theme: {st.session_state["active_theme"]}""")
+Last session project: {meta["project"]}
+Current session project: {st.session_state["project"]}
+Last session theme: {meta["theme"]}
+Current session theme: {st.session_state["active_theme"]}""")
     # Themes are stored as Theme 1, Theme 2 etc, which themselves may differ
     # between projects, therefore check both project and set theme.
     project_nomatch = meta["project"] != st.session_state["project"]
@@ -189,7 +189,6 @@ def fetch_databases():
     - loads for session state: theme
     - tries for a set number of times, then aborts
     """
-
     logger.info("Fetching")
     n = 0
     database_list = ["load_options", "load_themes", 
@@ -206,11 +205,11 @@ def fetch_databases():
             hold.load_secondary_database(),
             hold.load_progress_data()
         ]:
-            logger.info("Fetching databases: {n}")
-            if not database:
+            logger.info(f"Fetching database {n}: {database_list[n]}")
+            if not database and type(database) is not dict:
                 done = False
                 problematic.add(database_list[n])
-                logger.warning(f"Failed to read database {n}: {database_list[n]}")
+                logger.warning(f"\nFailed to read database {n}: {database_list[n]}")
             else:
                 logger.info(f"Collected database {n}: {database_list[n]}")
             n += 1
@@ -220,11 +219,11 @@ def fetch_databases():
             st.session_state["rerun"] = 0
             st.rerun()
         else:
-            logger.info(f"Failed to read database(s): {database_list}")
+            logger.exception(f"\nFailed to read database(s): {problematic}")
             error.message("Failed to read database(s).", "Initialize: fetch", 
-                            name=None, file=None, details=database_list)
+                            name=None, file=None, details=problematic)
     except Exception:
-        logger.exception(f"Failed to collect database at stage: {database_list[n]}")
+        logger.exception(f"\nFailed to collect database at stage: {database_list[n]}")
         error.message("Failed to collect database.", "Initialize: fetch", 
                         name=database_list[n], file=None, details=None)
 
@@ -241,7 +240,8 @@ def refresh():
     hold.load_main_database.clear(),
     hold.load_secondary_database.clear(),
     hold.load_progress_data.clear()
-    hold.process_collection_db.clear()
+    hold.process_main_db.clear()
+    hold.process_secondary_db.clear()
     hold.history_dataframe.clear()
     hold.overview_dataframe.clear()
 
@@ -274,7 +274,7 @@ font = 'sans serif'
             f.write(config.strip())
             theme_updated = True
     except Exception as e:
-        logger.exception(f"Error from {e} occurred while attempting to write to config.toml")
+        logger.exception(f"\nError: {e} \nOccurred while attempting to write to config.toml")
     
     if theme_updated:
         meta["project"] = st.session_state["project"]

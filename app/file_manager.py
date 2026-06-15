@@ -57,11 +57,12 @@ class Archivist:
         if initialized:
             self.terms = st.session_state["TERMS"]
 
-        logger.info(f"""file_manager.Archivist instanced with:
-            FILE: {self.file}, 
-            DATA: {self.data_directory}, 
-            SETTINGS: {self.settings_directory}, 
-            BACKUP: {self.backup_directory}""")
+        logger.info(f"""
+file_manager.Archivist instanced with:
+FILE: {self.file}, 
+DATA: {self.data_directory}, 
+SETTINGS: {self.settings_directory}, 
+BACKUP: {self.backup_directory}""")
 
 
     def reader(self, set_file :str = None, join_path: str | None = None, 
@@ -86,9 +87,10 @@ class Archivist:
             join_path, set_file, stage="Reading")
         if not path_is_resolved:
             return False
-        logger.info(f"""file_manager.Archivist.reader request: 
-            FILE: {self.file}, SET_FILE: {set_file}, JOIN_PATH: {join_path}, 
-            FULL_PATH: {read_file}""")
+        logger.info(f"""
+file_manager.Archivist.reader request: 
+FILE: {self.file}, SET_FILE: {set_file}, JOIN_PATH: {join_path}, 
+FULL_PATH: {read_file}""")
         
         if is_json:
             try:
@@ -97,24 +99,24 @@ class Archivist:
                     return json.load(f)
             except FileNotFoundError:
                 if allow_missing:
-                    logger.exception(f"No file to read: {read_file}. Exception allowed.")
+                    logger.warning(f"No file to read: {read_file}. Exception allowed.")
                     return None
                 else:
-                    logger.exception(f"Failed to read file {read_file}.")
+                    logger.exception(f"\nFailed to read file {read_file}.")
                     error.message("Failed to read file.", "Archivist: Reading", 
                                   name=None, file=read_file, details=None)
                     return False
             except json.JSONDecodeError:
                 if allow_empty:
-                    logger.exception(f"Empty datafile: {read_file}. Exception allowed.")
+                    logger.warning(f"Empty datafile: {read_file}. Exception allowed.")
                     return None
                 else:
-                    logger.exception(f"File {read_file} could not be decoded as JSON.")
+                    logger.exception(f"\nFile {read_file} could not be decoded as JSON.")
                     error.message("File content not be interpreted.", "Archivist: Reading", 
                                   name=None, file=read_file, details=None)
                     return False
             except Exception:
-                logger.exception(f"Archivist.reader failed to read json: {read_file}.")
+                logger.exception(f"\nArchivist.reader failed to read json: {read_file}.")
                 error.message("Failed to read file.", f"Archivist: Reading", 
                               name=None, file=read_file, details=None)
                 return False
@@ -125,12 +127,12 @@ class Archivist:
                     return f.read()
             except FileNotFoundError:
                 if allow_missing:
-                    logger.exception(f"No file to read: {read_file}. Exception allowed.")
+                    logger.warning(f"No file to read: {read_file}. Exception allowed.")
                     error.message("No file to read.", f"Archivist: Reading", 
                                   name=None, file=read_file, details=None)
                     return None
             except Exception:
-                logger.exception(f"Failed to read file {read_file}.")
+                logger.exception(f"\nFailed to read file {read_file}.")
                 error.message("Failed to read file.", f"Archivist: Reading", 
                                 name=None, file=read_file, details=None)
                 return False
@@ -193,9 +195,10 @@ class Archivist:
             else:
                 data = "postpone"
         if backup_file:
-            logger.info(f"""file_manager.Archivist.reader request: 
-                FILE: {self.file}, SET_FILE: {set_file}, DATATYPE: {object_type}, 
-                BACKUP_PATH: {backup_file}, EDIT_COUNT: {file_edit_count} mod {value}""")
+            logger.info(f"""
+file_manager.Archivist.reader request: 
+FILE: {self.file}, SET_FILE: {set_file}, DATATYPE: {object_type}, 
+BACKUP_PATH: {backup_file}, EDIT_COUNT: {file_edit_count} mod {value}""")
         edit_meta[file] = file_edit_count + 1
         self.writer(edit_meta, set_file=meta_file)
 
@@ -207,7 +210,7 @@ class Archivist:
         elif data:
             file_length = len(data)
         else:
-            logger.warning(f"{file} backup stopped - new data is empty.")
+            logger.warning(f"\n{file} backup stopped - new data is empty.")
             st.session_state["pending_backup"] = True
             error.catch_backup_data(
                 "nodata", data, file, backup_file, object_type)
@@ -215,9 +218,10 @@ class Archivist:
 
         if backup_file and os.path.exists(backup_file):
             backup_length = len(self.reader(backup_file))
-            logger.info(f"""Backup control: 
-                        datafile length: {file_length}, datafile location: {file}, 
-                        backup length: {backup_length}, backup location: {backup_file}""")
+            logger.info(f"""
+Backup control: 
+datafile length: {file_length}, datafile location: {file}, 
+backup length: {backup_length}, backup location: {backup_file}""")
         else:
             backup_length = 0
 
@@ -225,7 +229,7 @@ class Archivist:
         if data == "postpone":
             backup_file = False
         elif backup_length > file_length+2:
-            logger.warning(f"{file} backup stopped - data too short.")
+            logger.warning(f"\n{file} backup stopped - data too short.")
             error.catch_backup_data(
                 "tooshort", data, file, backup_file, object_type)
             return False
@@ -277,10 +281,11 @@ class Archivist:
             join_path, set_file, stage="Joining")
         if not path_is_resolved:
             return False
-        logger.info(f"""file_manager.Archivist.join_data request: 
-            FILE: {read_file}, ADDITION: {name}, 
-            SETTING: for deletion {for_deletion}, editing-only {for_editing}, 
-                     static {is_static}           sorting {need_sorting}""")
+        logger.info(f"""
+file_manager.Archivist.join_data request: 
+FILE: {read_file}, ADDITION: {name}, 
+SETTING: for deletion {for_deletion}, editing-only {for_editing}, 
+static {is_static}           sorting {need_sorting}""")
 
         data = self.reader(set_file=read_file)
         if type(data) is dict: 
@@ -297,19 +302,16 @@ class Archivist:
                 is_static = for_deletion = True
                 logger.info(f"Pre-save editing of {name} performed")
             except:
-                logger.exception(f"""Replacing '{name}' in {read_file} 
-                                 could not be performed.""")
+                logger.exception(f"""\nReplacing '{name}' in {read_file} could not be performed.""")
                 error.message(f"Updating {name} could not be performed.", 
                               "Archivist: Joining", name=name, file=read_file, details=None)
 
         if for_deletion:
             try:
                 data.pop(name)
-                logger.info(f"""Archivist.join_data pre-save removal 
-                            of {name} performed.""")
+                logger.info(f"""Archivist.join_data pre-save removal of {name} performed.""")
             except KeyError:
-                logger.exception(f"""Key '{name}' not removed, 
-                                 already absent from {read_file}.""")
+                logger.exception(f"""\nKey '{name}' not removed, already absent from {read_file}.""")
                 error.message(f"{name} could not be removed, is already absent.", 
                               "Archivist: Joining", name=name, file=read_file, details=None)
                 return False
@@ -320,8 +322,7 @@ class Archivist:
                 return False
             
             if len(data) != original_length-1 and not for_editing: 
-                logger.exception(f"""Expected a data length decrease 
-                                 after removing {name}.""")
+                logger.exception(f"""\nExpected a data length decrease after removing {name}.""")
                 error.message(f"Expected a data length decrease in {read_file} not detected.", 
                               "Archivist: Joining", name=name, file=read_file, details=None)
                 return False
@@ -340,7 +341,7 @@ class Archivist:
         # Abnormal case: a non-growing library has changed length, 
         # without a deletion registered
         elif len(data) != original_length and is_static and not for_deletion: 
-            logger.exception(f"Data length altered unexpectedly. Update aborted.")
+            logger.exception(f"\nData length altered unexpectedly. Update aborted.")
             error.message(f"Unexpected difference in {read_file} data length, not saved.", 
                           "Archivist: Joining", name=name, file=read_file, details=None)
             return False
@@ -349,6 +350,7 @@ class Archivist:
             try:
                 data.update(new_data)
             except ValueError:
+                logger.exception(f"\nUnable to update {read_file} with {name}.")
                 error.message(f"Unable to update file with {name}.", 
                               "Archivist: Joining", name=name, file=read_file, details=None)
                 return False
@@ -357,10 +359,12 @@ class Archivist:
 
         # Checking data validity depending on previous action. 
         if name not in data.keys():
+            logger.exception(f"\nFailed to add new data in {read_file} with {name}.")
             error.message("Failed to add new data.", "Archivist: Joining", 
                           name=name, file=read_file, details=None)
             return False
         elif len(data) != original_length+1 and not is_static:
+            logger.exception(f"\nExpected data length increase didn't happen in {read_file} with {name}.")
             error.message("Expected data length increase didn't happen.", 
                           "Archivist: Joining", name=name, file=read_file, details=None)
             return False
@@ -393,27 +397,28 @@ class Archivist:
         try:
             length = len(data)
         except:
-            logger.warning(f"Save in {save_file} with invalid format aborted.")
+            logger.exception(f"\nSave in {save_file} with invalid format aborted.")
             error.message("Save with invalid format aborted.", "Archivist.writer", 
                           name=None, file=save_file, details=None)
 
         try:
             with open(save_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
-                logger.info(f"""file_manager.Archivist.writer wrote: 
-                    FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
+                logger.info(f"""
+file_manager.Archivist.writer wrote: 
+FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
                 return True
         except json.JSONDecodeError:
             error.dump(
                 "Archivist.writer", {
                     "data": data, "object_type": object_type,
                     "self-file": self.file, "set_file": set_file, "join_path": join_path})
-            logger.exception(f"Could not decode data to save in {save_file}.")
+            logger.exception(f"\nCould not decode data to save in {save_file}.")
             error.message("Could not interpret new data for JSON.", "Archivist.writer", 
                           name=None, file=save_file, details=None)
             return False
         except Exception as e:
-            logger.exception(f"Could not save to {save_file}.")
+            logger.exception(f"\nCould not save to {save_file}.")
             error.message("Could not save data.", "Archivist.writer", 
                           name=None, file=save_file, details=None)
             return False

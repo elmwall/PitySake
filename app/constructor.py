@@ -51,8 +51,16 @@ def header():
     with st.container(
             border=False, key="settings_main",
             height=header_height, vertical_alignment="center"):
-        # Creates columns for buttons and for title
+        # Creates columns
         c1, col_options, col_title, c3 = st.columns([0.1, 5, 2, 5])
+        # Error message for user is rendered in top-right corner 
+        # for visibility without being mixed up with other layout.
+        # Placing it in the rendered layout instead of dialog is preferable, 
+        # since only one dialog is allowed
+        if st.session_state["error"]:
+            with c3.container(border=True, key="error_field_main", width="stretch", height=header_height):
+                error.notify()
+
         with col_options:
             with st.container(key="border_options"):
                 col_view, col_refr, col_theme = st.columns([4, 3.5, 2])
@@ -87,13 +95,6 @@ def header():
                         if st.session_state["theme_edited"] and not st.session_state["leave_theme_open"]:
                             st.session_state["show_theme_settings"] = True
                             st.session_state["theme_edited"] = 0
-        # Error message for user is rendered in top-right corner 
-        # for visibility without being mixed up with other layout.
-        # Placing it in the rendered layout instead of dialog is preferable, 
-        # since only one dialog is allowed
-        if st.session_state["error"]:
-            with c3.container(border=True, key="error_field_main", width="stretch", height=header_height):
-                error.notify()
 
 
 def horizontal_view(registration_keys: list, prog_meter_keys: list, 

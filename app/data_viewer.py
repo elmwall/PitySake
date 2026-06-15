@@ -44,16 +44,18 @@ def table_view(component_key: str, object_type: str,
     # Collect relevant database
     if object_type == "main":
         database = hold.load_main_database()
+        rows = hold.process_main_db(database)["table_data"]
+        overview = hold.process_main_db(database)["overview_data"]
     elif object_type == "secondary":
         database = hold.load_secondary_database()
-    # attempt_title = hold.process_collection_db(database, object_type)["attempt_title"]
-        
+        rows = hold.process_secondary_db(database)["table_data"]
+        overview = hold.process_secondary_db(database)["overview_data"]
+
     # History tab container
     with st.container(
             border=False, key=f"{component_key}_holder_history", width="stretch", height=history_height):
 
         # Send for processing or collect cache for data and pandas dataframe
-        rows = hold.process_collection_db(database, object_type)["table_data"]
         dataframe = hold.history_dataframe(rows, object_type)
         # Set dataframe style (should not be cached)
         styled_dataframe = (
@@ -76,13 +78,12 @@ def table_view(component_key: str, object_type: str,
                 TERMS["source"]: st.column_config.Column(width=165),
             },
             key=f"{component_key}_table_history", placeholder="")
-        
+    
     # Overview tab container
     with st.container(
             border=False, key=f"{component_key}_holder_overview", width="stretch", height=overview_height):
 
         # Send for processing or collect cache for data and pandas dataframe
-        overview = hold.process_collection_db(database, object_type)["overview_data"]
         overview_dataframe = hold.overview_dataframe(overview)
         # Set dataframe style (should not be cached)
         styled_dataframe_overview = (

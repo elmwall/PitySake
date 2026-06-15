@@ -52,7 +52,6 @@ def small_stats(component_key: str, sub_keys: list,
         st.markdown("")
 
         counts, total_val, last, att_median, success_rate = _analyze_data()
-
         # Content frame
         with st.container(width="stretch", height="stretch"):
             col_1, col_2 = st.columns([30, 30])
@@ -70,12 +69,12 @@ def small_stats(component_key: str, sub_keys: list,
                         compare_to_median = int(last - att_median)
                         sign = "+" if compare_to_median > 0 else "-"
                         delta_color = "inverse" if reverse else "normal"
-
+                        unit = TERMS["unit"] if TERMS["unit"] else ""
                         help = f"For {main_ref.lower()}s. {sign} {compare_to_median} compared to median"
                         with col_left:
                             _adjusted_metric(
                                 f"Last {event_ref.lower()}", metric_key="last_metric", 
-                                metric_value=f"{last}{TERMS["unit"]}",
+                                metric_value=f"{last}{unit}",
                                 base_limit=5, help_text=help, 
                                 delta={"text": f"{compare_to_median}", "color": delta_color})
                         
@@ -84,7 +83,7 @@ def small_stats(component_key: str, sub_keys: list,
                         with col_right:
                             _adjusted_metric(
                                 "Median", metric_key="median_metric", 
-                                metric_value=f"{att_median}{TERMS["unit"]}",
+                                metric_value=f"{att_median}{unit}",
                                 base_limit=5, help_text=help)
                         st.space(18)
 
@@ -103,7 +102,7 @@ def small_stats(component_key: str, sub_keys: list,
                         with col_right:
                             _adjusted_metric(
                                 "Total", metric_key="tot_metric", 
-                                metric_value=f"{total_val}{TERMS["unit"]}",
+                                metric_value=f"{total_val}{unit}",
                                 base_limit=5, help_text=help)
             
             # Label count 
@@ -145,14 +144,17 @@ def _analyze_data() -> tuple:
     secondary_database = hold.load_secondary_database()
     progress = hold.load_progress_data()
     # Send databases for processing, alt retrieve cached processed data
-    processed_main = hold.process_collection_db(main_database, "main")
-    processed_secondary = hold.process_collection_db(secondary_database, "secondary")
+    processed_main = hold.process_main_db(main_database)
+    processed_secondary = hold.process_secondary_db(secondary_database)
 
     # Calculate success rate
     main_success = processed_main["success_fail"]
     secondary_success = processed_secondary["success_fail"]
     success = main_success[0] + secondary_success[0]
-    success_rate = success / sum(main_success + secondary_success)*100
+    if sum(main_success + secondary_success) > 0:
+        success_rate = success / sum(main_success + secondary_success)*100
+    else:
+        success_rate = 0
     success_rate = "%.f" % success_rate
 
     # Collect progress not yet registered as event
@@ -164,7 +166,10 @@ def _analyze_data() -> tuple:
     total_val = sum(attempt_list) + attempts
 
     # Median progress/attempts for all registered events
-    att_median = statistics.median(attempt_list)
+    if len(attempt_list) > 0:
+        att_median = statistics.median(attempt_list)
+    else:
+        att_median = 0
 
     # Last registered event
     last = processed_main["last_event"][1]
@@ -220,10 +225,11 @@ def _adjusted_metric(title: str, metric_key: str, metric_value: int, base_limit:
                 .replace("SIZE_REF", str(base_size)))
     with st.container(key=metric_key):
         if delta:
+            delta_color = "grey" if int(delta["text"]) == 0 else delta["color"]
             st.metric(
                 title, value=metric_value, 
                 help=help_text, border=False, width="stretch",
-                delta=delta["text"], delta_color=delta["color"])
+                delta=delta["text"], delta_color=delta_color)
         else:
             st.metric(
                 title, value=metric_value, 

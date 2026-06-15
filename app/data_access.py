@@ -66,7 +66,14 @@ def load_themes() -> dict:
 
 
 @st.cache_data
-def process_collection_db(database: dict, datatype: str):
+def process_main_db(database):
+    return _process_collection_db(database, "main")
+
+@st.cache_data
+def process_secondary_db(database):
+    return _process_collection_db(database, "secondary")
+
+def _process_collection_db(database: dict, datatype: str):
     """
     Database processing for data view featrues
     - manages processing for data depending on datatype
@@ -88,7 +95,10 @@ def process_collection_db(database: dict, datatype: str):
         "name": [],
         "date": [],
         "attempt": [],
-        "state": []
+        "attempt_made": [],
+        "state": [],
+        "highlight": [],
+        "type": []
     }
     
     # For analysis of values
@@ -116,6 +126,7 @@ def process_collection_db(database: dict, datatype: str):
                 counts[category][x] = 0
     state_value, date, object_collection, name, attempt_value, source, state, index = [None]*8
     for name, info in database.items():
+        print(name, datatype, info)
         # Only count labels for main type object
         if datatype == "main": 
             for category, options in counts.items():
@@ -169,20 +180,45 @@ def process_collection_db(database: dict, datatype: str):
                 if int(date) > last_event[0]:
                     last_event = [int(date), attempt_value]
                 # Check event outcome and update list [success, fail] with +1 for success or fail
-                if attempt_value:
-                    if state == TERMS["state_win"]:
-                        success_fail = [success_fail[0] + 1, success_fail[1]]
-                        state_value = True
-                    elif state == TERMS["state_loss"]: 
-                        success_fail = [success_fail[0], success_fail[1] + 1]
-                        state_value = False
-                    else:
-                        state_value = None
+                # if attempt_value:
+                #     if state == TERMS["state_win"]:
+                #         state_value = True
+                #     elif state == TERMS["state_loss"]: 
+                #         state_value = False
+                #     else:
+                #         state_value = None
+            if state == TERMS["state_win"]:
+                success_fail = [success_fail[0] + 1, success_fail[1]]
+                state_value = True
+            elif state == TERMS["state_loss"]: 
+                success_fail = [success_fail[0], success_fail[1] + 1]
+                state_value = False
+            else:
+                state_value = None
+
 
             graph_data["date"].append(formatted_date)
             graph_data["name"].append(name)
             graph_data["state"].append(state_value)
-            graph_data["attempt"].append(attempt_value)
+            graph_data["type"].append(datatype)
+            if attempt_value:
+                graph_data["attempt"].append(attempt_value)
+                graph_data["attempt_made"].append(True)
+
+                high_threshold = data_options["user_indicators"]["high_highlight"] / 100
+                low_threshold = data_options["user_indicators"]["low_highlight"] / 100
+                limit = data_options["source_limit"][source]
+                relative = attempt_value / limit
+                if relative > high_threshold:
+                    graph_data["highlight"].append(True)
+                elif relative < low_threshold:
+                    graph_data["highlight"].append(False)
+                else:
+                    graph_data["highlight"].append(None)
+            else:
+                graph_data["attempt"].append(0)
+                graph_data["attempt_made"].append(False)
+                graph_data["highlight"].append(None)
 
             # Create list of row sets for pandas
             if datatype == "main": 
@@ -236,6 +272,45 @@ def process_collection_db(database: dict, datatype: str):
                 TERMS["utility"]: info[TERMS["utility"]]
             })
 
+    if len(database) == 0: 
+        if datatype == "main": 
+            rows_for_history = [{
+                    "Date": None, 
+                    "#": None, 
+                    "Name": None,
+                    attempt_title: None, 
+                    TERMS["source"]: None,
+                    TERMS["origin"]: None, 
+                    TERMS["attribute"]: None, 
+                    TERMS["utility"]: None, 
+                    TERMS["state"]: None, 
+                    "Index": None}]
+            rows_for_overview = [{
+                "Name": None,
+                "Total": None,
+                "Mean": None,
+                TERMS["origin"]: None,
+                TERMS["attribute"]: None,
+                TERMS["utility"]: None}]
+        else:
+            rows_for_history = [{
+                    "Date": None, 
+                    " ": None, 
+                    "Name": None,
+                    attempt_title: None, 
+                    TERMS["source"]: None,
+                    TERMS["utility"]: None, 
+                    TERMS["state"]: None, 
+                    "Index": None}]
+            rows_for_overview = [{
+                "Name": None,
+                "Total": None,
+                "Mean": None,
+                TERMS["utility"]: None
+            }]
+            
+    for x, y in graph_data.items():
+        print (x)
     return {
         "counts": counts,
         "attempt_list": attempt_value_list,
@@ -265,7 +340,7 @@ def history_dataframe(rows: list, object_type: str):
     """
     
     dataframe = pd.DataFrame(rows)
-    # Use index for sorting, then discard
+    # Use index for sorting, then discard 
     processed_dataframe = (
         dataframe.sort_values(["Date", "Index"], ascending=False)
         .drop(columns=["Index"]))

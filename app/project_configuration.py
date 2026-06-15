@@ -274,7 +274,6 @@ def edit_options(attempts: dict, options: dict):
     
     # Save button - saves changed_options and changed_progress databases to file
     not_complete = not st.session_state["edit_options_complete"] or st.session_state["progress_changed"] is None
-    print("prch", st.session_state["progress_changed"])
     if col_4.button("Save", disabled=not_complete, width="stretch"):
         if st.session_state["progress_changed"]:
             logger.info(f"Update called for {DATAPATH["progress"]}")
@@ -364,13 +363,15 @@ def _initiate_option_edit(TERMS):
         options = st.session_state["changed_options"]
         # Label edits
         if selection in object_options:
-            requirements = options[f"{TERMS["main"]}_required"][selection]
-            selection_options = options[TERMS["main"]][selection]
-            remove_options = [x for x in selection_options if x not in requirements]
+            # requirements = options[f"{TERMS["main"]}_required"][selection]
+            # selection_options = options[TERMS["main"]][selection]
+            # remove_options = [x for x in selection_options if x not in requirements]
+            remove_options = options[TERMS["main"]][selection]
         # Source edits
         elif selection == named_option_ref["edit_source"]:
-            requirements = options["source_required"]
-            remove_options = [x for x in options["source_limit"].keys() if x not in requirements]
+            # requirements = options["source_required"]
+            # remove_options = [x for x in options["source_limit"].keys() if x not in requirements]
+            remove_options = options["source_limit"].keys()
         no_options = len(remove_options) < 1
     st.session_state["remove_options"] = remove_options
 

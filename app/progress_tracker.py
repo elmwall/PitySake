@@ -22,7 +22,7 @@ TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
 attempt_ref = TERMS["attempt"]
 progress_ref = TERMS["progress"]
-state_ref = TERMS["state"]
+# state_ref = TERMS["state"]
 staterand_ref = TERMS["state_rand"]
 statedet_ref = TERMS["state_det"]
 
@@ -82,15 +82,15 @@ def progress_meter(component_key: list, sub_keys: list,
                     is_static = False
                     color = st.session_state["themes"][active_theme]["text_color"]
                     # Indicate prognisis state of source
-                    if attempts[category][state_ref]:
-                        if attempts[category][state_ref] == staterand_ref:
+                    if attempts[category]["State"]:
+                        if attempts[category]["State"] == staterand_ref:
                             symbol = f"**{TERMS["state_rand_symbol"]}**"
                             switch_to = statedet_ref
-                        elif attempts[category][state_ref] == statedet_ref:
+                        elif attempts[category]["State"] == statedet_ref:
                             symbol = f"**{TERMS["state_det_symbol"]}**"
                             switch_to = staterand_ref
                             color = st.session_state["themes"][active_theme]["highlights"]
-                        state_values = (attempts, category, switch_to, state_ref)
+                        state_values = (attempts, category, switch_to, "State")
                     # Disable state for static state sources
                     else:
                         is_static = True
@@ -286,8 +286,8 @@ def _update_progress(attempts: dict, category: str,
     """    
     if option == attempt_ref:
         attempts[category][attempt_ref] = attempt_value
-    elif option == state_ref:
-        attempts[category][state_ref] = attempt_value
+    elif option == "State":
+        attempts[category]["State"] = attempt_value
     file = DATAPATH["progress"]
     logger.info(f"Update called for {file}")
     error.catch_data(attempts, file, progress_ref)

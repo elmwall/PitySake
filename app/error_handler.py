@@ -20,6 +20,12 @@ def message(message=None, stage=None, name=None,
             file=None, details=None, id=None):
     
     id = f"{datetime.datetime.now().strftime("%H%M")}-{secrets.token_hex(2)}"
+    logger.warning(f"""Error {id}: {message}
+stage: {stage}
+file: {file}
+object name: {name}
+details: {details}""")
+
     st.session_state["error"] = {
         "message": message,
         "stage": f"Archivist: {stage}",
@@ -44,12 +50,10 @@ def notify():
             for x in error["info_list"]:
                 info += f"- {x}  "
 
-        col_1, col_2, col_3, col_4 = st.columns([2, 6, 6, 1.5])
-        with col_1.container(border=True, width="stretch"):
-            st.markdown(
-                f"**:red[Error!] ID: {error["ID"]}**", text_alignment="center")
-        col_2.error(error["message"])
-        with col_3.expander("Details"):
+        col_1, col_2, col_4 = st.columns([3, 6, 1])
+        with col_1.container(border=False, width="stretch"):
+            st.error(error["message"])
+        with col_2.expander(f"Details - Error ID {error["ID"]}"):
             st.markdown(info)
 
         if col_4.button("Ok", width="stretch"): 
@@ -264,6 +268,6 @@ def dump(stage: str, details: dict, prefix: str = "data"):
     try:
         with open(dumpfile, "w", encoding="utf-8") as f:
             f.write(content)
-            logger.info(f"Dump created {stage} at {dumpfile}")
+            logger.info(f"Dump created during {stage} at {dumpfile}")
     except:
         logger.exception(f"Creating dump during {stage} at {dumpfile} failed.")

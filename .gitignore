@@ -1,18 +1,14 @@
-Notes/
-data/
-PitySake_Accessories/
-images/
-backup/
-settings/
-settings_dev/
+# Accessory files
 __pycache__/
-venv/
-unused/
 .streamlit/
 logs/
-test/
-
+data/
+backup/
+settings/
+templates/
 meta.json
+
+# Test files
 PitySake.lnk
 test.py
 test.ipynb
@@ -23,3 +19,12 @@ sample_obj.png
 sample_att.png
 sample_data.png
 sample_t.png
+
+# Dev files
+Notes/
+PitySake_Accessories/
+images/
+settings_dev/
+venv/
+unused/
+test/

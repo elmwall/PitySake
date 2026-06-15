@@ -149,7 +149,7 @@ class Secretary:
                 hold.load_main_database())
             st.session_state["reg_type"] = self.main_ref
             return hold.load_main_database()
-        if st.session_state["reg_object_type"] == self.utility_ref:
+        if st.session_state["reg_object_type"] == self.secondary_ref:
             st.session_state["current_database"] = copy.deepcopy(
                 hold.load_secondary_database())
             st.session_state["reg_type"] = self.secondary_ref
@@ -386,6 +386,6 @@ class Secretary:
                 updated_library, object_type, set_file=datafile, join_path="data")
             if object_type == self.main_ref:
                 st.session_state["processed_edits"] = True
-            elif object_type == self.utility_ref:
+            elif object_type == self.secondary_ref:
                 st.session_state["processed_edits"] = True
             st.rerun()
