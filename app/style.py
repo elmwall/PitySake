@@ -248,8 +248,13 @@ def theme():
             # Config file non-theme-related settings
             config_base = """
 [server]
-runOnSave = true\n
-            """
+runOnSave = true
+address = "127.0.0.1"
+
+[browser]
+gatherUsageStats = false
+
+"""
             if select_colors:
                 # Sync theme settings with temporary states (edited or not)
                 themes[selected_theme] = {
@@ -269,8 +274,7 @@ runOnSave = true\n
                 }
 
                 # Adjust theme in config file with edited colors
-                config = config_base + f"""
-[theme]
+                config = config_base + f"""[theme]
 backgroundColor = '{st.session_state["background_temp"]}'
 secondaryBackgroundColor = '{st.session_state["input_field_temp"]}'
 primaryColor = '{st.session_state["highlights_temp"]}'
@@ -279,8 +283,7 @@ font = 'sans serif'
 """         
             # Adjust theme in config file with predefined theme colors
             else:
-                config = config_base + f"""
-[theme]
+                config = config_base + f"""[theme]
 backgroundColor = '{themes[selected_theme]["background"]}'
 secondaryBackgroundColor = '{themes[selected_theme]["input_field"]}'
 primaryColor = '{themes[selected_theme]["highlights"]}'

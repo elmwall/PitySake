@@ -35,7 +35,7 @@ secondary_ref = TERMS["secondary"]
 source_ref = TERMS["source"]
 state_ref = TERMS["state"]
 utility_ref = TERMS["utility"]
-utility_sec_ref = TERMS["utility"]
+# utility_sec_ref = TERMS["utility"]
 
 
 def register_object(component_key: str, sub_keys: list, 
@@ -76,7 +76,7 @@ def register_object(component_key: str, sub_keys: list,
         with st.container(
                 key=f"{component_key}_head", 
                 width=feature_size_left, height="content"):
-            st.markdown("##### *Update library*",  text_alignment="left")
+            st.markdown("##### *Update library*", text_alignment="left")
 
     # Main container
     with st.container(
@@ -358,14 +358,14 @@ def _save_data(secretary: Secretary, preset_keys: list,
     """
     # 1. Check data 
     object_in_library, event_length, old_event_data = [None]*3
-    event_length, old_event_data = [None]*2
+    event_length, old_data = [None]*2
     current_database = st.session_state["current_database"]
     if st.session_state["reg_name"] is not None: 
         reg_name = st.session_state["reg_name"].title()
         object_in_library = reg_name in current_database
         if reg_name.title() in current_database:
             event_length = len(current_database[reg_name][event_ref])
-            old_event_data = current_database[reg_name][event_ref]
+            old_data = current_database[reg_name]
 
     data_is_valid, save_button_msg, is_secondary = secretary.data_validation(
         preset_keys, st.session_state["regset"], 
@@ -373,7 +373,7 @@ def _save_data(secretary: Secretary, preset_keys: list,
     task_states = secretary.checklist(data_is_valid)
     # 2. Compile object data on press of all data present, else disable button
     name, new_data = _compile_data(
-        task_states, save_button_msg, is_secondary, highlight_html, old_event_data)
+        task_states, save_button_msg, is_secondary, highlight_html, old_data)
     object_type = st.session_state["reg_object_type"]
     # 3. Saving process. For editing data, ask for renaming in dialog box
     if new_data and object_type: 
@@ -392,7 +392,7 @@ def _save_data(secretary: Secretary, preset_keys: list,
 
 # _save_data ->
 def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool, 
-                  highlight_html: str, old_event_data: dict) -> tuple:
+                  highlight_html: str, old_data: dict) -> tuple:
     """
     Save button render and function
     - active when validation and completion check is all true
@@ -420,8 +420,9 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
             dependent on data validation and checklist functions
         save_button_msg (str):
             user tip for complete/missing info in form
-        old_event_data (dict):
-            new event is added to this info
+        old_data (dict):
+            previous stored data on object to reuse for updates for parts not edited;  
+            new event is added to event, labels are reused except for edit_entry
 
     Returns:
         Tuple (str | None, dict | None):
@@ -433,16 +434,19 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
         name = st.session_state["translated_values"]["reg_name"].title()
         new_data = dict()
         new_data[name] = dict()
-        if not is_secondary:
-            new_data[name][origin_ref] = st.session_state[
-                "translated_values"]["reg_origin"]
-            new_data[name][attribute_ref] = st.session_state[
-                "translated_values"]["reg_attribute"]
+        if st.session_state["regset"] not in ["add_event", "del_event"]: 
             new_data[name][utility_ref] = st.session_state[
                 "translated_values"]["reg_utility"]
+            if not is_secondary:
+                new_data[name][origin_ref] = st.session_state[
+                    "translated_values"]["reg_origin"]
+                new_data[name][attribute_ref] = st.session_state[
+                    "translated_values"]["reg_attribute"]
         else:
-            new_data[name][utility_sec_ref] = st.session_state[
-                "translated_values"]["reg_utility"]
+            new_data[name][utility_ref] = old_data[utility_ref]
+            if not is_secondary:
+                new_data[name][origin_ref] = old_data[origin_ref]
+                new_data[name][attribute_ref] = old_data[attribute_ref]
             
         if st.session_state["include_event"]:
             new_event = {
@@ -461,12 +465,12 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
         if data_is_collected:
             event_date = st.session_state["translated_values"]["reg_date"]
             if st.session_state["regset"] == "edit_entry":
-                new_data[name][event_ref] = old_event_data
+                new_data[name][event_ref] = old_data[event_ref]
             elif st.session_state["regset"] in ["add_new", "add_event", "del_event"]:
                 if st.session_state["regset"] == "add_new":
                     event_data = dict()
                 else:
-                    event_data = old_event_data
+                    event_data = old_data[event_ref]
 
                 if st.session_state["regset"] != "del_event": 
                     if st.session_state["include_event"]:

@@ -18,7 +18,7 @@ import app.data_analysis as data_analysis
 import app.data_viewer as data_viewer
 import app.timeline as timeline
 import app.style as page
-import app.logger as log
+# import app.logger as log
 import app.error_handler as error
 
 
@@ -72,7 +72,7 @@ def header():
             type="tertiary", width="content")
         
         # View orientation selection - always horizontal at start
-        col_view.toggle("Vertical view", key="vertical_view")
+        col_view.toggle("Vertical view", key="vertical_view", on_change=init.set_orientation)
 
         if col_refr.button(
                 "Refresh page", key="reload_page", 

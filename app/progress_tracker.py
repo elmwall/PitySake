@@ -161,7 +161,7 @@ def progress_meter(component_key: list, sub_keys: list,
             st.markdown("")
 
             st.button(
-                "Reset", key=reset_key, type="tertiary", 
+                "**Reset**", key=reset_key, type="tertiary", 
                 on_click=_reset, args=(attempts, init_values), width="stretch")
         return height
     

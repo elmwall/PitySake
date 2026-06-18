@@ -1,11 +1,12 @@
 import copy
 import json
 from pathlib import Path
-import pythoncom
-from pyshortcuts import make_shortcut
+import platform
 import shutil
 
 import streamlit as st
+import pythoncom
+from pyshortcuts import make_shortcut
 
 from config import PAGES
 
@@ -24,11 +25,39 @@ def navigate(col_prev=None, col_next=None):
         next_disabled = True
     else:
         next_disabled = False
-
+    print("incomplete", page_incomplete)
     if col_next.button("Next", key=f"nex_page", disabled=next_disabled, width="stretch"):
         st.session_state["page"] += 1
         st.rerun()
 
+
+def symbol_validation(word, strict=False):
+    msg = False
+    if word:
+        if not strict:
+            valid_symbols = (
+                "-", " ", "_", "–", "—", "'", '"', "&", ".", "*", "!", "?",
+                "(", ")", "[", "]", "{", "}", "/", "+", "<", ">", "@", )
+            invalid_first = (" ")
+        else:
+            valid_symbols = ("-", " ")
+            invalid_first = ("-", " ")
+        max_length = 40
+        min_length = 0
+        length_check = len(word) > min_length and len(word) < max_length
+
+        if length_check:
+            if "  " in word:
+                msg = "Double whitespace."
+            if word[0] in invalid_first:
+                msg = "Invalid first character."
+            if not word.isalnum():
+                for symbol in word:
+                    if not symbol.isalnum() and symbol not in valid_symbols:
+                        msg = "Invalid characters."
+        else:
+            msg = "Too long. "
+    return msg
 
 def need_update(save_hightlight, changed_setting, all_required=True):
     st.session_state[save_hightlight] = "primary"
@@ -37,9 +66,11 @@ def need_update(save_hightlight, changed_setting, all_required=True):
         st.session_state["page_incomplete"] = True
 
 
-def apply(key, need_save, is_changed, submission_key, submission, all_required=True):
+def apply(key, need_save, is_changed, submission_key, submission, 
+          all_required = True, invalid_input = False):
+    print("button inv", invalid_input)
     save_disabled = True
-    if st.session_state[is_changed]:
+    if st.session_state[is_changed] and not invalid_input:
         if all_required:
             if all(st.session_state["checklists"][key]):
                 save_disabled = False
@@ -84,9 +115,11 @@ def register(key, use_template=False):
             key=key, 
             type="primary", 
             width="stretch"):
-        
         submitted = st.session_state["submitted"]
+        print(f"\nSaving project: {submitted["project_details"]["ui_title"]}")
         if not use_template:
+            new_template = True
+            print("Creating new project details.")
             terms = {
                 "attempt": submitted["event_terms"]["attempt"],
                 "attribute": submitted["objects_details"]["attribute"],
@@ -107,7 +140,9 @@ def register(key, use_template=False):
             data_options, progress = _data_options(terms, submitted)
             themes = _themes()
         else:
+            new_template = False
             template = _collect_template(submitted["template"])
+            print(f"Using details from template: {template}")
             config = template["config"]
             data_options = template["data_options"]
             progress = template["progress"]
@@ -121,19 +156,23 @@ def register(key, use_template=False):
         root = Path(__file__).resolve().parent.parent.parent
         root_py = root / "user_project.py"
         folder_list = [x.name for x in root.iterdir() if x.is_dir()]
-        templates_folder = root / "templates"
+        if new_template: templates_folder = root / "templates"
         streamlit_config_folder = root / ".streamlit"
+        log_folder = root / "logs"
 
         # Define new project environment 
         project_folder = root / file_name
         project_py = root / f"{file_name}.py"
         project_bat = root / f"{file_name}.bat"
+        print(f"Project ")
         # Prevent overwriting projects
         project_is_vacant = False
         if project_folder in folder_list:
-            st.error("A project already exists with that name.")
+            print(f"A project altready exists named {title}.")
+            st.error(f"A project already exists named {title}.")
             name_ok = False
         else:
+            print("Project title {title} approved")
             name_ok = True
         # Define project subfolders
         backup_folder = project_folder / "backup"
@@ -154,9 +193,10 @@ def register(key, use_template=False):
                 "themes": themes
             }
             for x in ["config", "progress", "data_options", "themes"]:
+                folder = f"{file_name}/data" if x == "config" else f"{file_name}/settings"
                 print()
                 print("..............")
-                print(f"{x} content:")
+                print(f"{folder}/{x}.json content:")
                 for y, z in result[x].items():
                     if type(z) is dict:
                         print(f"{y}:")
@@ -164,32 +204,40 @@ def register(key, use_template=False):
                             print(f"   {z1:20} {z2}")
                     else:
                         print(f"{y:20} {z}")
-            print("\nstreamlit_config content:")
+            print("\n.streamlig/config.toml content:")
             print(streamlit_config)
-            print("\nbat_content content:")
+            print(f"\n{file_name}.bat content:")
             print(bat_content)
             print()
-            print("general file name", templates_folder)
-            print("root", root)
-            print(f"folders:\n   {project_folder},\n   {backup_folder},\n   {data_folder},\n   {settings_folder}\n   {templates_folder}")
-            print(f"files\n  copied:\n   {root_py}\n  made:\n   {project_py},\n   {project_bat},\n")
+            print("Root", root)
+            print("General file name", file_name)
+            print(f"Folders:\n   {project_folder},\n   {backup_folder},\n   {data_folder},\n   {settings_folder}\n   {templates_folder}")
+            print(f"Files\n  copied:\n   {root_py}\n  made:\n   {project_py},\n   {project_bat},\n")
+            # if new_template: print("")
         # name_ok = False
         # Establish project environment
         if name_ok:
             try:
+                print("\n-----------\nCreating folders\n-----------")
+                print(f"Creating: {project_folder}")
                 project_folder.mkdir(exist_ok=False)
+                print(f"Creating: {backup_folder}")
                 backup_folder.mkdir(exist_ok=False)
+                print(f"Creating: {data_folder}")
                 data_folder.mkdir(exist_ok=False)
+                print(f"Creating: {settings_folder}")
                 settings_folder.mkdir(exist_ok=False)
-                templates_folder.mkdir(exist_ok=False)
+                templates_folder.mkdir(exist_ok=True)
+                print(f"Creating: {log_folder}")
+                log_folder.mkdir(exist_ok=True)
                 project_is_vacant = True
             except FileExistsError as e:
+                print(f"That folder already exists.")
                 print(e)
-                print(f"A folder with name {file_name} already exists.")
                 quit()
         # Create project files
         if project_is_vacant:
-            
+            print("\n-----------\nCreating files\n-----------")
             if not use_template:
                 new_template = {
                     "config": copy.deepcopy(config),
@@ -197,33 +245,53 @@ def register(key, use_template=False):
                     "progress": progress,
                     "themes": themes
                 }
+                print(f"Creating template.")
                 new_template["config"]["TERMS"][title] = None
-                _write(new_template, templates_folder, file_name)
+                _write(new_template, templates_folder, file_name, check_existing=True)
 
+            print(f"Creating config.toml.")
             _write(streamlit_config, streamlit_config_folder, "config.toml", file_type="toml")
 
+            print(f"Creating backup_meta.json in {data_folder}.")
             _write({}, data_folder, "backup_meta.json")
+            print(f"Creating main.json in {data_folder}.")
             _write({}, data_folder, "main.json")
+            print(f"Creating progress.json in {data_folder}.")
             _write(progress, data_folder, "progress.json")
+            print(f"Creating secondary.json in {data_folder}.")
             _write({}, data_folder, "secondary.json")
 
+            print(f"Creating config.json in {settings_folder}.")
             _write(config, settings_folder, "config.json")
+            print(f"Creating data_options.json in {settings_folder}.")
             _write(data_options, settings_folder, "data_options.json")
             # _write({"theme": "Theme 1"}, project_folder, "meta.json")
+            print(f"Creating ui_themes.json in {settings_folder}.")
             _write(themes, settings_folder, "ui_themes.json")
 
             # Create project main module
+            print(f"Creating project main file: {project_py}")
             shutil.copy(root_py, project_py)
             
+            print(f"Creating project shortcut script: {project_bat}")
             _write(bat_content, root, project_bat, file_type="bat")
             # desktop_path = Path.home() / "Desktop"
             # desktop_shortcut = desktop_path / f"{title}.lnk"
             icon_path = root / "accessories/icon1.ico"
             root_shortcut = root
             
-            pythoncom.CoInitialize()
-            make_shortcut(str(project_bat), name=f"{title}.lnk", working_dir=root, icon=str(icon_path), desktop=True)
-            make_shortcut(str(project_bat), name=f"{title}.lnk", working_dir=root, icon=str(icon_path), folder=str(root_shortcut))
+            os_name = platform.system()
+            if os_name == "Windows":
+                pythoncom.CoInitialize()
+                print(f"Creating desktop shortcut.")
+                make_shortcut(
+                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                    icon=str(icon_path), desktop=True)
+                print(f"Creating shortcut in PitySake/.")
+                make_shortcut(
+                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                    icon=str(icon_path), folder=str(root_shortcut))
+        print("\nSuccessfully registered!")
 
 
 def _config(terms):
@@ -318,7 +386,7 @@ def _data_options(terms, submitted):
                 None,
                 None
             ],
-            "collection_start_count": 0
+            "collection_start_count": submitted["objects_details"]["start_from_0"]
         },
         "user_indicators": {
             "reverse_positive": submitted["progress_details"]["switches"]["reverse_positive"],
@@ -412,7 +480,19 @@ def _themes():
 
 
 def _streamlit_config():
-    toml_string = "[server]\nrunOnSave = true\n\n[theme]\nbackgroundColor = '#000000'\nsecondaryBackgroundColor = '#620d5b'\nprimaryColor = '#ff00a8'\ntextColor = '#00e8ff'\nfont = 'sans serif'"
+    toml_string = """[server]
+runOnSave = true
+address = "127.0.0.1"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+backgroundColor = '#000000'
+secondaryBackgroundColor = '#620d5b'
+primaryColor = '#ff00a8'
+textColor = '#00e8ff'
+font = 'sans serif'"""
 
     return toml_string
 
@@ -441,8 +521,18 @@ def _collect_template(template):
 
 
 
-def _write(data, folder, file, file_type="json"):
+def _write(data, folder, file, file_type="json", check_existing=False):
     file_path = folder / file
+    if check_existing:
+        if file_path.exists():
+            n = 1
+            while True:
+                file_path = folder / f"{file_path.stem}_{n}{file_path.suffix}"
+                if not file_path.exists(): break
+                file_path = folder / file
+                n += 1
+        if file_path.exists():
+            file_path = folder
     if file_type == "json":
         with open(file_path, "x", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)

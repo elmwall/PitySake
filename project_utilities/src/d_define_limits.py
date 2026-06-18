@@ -1,4 +1,3 @@
-import json
 import streamlit as st
 
 from utils import tools
@@ -70,8 +69,6 @@ def define_event_limits(set_width, set_heigth):
                     caption="**Main objects** has three group of labels.", 
                     output_format="PNG"
                 )
-    
-
 
 
 def _define_sources(progress_need_save, progress_is_changed, submission_key):
@@ -86,9 +83,12 @@ def _define_sources(progress_need_save, progress_is_changed, submission_key):
     """)
     source_dict = dict()
     checks = dict()
+    names = dict()
     with col_2.container(border=True, height="stretch"):
         st.markdown("##### Sources", text_alignment="center")
-        source_count = st.number_input("Number of event sources", min_value=1)
+        num_msg = """Number of event sources  
+        *Create at least 1 - can be edited later*"""
+        source_count = st.number_input(num_msg, min_value=1)
 
         key = "source"
         for x in range(source_count):
@@ -118,17 +118,24 @@ def _define_sources(progress_need_save, progress_is_changed, submission_key):
                     disabled=disable_values
                 )
 
-                checks["name"] = st.session_state[key_txt]
+                word_is_invalid = tools.symbol_validation(st.session_state[key_txt])
+                name_value = None if word_is_invalid else st.session_state[key_txt]
+                if word_is_invalid: 
+                    col_left.error(word_is_invalid)
+                names[key_txt] = name_value
+
+                checks[f"name_{x}"] = name_value
                 if disable_values:
                     value = None
-                    checks["value"] = True
+                    checks[f"value_{x}"] = True
                 else:
                     value = st.session_state[key_num]
-                    checks["value"] = value
+                    checks[f"value_{x}"] = value
                 source_dict[st.session_state[key_txt]] = {
                     "limit": value,
                     "evaluate": st.session_state[key_evaluation]
                 }
+            
 
     with col_3.container(border=True):
         st.markdown("##### Timeline highlights", text_alignment="center")
@@ -165,6 +172,8 @@ def _define_sources(progress_need_save, progress_is_changed, submission_key):
     
     unit = None if st.session_state["unit"] == "None" else st.session_state["unit"]
     st.session_state["checklists"]["progress_save"] = list(checks.values())
+    print(checks)
+
     switches = {
         "unit": unit,
         "reverse_positive": not st.session_state["reverse_positive"],

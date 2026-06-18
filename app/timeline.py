@@ -53,7 +53,9 @@ def timeline(component_key: str, set_height: int):
             "negative": st.session_state["negative_color"],
             "text": st.session_state["text_color"],
             "background": st.session_state["background"],
-            "subarea": st.session_state["sub_container"]
+            "subarea": st.session_state["sub_container"],
+            "lines": st.session_state["input_field"],
+            "highlights": st.session_state["highlights"]
         }
         options = hold.load_options()
         dates = data["date"]
@@ -116,7 +118,7 @@ def timeline(component_key: str, set_height: int):
                         hovertemplate=f"<b>{names[i]}: {display_value}</b><br>{dates[i]}<extra></extra>",
                         marker=dict(
                             color=dot_col, size=symbol_size, symbol=symbol_shape, angle=symbol_angle,
-                            line=dict(color=theme["background"], width=2)),
+                            line=dict(color=theme["background"], width=1.7)),
                         hoverlabel=dict(bgcolor="rgba(0, 0, 0, 0)"),
                         name=names[i], showlegend=False))
 
@@ -128,7 +130,7 @@ def timeline(component_key: str, set_height: int):
             ])
         fig.update_yaxes(
             zeroline=False, tickfont_color=theme["text"],
-            gridcolor=theme["subarea"], range=[-5, None])
+            gridcolor=theme["lines"], range=[-5, None])
         if TERMS["unit"]:
             fig.update_yaxes(
                 title=f"{TERMS["unit"]} {TERMS["attempt"]}", 

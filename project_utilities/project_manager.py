@@ -16,7 +16,11 @@ from config import SET_WIDTH, SET_HEIGHT
 
 def welcome(set_width, set_height):
     with st.container(border=False, key="guide", width=set_width, height=set_height, horizontal_alignment="center"):
-        if not st.session_state["submitted"]["project_details"]["ui_title"]:
+        print("titlecheck",st.session_state["submitted"]["project_details"]["ui_title"], st.session_state["title_is_valid"])
+        print("all", all([st.session_state["submitted"]["project_details"]["ui_title"], 
+               st.session_state["title_is_valid"]]))
+        if not all([st.session_state["submitted"]["project_details"]["ui_title"], 
+               st.session_state["title_is_valid"]]):
             st.session_state["page_incomplete"] = True
         else:
             st.session_state["page_incomplete"] = False
@@ -48,7 +52,7 @@ def welcome(set_width, set_height):
 
         with col_apply:
             if not submission["template"]:
-                tools.apply("project_save", project_need_save, project_is_changed, submission_key, submission)
+                tools.apply("project_save", project_need_save, project_is_changed, submission_key, submission, invalid_input=not st.session_state["title_is_valid"])
             elif submission[["ui_title"]]:
                 st.session_state["submitted"]["project_details"] = submission
                 tools.register("register", use_template=True)
@@ -80,7 +84,8 @@ def _define_project(col, project_need_save, project_is_changed, submission_key):
     root = Path(__file__).resolve().parent.parent
     folder_list = [x.name for x in root.iterdir() if x.is_dir()]
     col.space(1)
-    col.markdown("""**New project:** enter a unique name for project files and display.""")
+    col.markdown("""**New project:** enter a unique name for project files and display.  
+                 Case sensitive: as you EnTeR terms is how they are shown.""")
     col.text_input(
         "Project title", 
         key="ui_title", 
@@ -88,8 +93,7 @@ def _define_project(col, project_need_save, project_is_changed, submission_key):
         args=(project_need_save, project_is_changed), 
         help="Name for folder and display", 
         placeholder="e.g. Learning path / Activity log / Collection",
-        label_visibility="collapsed"
-    )
+        label_visibility="collapsed")
 
     if st.session_state["ui_title"]:
         project_folder = st.session_state["ui_title"].lower().replace(" ", "_")
@@ -98,13 +102,27 @@ def _define_project(col, project_need_save, project_is_changed, submission_key):
     
     col.markdown("""Select template setup from previously installed projects   
                  – skips further customization steps.""")
-    templates = [x.name for x in Path("templates").iterdir() if x.is_dir()]
-    templates.append(None)
-    selected_template = col.selectbox("Templates", options=templates, label_visibility="collapsed")
-
+    
+    template_path = root / "templates"
+    template_files = [x.name for x in Path(template_path).iterdir() if x.is_file()]
+    templates = [None,] + template_files
+    selected_template = col.selectbox(
+        "Templates", options=templates, index=0, 
+        format_func=lambda x:str(x).replace("_", " ").title(), 
+        label_visibility="collapsed")
     st.session_state["checklists"]["project_save"] = [st.session_state["ui_title"],]
+
+    word_is_invalid = tools.symbol_validation(st.session_state["ui_title"], strict=True)
+    if word_is_invalid or len(str(st.session_state["ui_title"])) < 1:
+        title = None
+        st.session_state["title_is_valid"] = False
+        if word_is_invalid: col.error(word_is_invalid)
+    else:
+        title = st.session_state["ui_title"]
+        st.session_state["title_is_valid"] = True
+
     return {
-        "ui_title": st.session_state["ui_title"],
+        "ui_title": title,
         "file_name": str(st.session_state["ui_title"]).lower().replace(" ", "_"),
         "template": selected_template}
 

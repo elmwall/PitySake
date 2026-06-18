@@ -183,7 +183,7 @@ def _summarize_files(submitted, project):
             "Folder"
         ],
         "Path/FileName": [
-            f"Desktop/{project}  \nPitySake/{project}",
+            f"Desktop/{project.replace(" ", "_")}  \nPitySake/{project.replace(" ", "_")}",
             f"{file}.bat",
             f"PitySake/{file}/"
         ],

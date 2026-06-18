@@ -31,7 +31,7 @@ INIT_STATE = {
     "error": False,
     "pending_backup": False,
     "pending_save": False,
-    "vertical_view": False,
+    # "vertical_view": False,
     # Constructor
     "show_theme_settings": False,
     "theme_edited": 0,
@@ -177,6 +177,7 @@ Current session theme: {st.session_state["active_theme"]}""")
     theme_nomatch = meta["theme"] != st.session_state["active_theme"]
     if project_nomatch or theme_nomatch:
         _settings_correction(themes[active_theme], meta)
+    st.session_state["vertical_view"] = meta["vertical_view"]
         
     # Follow up backups from prior activity
     if st.session_state["pending_backup"]: error.pending_backup(arciv)
@@ -258,6 +259,10 @@ def _settings_correction(active_theme_settings, meta):
     config = f"""
 [server]
 runOnSave = true
+address = "127.0.0.1"
+
+[browser]
+gatherUsageStats = false
 
 [theme]
 backgroundColor = '{active_theme_settings["background"]}'
@@ -281,3 +286,9 @@ font = 'sans serif'
         meta["theme"] = st.session_state["active_theme"]
         arciv.writer(meta, set_file="meta.json")
         logger.info("Theme corrected")
+
+
+def set_orientation():
+    meta = st.session_state["meta"]
+    meta["vertical_view"] = st.session_state["vertical_view"]
+    arciv.writer(meta, set_file="meta.json")
