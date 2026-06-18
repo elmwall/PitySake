@@ -55,6 +55,7 @@ INIT = {
     # "submitted": dict(),
     # Names
     "ui_title": None,
+    "title_is_valid": False,
     "main": None,
     "secondary": None,
     "utility": None,

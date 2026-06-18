@@ -73,29 +73,33 @@ def _name_events(event_need_save, event_is_changed, submission_key):
     """)
 
     with col_2.container(border=True, height="stretch"):
-        st.markdown("##### Values and events", text_alignment="center")
+        st.markdown("##### Value and event terms", text_alignment="center")
         st.markdown("")
         st.text_input(
-            "Name the term for values", 
+            "Value", 
             key= "attempt", 
-            help="What tasks or value is counted as your progress?", 
+            help="""A name for the value you track for objects,  
+            e.g. a count, a result, or cost.""", 
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
             placeholder="Exercises / Length / Value")
         st.text_input(
-            "Create a collective term for your event sources", 
+            """Event source, as in  
+            'I achieved this in a ...'  
+            'I received this from a ...'  
+            'I added this to a ...'""", 
             key= "sources_name", 
-            help="A broad category within which you track your progress.", 
+            help="""You track values within one source,  
+            here you set a name for sources as a group (in singular).""", 
             on_change=tools.need_update, 
             args=(event_need_save, event_is_changed), 
             placeholder="Learning track / Workout program / Collection")
 
     with col_3.container(border=True, height="stretch"):
-        st.markdown("##### Outcome evaluations", text_alignment="center")
+        st.markdown("##### Outcome evaluations terms", text_alignment="center")
 
         neu_help = """
             A result neither positive or negative, or that is already determined.  
-            
             This will not give any highlighted indication in your timeline.
         """
         st.text_input(
@@ -128,12 +132,30 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             args=(event_need_save, event_is_changed), 
             placeholder="Hard / Fail / Low value")
         
+    validated = dict()
+    ref = {
+        "attempt": "value term",
+        "sources_name": "event source term",
+        "state_det": "neutral outcome term",
+        "state_win": "positive outcome term",
+        "state_loss": "negative outcome term"
+    }
+    for x, y in ref.items():
+        word_is_invalid = tools.symbol_validation(st.session_state[x])
+        value = None if word_is_invalid else st.session_state[x]
+        validated[x] = value
+        if word_is_invalid: 
+            if x in ["attempt", "sources_name"]:
+                col_2.error(f"{ref[x].capitalize()}: {word_is_invalid}")
+            else:
+                col_3.error(f"{ref[x].capitalize()}: {word_is_invalid}")
+
     st.session_state["checklists"]["event_save"] = [
-        st.session_state["attempt"],
-        st.session_state["sources_name"],
-        st.session_state["state_det"],
-        st.session_state["state_win"],
-        st.session_state["state_loss"],
+        validated["attempt"],
+        validated["sources_name"],
+        validated["state_det"],
+        validated["state_win"],
+        validated["state_loss"],
     ]
 
     return  {

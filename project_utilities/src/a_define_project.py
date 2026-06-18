@@ -43,6 +43,9 @@ def define_project(set_width, set_heigth):
                 - Secondary are tracked separately with reduced detail  
                 - Appear in separate history tables  
                 - Both contribute to overall totals and evaluations""")
+                st.markdown("""**Collection count:** How multiples of the same object is counted.  
+                - Enabled will show a count of additional objects of the same.  
+                - Disabled will show the true count of the object.""")
                 st.markdown("""**Labels:** help organizing tables and locating items.  
                 - Sorting and searching tables  
                 - Occurrences are included in statistics""")
@@ -65,29 +68,14 @@ def _name_objects(objects_need_save, objects_is_changed, submission_key):
         - **Secondary objects:** additional tracked item
     """)
     col_1.markdown("""
+        - **Count start at 0:** if enabled the first event of an object counts as '0', otherwise it counts from 1
+    """)
+    col_1.markdown("""
         - **Labels:** categories for sorting and searchability 
     """)
 
     with col_2.container(border=True, height="stretch"):
-        root = Path(__file__).resolve().parent.parent.parent
-        folder_list = [x.name for x in root.iterdir() if x.is_dir()]
-        # print("folders", folder_list)
-
         st.markdown("##### Objects", text_alignment="center")
-        # st.text_input(
-        #     "Project title", 
-        #     key="ui_title", 
-        #     on_change=tools.need_update,
-        #     args=(objects_need_save, objects_is_changed), 
-        #     help="Name for folder and display", 
-        #     placeholder="e.g. Learning path / Activity log / Collection"
-        # )
-
-        # if st.session_state["ui_title"]:
-        #     objects_folder = st.session_state["ui_title"].lower().replace(" ", "_")
-        #     if objects_folder in folder_list:
-        #         st.error("A project already exists with that name.")
-
         help_primary = """
             Actual objects for each suggestion could e.g. be:  
             - (learning: course) Python Fundamentals
@@ -115,9 +103,10 @@ def _name_objects(objects_need_save, objects_is_changed, submission_key):
             help=help_secondary,
             placeholder="e.g. Tutorial / Walk / Accessory"
         )
+        st.checkbox("Start object collection count at 0", value=True, key="start_from_0")
 
     with col_3.container(border=True, height="stretch"):
-        st.markdown("##### Object labels", text_alignment="center")
+        st.markdown("##### Object label categories", text_alignment="center")
         st.text_input(
             "1. Label for main and secondary objects", 
             key="utility", 
@@ -141,19 +130,38 @@ def _name_objects(objects_need_save, objects_is_changed, submission_key):
             placeholder="e.g. Examination / Muscle group / Scale"
         )
 
+    validated = dict()
+    ref = {
+        "main": "main object",
+        "secondary": "secondary object",
+        "utility": "label 1",
+        "attribute": "label 2",
+        "origin": "label 3"
+    }
+    for x, y in ref.items():
+        word_is_invalid = tools.symbol_validation(st.session_state[x])
+        value = None if word_is_invalid else st.session_state[x]
+        validated[x] = value
+        if word_is_invalid: 
+            if x in ["main", "secondary"]:
+                col_2.error(f"{ref[x].capitalize()}: {word_is_invalid}")
+            else:
+                col_3.error(f"{ref[x].capitalize()}: {word_is_invalid}")
+
     st.session_state["checklists"]["objects_save"] = [
         # st.session_state["ui_title"],
-        st.session_state["main"],
-        st.session_state["secondary"],
-        st.session_state["utility"],
-        st.session_state["attribute"],
-        st.session_state["origin"],
+        validated["main"],
+        validated["secondary"],
+        validated["utility"],
+        validated["attribute"],
+        validated["origin"],
     ]
 
     return {
         # "ui_title": st.session_state["ui_title"],
         "main": st.session_state["main"],
         "secondary": st.session_state["secondary"],
+        "start_from_0": st.session_state["start_from_0"],
         "utility": st.session_state["utility"],
         "attribute": st.session_state["attribute"],
         "origin": st.session_state["origin"]

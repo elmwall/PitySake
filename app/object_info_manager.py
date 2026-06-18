@@ -193,7 +193,7 @@ class Secretary:
             st.session_state["translated_values"]["reg_state"] = None
         if not self.options["source_limit"][st.session_state["reg_source"]]: 
             st.session_state["translated_values"]["reg_attempt"] = None
-
+        
         # "Already in library" 
         # - to avoid losing data, prevent adding same object more than once
         if reg_selection == "add_new" and object_in_library:
@@ -249,6 +249,7 @@ class Secretary:
             # Name
             if st.session_state["translated_values"]["reg_name"]: 
                 data_checks["name_done"] = True
+            
             # Labels: all for main, only utility for secondary
             if st.session_state["translated_values"]["reg_utility"]: 
                 data_checks["utility_done"] = True
@@ -259,12 +260,18 @@ class Secretary:
                     data_checks["origin_done"] = True
             else:
                 data_checks["attribute_done"], data_checks["origin_done"] = True, True
+            # Override labels as completed if irrelevant registration setting
+            if st.session_state["regset"] in ["del_entry", "add_event", "del_event"]: 
+                for x in ["utility_done", "attribute_done", "origin_done"]:
+                    data_checks[x] = True
+            
             # Source
             if not st.session_state["translated_values"]["reg_source"]:
                 if not st.session_state["include_event"]: 
                     data_checks["source_done"] = True
             else:
                 data_checks["source_done"] = True
+            
             # State
             if not st.session_state["translated_values"]["reg_state"]:
                 reg_source = st.session_state["translated_values"]["reg_source"]
@@ -273,6 +280,7 @@ class Secretary:
                     data_checks["state_done"] = True
             else:
                 data_checks["state_done"] = True
+            
             # Limit
             if st.session_state["translated_values"]["reg_attempt"] is None:
                 if any([not self.options["source_limit"][reg_source],
@@ -379,9 +387,14 @@ class Secretary:
                 new_data, name, reg_setting["for_deletion"], reg_setting["for_renaming"], 
                 set_file=datafile, join_path="data", 
                 need_sorting=True, is_static=reg_setting["is_static"])
+        edits_successful = False
+        if updated_library: 
+            edits_successful = True
+        elif type(updated_library) is dict and reg_setting["for_deletion"]:
+            edits_successful = True
         # Save to file
         if DIAGNOSTICS: updated_library = False
-        if updated_library:
+        if edits_successful:
             arciv.writer(
                 updated_library, object_type, set_file=datafile, join_path="data")
             if object_type == self.main_ref:

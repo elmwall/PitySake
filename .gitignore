@@ -1,24 +1,15 @@
 # Accessory files
 __pycache__/
-.streamlit/
+# .streamlit/
 logs/
 data/
 backup/
 settings/
 templates/
 meta.json
-
-# Test files
-PitySake.lnk
-test.py
-test.ipynb
-users.py
-init_demo.py
-sample.png
-sample_obj.png
-sample_att.png
-sample_data.png
-sample_t.png
+# user_project.bat
+User_Project.lnk
+New_Project.lnk
 
 # Dev files
 Notes/
@@ -28,3 +19,15 @@ settings_dev/
 venv/
 unused/
 test/
+PitySake.lnk
+test.py
+test_1.py
+test.ipynb
+users.py
+init_demo.py
+sample.png
+sample_obj.png
+sample_att.png
+sample_data.png
+sample_t.png
+launch.vbs

@@ -109,7 +109,7 @@ def _process_collection_db(database: dict, datatype: str):
     last_event = [0, 0]
     # To record [successful, failed] attempts
     success_fail = [0, 0]
-    # Recording main object type collected
+    # Recording no of an object collected
     object_count = dict()
     # Data for pandas/st.dataframe
     rows_for_history = list()
@@ -126,7 +126,6 @@ def _process_collection_db(database: dict, datatype: str):
                 counts[category][x] = 0
     state_value, date, object_collection, name, attempt_value, source, state, index = [None]*8
     for name, info in database.items():
-        print(name, datatype, info)
         # Only count labels for main type object
         if datatype == "main": 
             for category, options in counts.items():
@@ -201,7 +200,7 @@ def _process_collection_db(database: dict, datatype: str):
             graph_data["name"].append(name)
             graph_data["state"].append(state_value)
             graph_data["type"].append(datatype)
-            if attempt_value:
+            if attempt_value is not None:
                 graph_data["attempt"].append(attempt_value)
                 graph_data["attempt_made"].append(True)
 
@@ -309,8 +308,6 @@ def _process_collection_db(database: dict, datatype: str):
                 TERMS["utility"]: None
             }]
             
-    for x, y in graph_data.items():
-        print (x)
     return {
         "counts": counts,
         "attempt_list": attempt_value_list,

@@ -160,7 +160,7 @@ def edit_options(attempts: dict, options: dict):
                         st.space()
                         col_left, col_right = st.columns(2)
                         # Source attempt limit
-                        progress_is_selected = col_left.checkbox("Progress tracking?", value=True)
+                        progress_is_selected = col_left.checkbox(f"Track {TERMS["attempt"]}?", value=True)
                         if progress_is_selected:
                             st.session_state["progress_changed"] = True
                             new_limit = col_left.number_input(
@@ -173,7 +173,7 @@ def edit_options(attempts: dict, options: dict):
 
                         # Source states or not
                         # state_options = [f"{TERMS["state"]}", "Constant"]
-                        state_is_selected = col_right.checkbox("Selectable states?", value=True)
+                        state_is_selected = col_right.checkbox("Selectable outcomes?", value=True)
                         if state_is_selected:
                             new_state = f"{TERMS["state_rand"]}" 
                         else:
