@@ -1,0 +1,46 @@
+{
+    "DIRECTORIES": {
+        "BackupFolder": "backup",
+        "DataFolder": "data",
+        "SettingsFolder": "settings",
+        "UIFolder": "settings"
+    },
+    "SETTINGS": {
+        "Options": "data_options.json",
+        "Presets": "init_values.json",
+        "Validation": "data_validation.json",
+        "UISettings": "ui_settings.json",
+        "Themes": "ui_themes.json"
+    },
+    "DATAPATH": {
+        "backup_meta": "backup_meta.json",
+        "Main object": "main.json",
+        "Secondary object": "secondary.json",
+        "progress": "progress.json"
+    },
+    "TERMS": {
+        "active_attempts": "added Value",
+        "attempt": "Value",
+        "attribute": "Attribute",
+        "event": "event",
+        "event_calculator": "Value calculator",
+        "event_name": "Source",
+        "main": "Main object",
+        "origin": "Origin",
+        "progress": "Value",
+        "source": "Source",
+        "secondary": "Secondary object",
+        "sets": "Rows",
+        "state": "Outcome",
+        "state_win": "Positive",
+        "state_loss": "Negative",
+        "state_det": "Neutral",
+        "state_det_symbol": "☆",
+        "state_rand": "Uncertain",
+        "state_rand_symbol": "?",
+        "title": "PitySake",
+        "unit": null,
+        "utility": "Utility",
+        "ui_title": "User Project"
+    }
+}

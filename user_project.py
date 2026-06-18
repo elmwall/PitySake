@@ -67,7 +67,7 @@ elif not st.session_state["vertical_view"]:
 elif st.session_state["vertical_view"]:
     construct.vertical_view(registration_keys, prog_meter_keys, highlight_html, table_style)
 
-st.json(st.session_state)
+# st.json(st.session_state)
 
 
 

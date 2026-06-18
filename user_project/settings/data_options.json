@@ -1,0 +1,45 @@
+{
+    "Main object": {
+        "Origin": [
+            null
+        ],
+        "Attribute": [
+            null
+        ],
+        "Utility": [
+            null
+        ]
+    },
+    "main_required": {
+        "Origin": [],
+        "Attribute": [],
+        "Utility": []
+    },
+    "source": [
+        "Primary source"
+    ],
+    "source_required": [],
+    "results": [
+        "Positive",
+        "Negative",
+        "Neutral"
+    ],
+    "source_limit": {
+        "Primary source": 100
+    },
+    "states": {
+        "Primary source": true
+    },
+    "value_limits": {
+        "date": [
+            null,
+            null
+        ],
+        "collection_start_count": true
+    },
+    "user_indicators": {
+        "reverse_positive": false,
+        "high_highlight": 90,
+        "low_highligh": 10
+    }
+}
