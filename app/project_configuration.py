@@ -52,7 +52,7 @@ def initialize_constants(project_name: str):
     # Collect project-specific settings to check in initialize
     st.session_state["meta"] = arch.reader(set_file="meta.json")
 
-
+# TODO: change required fileds behavior. If all labels removed - create a none. if sources removed, set minimum number 1
 @st.dialog("Edit options")
 def edit_options(attempts: dict, options: dict):
     """
@@ -172,7 +172,6 @@ def edit_options(attempts: dict, options: dict):
                             new_limit = False
 
                         # Source states or not
-                        # state_options = [f"{TERMS["state"]}", "Constant"]
                         state_is_selected = col_right.checkbox("Selectable outcomes?", value=True)
                         if state_is_selected:
                             new_state = f"{TERMS["state_rand"]}" 
@@ -190,7 +189,6 @@ def edit_options(attempts: dict, options: dict):
                         if col_2.button("Confirm", disabled=not_valid, width="stretch"):
                             # Ajust format and add to editing database
                             new_option = st.session_state["new_option"].capitalize()
-                            # st.session_state["changed_options"]["source"].append(new_option)
                             st.session_state["changed_options"]["source_limit"][new_option] = new_limit
                             st.session_state["changed_options"]["states"][new_option] = state_is_selected
                             # Compile and add to editing progress data
@@ -363,14 +361,9 @@ def _initiate_option_edit(TERMS):
         options = st.session_state["changed_options"]
         # Label edits
         if selection in object_options:
-            # requirements = options[f"{TERMS["main"]}_required"][selection]
-            # selection_options = options[TERMS["main"]][selection]
-            # remove_options = [x for x in selection_options if x not in requirements]
             remove_options = options[TERMS["main"]][selection]
         # Source edits
         elif selection == named_option_ref["edit_source"]:
-            # requirements = options["source_required"]
-            # remove_options = [x for x in options["source_limit"].keys() if x not in requirements]
             remove_options = options["source_limit"].keys()
         no_options = len(remove_options) < 1
     st.session_state["remove_options"] = remove_options

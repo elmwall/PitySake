@@ -1,10 +1,40 @@
+"""
+Page E: Review and register
+
+Guide: show tables with selected settings in context  
+
+Manages:
+- Retrieves submitted values and formats information for view
+- Directs to registration
+"""
+import platform
+
 import streamlit as st
 
 from utils import tools
+from utils import registration as reg
 
 
 # Step 5: finalize and save
-def finalize(set_width, set_heigth):
+def finalize(set_width):
+    """
+    Review page of all submitted options with context associations.
+    - save button replaced by register -> sends to registration
+    - generates a container with tables for
+        - object details: 
+            - object categories
+            - label categories
+            - labels next to their category
+        - event logging:
+            - value term
+            - source term
+            - sources with respective settings
+        - display:
+            - outcomes: positive/negative/neutral terms
+            - highlights: low/high threshold
+                color indications dependent on reversal enabled
+    """
+    # Object details
     with st.container(
             border=False, width=set_width, 
             height="stretch", horizontal_alignment="center"):
@@ -16,12 +46,14 @@ def finalize(set_width, set_heigth):
         submitted = st.session_state["submitted"]
         project = submitted["project_details"]["ui_title"]
         with col_apply:
-            tools.register("register")
+            reg.register("register")
         col_title.markdown(
             f"#### Finalize Project: {project}", 
             text_alignment="center")
         st.space()
         col_1, col_3 = st.columns([1, 1])
+        
+        # Build view
         with col_1.container(border=True):
             _summarize_objects(submitted)
         with col_1.container(border=True, height="stretch"):
@@ -33,6 +65,8 @@ def finalize(set_width, set_heigth):
         
 
 def _summarize_objects(submitted):
+    "Creates context view of object and label categories."
+    # Collect data
     main = submitted["objects_details"]["main"]
     secondary = submitted["objects_details"]["secondary"]
     utility = submitted["objects_details"]["utility"]
@@ -49,15 +83,13 @@ def _summarize_objects(submitted):
         "attribute": submitted["label_details"]["attribute"],
         "origin": submitted["label_details"]["origin"]
     }
-
-    st.markdown(f"""##### Object details""")
-    st.markdown("Names of your objects and their labels store in object database.")
     labels = dict()
-
+    # Create string lists for labels paired with category
     for x in ["utility", "attribute", "origin"]:
         labels[x] = str()
         for y in registered_labels[x]:
             labels[x] += f"- {y}  \n"
+    # Generate table for view as "table column header": list of rows in column
     project_table = {
         "Concept": [
             "Main object", 
@@ -81,50 +113,52 @@ def _summarize_objects(submitted):
             labels['origin'],
         ]
     }
+
+    # Build view content
+    st.markdown(f"""##### Object details""")
+    st.markdown("Names of your objects and their labels store in object database.")
     st.table(project_table, border="horizontal", width="stretch")
 
 
 def _summarize_events(submitted):
+    "Creates context view of value and source terms, and defined sources."
+    # Collect info
     progress = submitted["event_terms"]["attempt"]
     sources = submitted["event_terms"]["sources_name"]
+
+    # Generate table
+    source_names = list()
+    source_limits = list()
+    source_evals = list()
+    for x, y in submitted["progress_details"]["sources"].items():
+        source_names.append(x)
+        source_limits.append(y["limit"])
+        source_evals.append(y["evaluate"])
+    event_table = {
+        f":grey[{sources} events]": source_names,
+        ":grey[Value range]": source_limits,
+        ":grey[Outcome evaluation]": source_evals
+    }
+
+    # Build view content
     st.markdown("##### Event data logging")
     st.markdown(f"""
         Object event data can be recorded with a value named '{progress}'.   
         Events are categorized by {sources}s:""")
-    source_names = f":grey[{sources} events]  \n"
-    sources_limit = ":grey[Value range]  \n"
-    sources_eval = ":grey[Outcome evaluation]  \n"
 
-    for x, y in submitted["progress_details"]["sources"].items():
-        source_names += f"{x}  \n"
-        if y["limit"]: 
-            range = f"0–{y["limit"]}  \n"
-        else:
-            range = "No values  \n"
-        sources_limit += range
-        statement = "Yes" if y["evaluate"] else "No"
-        sources_eval += f"{statement}  \n"
-
-    c1, c2, c3 = st.columns([5, 2, 3])
-    c1.markdown(source_names)
-    c2.markdown(sources_limit)
-    c3.markdown(sources_eval)
+    st.table(event_table, border="horizontal", width="stretch")
 
 
 def _summarize_display(submitted):
+    "Creates context view of outcome names and highlight settings."
+    # Collect data
     positive = submitted["event_terms"]["state_win"]
     negative = submitted["event_terms"]["state_loss"]
     neutral = submitted["event_terms"]["state_det"]
     use_highlights = submitted["progress_details"]["switches"]["use_highlights"]
-    if use_highlights:
-        reverse_positive = submitted["progress_details"]["switches"]["reverse_positive"]
-        high_value = submitted["progress_details"]["high_limit"]
-        low_value = submitted["progress_details"]["low_limit"]
-    unit = submitted["progress_details"]["switches"]["unit"]
     
-    st.markdown("##### Display method")
-    st.markdown("Terms and indicators displayed for values")
-    st.markdown("Outcome evaluation")
+    # Generate tables
+    # - Outcomes
     outcome_table = {
         "Outcome": [
             ":green['Positive']",
@@ -142,9 +176,11 @@ def _summarize_display(submitted):
             "For 'negative' evaluations"
         ]
     }
-    st.table(outcome_table, border="horizontal", width="stretch")
-    st.markdown("Value highlights")
+    # - Highlights
     if use_highlights:
+        reverse_positive = submitted["progress_details"]["switches"]["reverse_positive"]
+        high_value = submitted["progress_details"]["high_limit"]
+        low_value = submitted["progress_details"]["low_limit"]
         if reverse_positive:
             high_statement, low_statement = ":red['negative']", ":green['positive']"
         else:
@@ -166,6 +202,17 @@ def _summarize_display(submitted):
                 f"Marked as {high_statement}"
             ]
         }
+    unit = submitted["progress_details"]["switches"]["unit"]
+
+    # Build view content
+    # - Outcomes
+    st.markdown("##### Display method")
+    st.markdown("Terms and indicators displayed for values")
+    st.markdown("Outcome evaluation")
+    st.table(outcome_table, border="horizontal", width="stretch")
+    # - Highlights
+    st.markdown("Value highlights")
+    if use_highlights:
         st.table(highlight_table, border="horizontal", width="stretch")
     else:
         st.markdown("- You have disabled highlights - timeline values will not be color coded")
@@ -173,24 +220,33 @@ def _summarize_display(submitted):
         st.markdown(f"""Set unit: {unit}, values will be displayed as e.g. 300{unit}""")
 
 def _summarize_files(submitted, project):
+    "Creates context view of project name and derived folders/files."
+    # Collect data
     file = submitted["project_details"]["file_name"]
-    st.markdown(f"""##### File structure""")
-    st.markdown("Where your files and data will be located.")
+    
+    # Generate table
     file_table = {
         "Entity": [
-            "Shortcut",
-            "Launch file",
-            "Folder"
+            "Folder",
+            "Launch file"
         ],
         "Path/FileName": [
-            f"Desktop/{project.replace(" ", "_")}  \nPitySake/{project.replace(" ", "_")}",
-            f"{file}.bat",
-            f"PitySake/{file}/"
+            f"PitySake/{file}/",
+            f"{file}.bat"
         ],
         "Comment": [
-            "Shortcut to launch file",
-            "Launches this project",
-            "Location of project data"
+            "Location of project data",
+            "Launches this project"
         ]                
     }
+    os_name = platform.system()
+    if os_name == "Windows":
+        file_table["Entity"].append("Shortcuts")
+        file_table["Path/FileName"].append(
+            f"Desktop/{project.replace(" ", "_")}  \nPitySake/{project.replace(" ", "_")}")
+        file_table["Comment"].append("Shortcut to launch file")
+
+    # Build view content
+    st.markdown(f"""##### File structure""")
+    st.markdown("Where your files and data will be located.")
     st.table(file_table, border="horizontal", width="stretch")

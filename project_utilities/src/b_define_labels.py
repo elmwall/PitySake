@@ -1,10 +1,28 @@
+"""
+Page B: Create labels in different categories
+
+Guide: explain label functionality  
+Example image: object registration feature 
+
+Manages:
+- Form: collect all labels within each (3) categories
+"""
+
 import streamlit as st
 
 from utils import tools
 
 
 # Step 2: name object labels
-def define_labels(set_width, set_heigth):
+def define_labels(set_width: int|str):
+    """
+    (Optional) Define labels in all categories - present user info and collect details.
+
+    Behavior:
+    - next button is always enabled - non-critical info
+    - disables save button unless any field is changed
+    """
+    
     with st.container(
             border=False, width=set_width, 
             height="stretch", horizontal_alignment="center"):
@@ -19,18 +37,20 @@ def define_labels(set_width, set_heigth):
 
         # Form
         submission_key = "label_details"
-        label_need_save = "label_need_save"
-        label_is_changed = "label_is_changed"
+        button_format_key = "label_need_save"
+        is_changed_key = "label_is_changed"
         with st.container(horizontal_alignment="center"):
-            submission = _name_labels(label_need_save, label_is_changed, submission_key)
+            submission = _name_labels(button_format_key, is_changed_key)
         with col_apply:
-            tools.apply("label_save", label_need_save, label_is_changed, 
+            if st.session_state["page_initial_state"]:
+                tools.need_update(button_format_key, is_changed_key, invalid_data=True)
+            tools.apply("label_save", button_format_key, is_changed_key, 
                         submission_key, submission, all_required=False)
 
         # Demo
         col_d1, col_d2 = st.columns(2)
         with col_d1.expander("Explanation"):
-            with st.container(border=False, height=300):
+            with st.container(border=False):
                 st.markdown("""
                 - Each objects registered need a single label per category  
                 - Labels help organize, search, and filter objects  
@@ -38,57 +58,87 @@ def define_labels(set_width, set_heigth):
                 - Special cases:  
                     - If you need cominations:  
                         e.g. labels 'A/B' for something that is both 'A' and 'B'.
-                    - For objects that do not fit a category, create labels such as 'None', 'Unknown' or 'Not applicable'
+                    - For objects that do not fit a category, create labels such as 'None', 
+                    'Unknown' or 'Not applicable'
                     """)
         with col_d2.expander("View example", width=set_width):
-            with st.container(border=False, height=300):
+            with st.container(border=False):
                 st.image(
-                    "images/sample_obj.png", 
-                    caption="**Main objects** has three group of labels.", 
-                    output_format="PNG"
-                )
+                    "../accessories/object_reg2_notes2.png", 
+                    caption="""Example: Honkai Star Rail""", 
+                    output_format="PNG")
 
 
-def _name_labels(label_need_save, label_is_changed, submission_key):
+def _name_labels(button_format_key: str, is_changed_key: str) -> dict:
+    """
+    User info and input fields for labels:  
+    - Define number of labels  
+    - Corresponding number of text input fields are generated   
+
+    Args:
+        button_format_key (str):
+            format key, setting discrete or highlighted save button
+        is_changed_key (str): 
+            control key for behavior upon change
+
+    Returns:
+        (dict):
+            utility, attribute, origin"""
     col_1, col_2, col_3, col_4 = st.columns(4)
-    submitted = st.session_state["submitted"]["objects_details"]
-    col_1.markdown(f"""**Name labels for your categories:**""")  
+    submitted_categories = st.session_state["submitted"]["objects_details"]
+    
+    # User info
+    col_1.markdown(f"""Name labels for your categories:""")  
     col_1.markdown("""
     - Can be added or edited later
     - One single blank label will be generated if there are empty fields
-    - Recommended number: 1-12 labels per category
+    - Recommended number: 0-20 labels per category depending on length
     """)
+
     submitted_fields = {
         "utility": [],
         "attribute": [],
         "origin": []
     }
-
+    
+    # Input fields
+    st.session_state["label_checks"] = []
+    valid_list = list()
     with col_2.container(border=True):
         st.markdown(f"""##### Main & secondary objects""", text_alignment="center")
-        submitted_fields["utility"] = _label_fields(
-            "utility", submitted["utility"], label_need_save, label_is_changed)
-
+        submitted_fields["utility"], is_valid = _label_fields(
+            "utility", submitted_categories["utility"], button_format_key, is_changed_key)
+        valid_list.append(is_valid)
     with col_3.container(border=True):
         st.markdown("##### Main objects", text_alignment="center")
-        submitted_fields["attribute"] = _label_fields(
-            "attribute", submitted["attribute"], label_need_save, label_is_changed)
-
+        submitted_fields["attribute"], is_valid = _label_fields(
+            "attribute", submitted_categories["attribute"], button_format_key, is_changed_key)
+        valid_list.append(is_valid)
     with col_4.container(border=True):
         st.markdown("##### Main objects", text_alignment="center")
-        submitted_fields["origin"] = _label_fields(
-            "origin", submitted["origin"], label_need_save, label_is_changed)
-        
-    st.session_state["checklists"]["label_save"] = []
-    for x in ["utility", "attribute", "origin"]:
-        for y in submitted_fields[x]:
-            st.session_state["checklists"]["label_save"].append(y)
+        submitted_fields["origin"], is_valid = _label_fields(
+            "origin", submitted_categories["origin"], button_format_key, is_changed_key)
+        valid_list.append(is_valid)
 
     return submitted_fields
 
 
-def _label_fields(group_key, submitted, label_need_save, label_is_changed):
-    st.markdown(f"""Category: {submitted}""", text_alignment="center")
+def _label_fields(group_key: str, label_name: str, button_format_key: str, is_changed_key: str):
+    """
+    Generate label input fields.  
+    Generate error message for invalid names or duplicates.
+
+    Args:
+        group_key (str):
+            key for generating unique widget key
+        submitted (str):
+            submitted name of the label category 
+
+    Returns:
+        (list):
+            utility, attribute, origin
+    """
+    st.markdown(f"""Category: {label_name}""", text_alignment="center")
     label_count = st.number_input(
         "Number of labels", 
         min_value=1, 
@@ -96,43 +146,44 @@ def _label_fields(group_key, submitted, label_need_save, label_is_changed):
     )
     key = f"label_{group_key}"
     keys = list()
+    # Generate text input fields corresponding to selected number of labels
+    validated = dict()
     for x in range(label_count):
         key_txt = f"{key}_{x + 1}"
         keys.append(key_txt)
-        st.text_input(
+        label = st.text_input(
             group_key, 
             key=key_txt, 
             help="", 
             on_change=tools.need_update, 
-            args=(label_need_save, label_is_changed), 
+            args=(button_format_key, is_changed_key), 
             kwargs={"all_required": False,},
             placeholder="Label name", 
-            label_visibility="collapsed"
-        )
+            label_visibility="collapsed")
+        # Check label validity for filled fields, display error if needed
+        if label is not None:
+            if len(label) != 0:
+                word_is_invalid = tools.symbol_validation(label)
+                value = None if word_is_invalid else label
+                validated[key_txt] = value
+                if word_is_invalid: 
+                    st.error(f"{word_is_invalid}")
+                    tools.need_update(button_format_key, is_changed_key, invalid_data=True)
     
     label_list = list()
+    # Collect valid input 
+    # - 0-length or invalid are replaced by None
+    # - duplicates are ignored (one single none-type is passed as an empty label)
     for key in keys:
         submitted_label = st.session_state[key]
         if submitted_label is not None:
-            if len(submitted_label) == 0: submitted_label = None
+            if len(submitted_label) == 0 or not validated[key]: 
+                submitted_label = None
         if submitted_label not in label_list:
-            label_list.append(submitted_label)
+            label_list.append(submitted_label)            
         st.session_state["label_fields"][group_key][key] = submitted_label
-    
-    _check_duplicates(group_key)
-    if st.session_state[f"{group_key}_multiples"]: st.warning("Multiples excluded")
-    return label_list
-    
 
-def _check_duplicates(group_key):
-    collect = list()
-    check = list()
-    for value in st.session_state["label_fields"][group_key].values():
-        if value is not None: check.append(value in collect)
-        collect.append(value)
-    if any(check):
-        st.session_state[f"{group_key}_multiples"] = True
-    else: 
-        st.session_state[f"{group_key}_multiples"] = False
-    # for x in submitted_fields:
+    # Notify that there are ignored multiples
+    tools.check_duplicates(st.session_state["label_fields"][group_key].values())
+    return label_list, all(validated.values())
 

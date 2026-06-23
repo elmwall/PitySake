@@ -5,6 +5,7 @@ Builds and manages:
 - progress_display_value calculator interface
 - input validation logic and processing
 - result display of progress_display_value value
+- edit dialog box to define and save equal/variable sets per source
 """
 
 import logging
@@ -62,7 +63,6 @@ def calculator(component_key: str, feature_width: int | str,
                 f"Select {TERMS["source"]}", options=set_options, 
                 key="select_set", on_change=_page_sets, label_visibility="collapsed")
             # Empty field placeholder
-            # col_define.html('<div style="height: 1.5rem;"></div>')
             set_help = """Create custom sets by defining the  
                 number of sections and positions per section."""
             if col_define.button(
@@ -73,11 +73,6 @@ def calculator(component_key: str, feature_width: int | str,
                 help="""When enabled, begins count from 1 instead of 0  
                 for the first position after the start event.""")
             st.space(5)
-
-            # limit = hold.load_options()["value_limits"]["general_limit"]
-            # limit_options = hold.load_options()["source_limit"].keys()
-            # limit_source = st.selectbox(
-            #     f"Select {TERMS["source"]}", options=limit_options, index=0, key="set_limit")
             no_limit = True
             if st.session_state["select_set"]:
                 limit = hold.load_options()["source_limit"][st.session_state["select_set"]]
@@ -87,10 +82,10 @@ def calculator(component_key: str, feature_width: int | str,
             # UI structured as left for "current" and right for "previous"
             col_left, col_right, col_label = st.columns([5, 5, 7])
             _value_selector(col_left, col_right, col_label, no_limit)
+            # Field for submit and result
             if not no_limit:
                 is_current_valid, is_previous_valid, msg, usertip_current, usertip_previous = _validation(limit)
 
-                # Field for submit and result
                 # View settings depending on data validity
                 if is_current_valid and is_previous_valid:
                     st.html(highlight_html.replace("KEY_REF", "calc_button"))
@@ -117,7 +112,7 @@ def calculator(component_key: str, feature_width: int | str,
 
 def _page_sets():
     """
-    Update pages and rows, and define ranges depending on case.
+    Update pages (sets) and rows (positions), and define ranges depending on case.
     - Uniform page-row sets are defined by a dict with corresponding keys.  
     - Pages with varying rows are defined by a list. 
         The length sets no. of pages while value at indices sets no. of rows.
@@ -142,7 +137,20 @@ def _page_sets():
         st.session_state["page_range"] = range(len(st.session_state["row_range"]) + 1)[1:]
 
 
-def _value_selector(col_left, col_right, col_label, no_limit):
+def _value_selector(col_left, col_right, col_label, no_limit: bool):
+    """
+    Selectboxes selecting start and stop page (set) and row (position).
+
+    Args:
+        col_left (DeltaGenerator):
+            Streamlit column instance
+        col_right (DeltaGenerator):
+            Streamlit column instance
+        col_label (DeltaGenerator):
+            Streamlit column instance
+        no_limit (bool):
+            control value to disable selection if no source is set
+    """
     # Group labels
     col_left.markdown("*Start*", text_alignment="center")
     col_right.markdown("*Stop*", text_alignment="center")
@@ -151,9 +159,8 @@ Bottom: position within section
 - Select a section and a position for both start and end events.  
 The calculation traverses all intermediate sections and returns the total value."""
     col_label.markdown(" ", help=calculator_help)
-    # col_label.html('<div style="height: 1.6rem;"></div>')
 
-    # Input page for "current" and "previous" event
+    # Input page (set) for start and stop event
     page_range = st.session_state["page_range"]
     row_range = st.session_state["row_range"]
     col_left.selectbox(
@@ -163,7 +170,7 @@ The calculation traverses all intermediate sections and returns the total value.
         "Previous", options=page_range, 
         key="prev_page", disabled=no_limit, label_visibility="collapsed")
             
-    # Input data row for latest and previous
+    # Input data row (position) for start and event
     if type(row_range) is int:
         row_range += 1
         prev_opt = range(row_range)[1:]

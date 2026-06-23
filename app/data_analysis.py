@@ -59,12 +59,13 @@ def small_stats(component_key: str, sub_keys: list,
             # Progress overview
             # Divided into four metric views
             with col_1:
-                # Top row
                 with st.container(
                         border=True, key=sub_keys[4], 
                         width="stretch", height=245):
+                    # Top row
                     with st.container():
                         col_left, col_right = st.columns(2)
+                        # Last recorded main event value, delta compared to median
                         reverse = hold.load_options()["user_indicators"]["reverse_positive"]
                         compare_to_median = int(last - att_median)
                         sign = "+" if compare_to_median > 0 else "-"
@@ -77,7 +78,7 @@ def small_stats(component_key: str, sub_keys: list,
                                 metric_value=f"{last}{unit}",
                                 base_limit=5, help_text=help, 
                                 delta={"text": f"{compare_to_median}", "color": delta_color})
-                        
+                        # Median value for all main and secondary events (with value)
                         help = f"""From {main_ref.lower()} {event_ref.lower()}s. 
                             Median: mid-value, half above/half below."""
                         with col_right:
@@ -90,6 +91,8 @@ def small_stats(component_key: str, sub_keys: list,
                     # Bottom row
                     with st.container():
                         col_left, col_right = st.columns(2)
+                        # Success rate (positives among positives + negatives)
+                        # from main and secondary
                         rate_help_text = f"""From {main_ref.lower()} 
                             and {secondary_ref.lower()} {event_ref.lower()}s"""
                         col_left.metric(
@@ -97,6 +100,8 @@ def small_stats(component_key: str, sub_keys: list,
                             help=rate_help_text, 
                             border=False, 
                             width="stretch")
+                        # Total recorded values from main and secondary 
+                        # from events and progress tracker
                         help=f"""All-time total sum of {attempt_ref.lower()} 
                             from {main_ref} and {secondary_ref} history and tracker"""
                         with col_right:

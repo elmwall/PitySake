@@ -2,7 +2,6 @@
 Logging
 
 Generates log files per project for debugging.  
-Renders feature for user notification for non-critical errors.
 """
 
 import logging

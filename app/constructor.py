@@ -18,7 +18,6 @@ import app.data_analysis as data_analysis
 import app.data_viewer as data_viewer
 import app.timeline as timeline
 import app.style as page
-# import app.logger as log
 import app.error_handler as error
 
 

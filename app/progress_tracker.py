@@ -22,7 +22,6 @@ TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
 attempt_ref = TERMS["attempt"]
 progress_ref = TERMS["progress"]
-# state_ref = TERMS["state"]
 staterand_ref = TERMS["state_rand"]
 statedet_ref = TERMS["state_det"]
 
@@ -157,9 +156,7 @@ def progress_meter(component_key: list, sub_keys: list,
         
         # Reset all values
         with col_res:
-            # with st.container(border=False):
             st.markdown("")
-
             st.button(
                 "**Reset**", key=reset_key, type="tertiary", 
                 on_click=_reset, args=(attempts, init_values), width="stretch")
