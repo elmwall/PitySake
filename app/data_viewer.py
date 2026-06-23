@@ -51,16 +51,22 @@ def table_view(component_key: str, object_type: str,
     # Collect relevant database
     if object_type == "main":
         database = hold.load_main_database()
-        rows = hold.process_main_db(database)["table_data"]
+        processed_database = hold.process_main_db(database)
+        rows = processed_database["table_data"]
         overview = hold.process_main_db(database)["overview_data"]
     elif object_type == "secondary":
         database = hold.load_secondary_database()
-        rows = hold.process_secondary_db(database)["table_data"]
+        processed_database = hold.process_secondary_db(database)
+        rows = processed_database["table_data"]
         overview = hold.process_secondary_db(database)["overview_data"]
 
     # History tab container
     with st.container(
             border=False, key=f"{component_key}_holder_history", width="stretch", height=history_height):
+        
+        if not processed_database["valid"]:
+            st.error("Critical option data missing.")
+            return
 
         # Send for processing or collect cache for data and pandas dataframe
         dataframe = hold.history_dataframe(rows, object_type)

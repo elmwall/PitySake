@@ -96,6 +96,10 @@ def style(feature_keys, keylist_prog_calc):
     """
     logger.info("Running style.style")
 
+    if st.session_state["theme_missing"]:
+        st.session_state["header_switch"] = True
+        return list(range(0, 5)), list(range(5, 10)), "None", ["None", "None"]
+    
     themes = st.session_state["themes"]
     active_theme = themes["active"]
     active_theme_settings = themes[active_theme]
@@ -151,13 +155,15 @@ def style(feature_keys, keylist_prog_calc):
     
     # Progress meter feature
     prog_meter_keys = list()
-    source_options = hold.load_options()["source"]
-    for x in range(len(source_options) + 5):
-        # Generate a key per source for progress tracker sub-component 
-        key = f"sub2_{str(x)}"
-        x = prog_meter_keys.append(key)
-        style_subcontainer = html_widget.replace("REF", key)
-        st.html(style_subcontainer)
+    options = hold.load_options()
+    if len(options) > 0:
+        source_options = options["source"]
+        for x in range(len(source_options) + 5):
+            # Generate a key per source for progress tracker sub-component 
+            key = f"sub2_{str(x)}"
+            x = prog_meter_keys.append(key)
+            style_subcontainer = html_widget.replace("REF", key)
+            st.html(style_subcontainer)
 
     # Data viewer feature tables "ch_data", "secondary_data", 
     table_style = [active_theme_settings["background"], 

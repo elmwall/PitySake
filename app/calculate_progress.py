@@ -36,7 +36,9 @@ def calculator(component_key: str, feature_width: int | str,
     """
     logger.info("Running")
 
-    # Feature header
+    if feature_width is None: feature_width = "stretch"
+    if feature_height is None: feature_height = "stretch"
+    # Feature header 
     if st.session_state["header_switch"]:
         with st.container(
                 key=f"{component_key}_head",
@@ -75,11 +77,17 @@ def calculator(component_key: str, feature_width: int | str,
             st.space(5)
             no_limit = True
             if st.session_state["select_set"]:
-                limit = hold.load_options()["source_limit"][st.session_state["select_set"]]
+                options = hold.load_options()
+                if len(options) > 0:
+                    limit = options["source_limit"][st.session_state["select_set"]]
+                else:
+                    limit = 0
                 no_limit = False
             
             # Value selector field: Enter values for calculation
             # UI structured as left for "current" and right for "previous"
+            msg, appearance = "Lacking sets", "secondary"
+            usertip_current, usertip_previous = "", ""
             col_left, col_right, col_label = st.columns([5, 5, 7])
             _value_selector(col_left, col_right, col_label, no_limit)
             # Field for submit and result
@@ -121,20 +129,24 @@ def _page_sets():
     st.session_state["prev_page"]
     st.session_state["curr_row"]
     st.session_state["prev_row"]
-    set_options = list(hold.load_progress_data().keys())
-    if "select_set" not in st.session_state:
-        st.session_state["select_set"] = set_options[0]
-    st.session_state["sets"] = hold.load_progress_data()[st.session_state["select_set"]]["sets"]
-    # Uniform page-row
-    if type(st.session_state["sets"]) is dict:
-        st.session_state["page_range"] = range(st.session_state["sets"]["pages"] + 1)[1:]
-        st.session_state["row_range"] = st.session_state["sets"]["rows"]
-    # Varying page-row
-    # The list of pages is corrected to show list starting from 1
-    # since lists starts with index 0
-    elif type(st.session_state["sets"]) is list:
-        st.session_state["row_range"] = st.session_state["sets"]
-        st.session_state["page_range"] = range(len(st.session_state["row_range"]) + 1)[1:]
+    progress_data = hold.load_progress_data()
+    set_options = list(progress_data.keys())
+    if len(set_options) > 0:
+        if "select_set" not in st.session_state:
+            st.session_state["select_set"] = set_options[0]
+        st.session_state["sets"] = progress_data[st.session_state["select_set"]]["sets"]
+        # Uniform page-row
+        if type(st.session_state["sets"]) is dict:
+            st.session_state["page_range"] = range(st.session_state["sets"]["pages"] + 1)[1:]
+            st.session_state["row_range"] = st.session_state["sets"]["rows"]
+        # Varying page-row
+        # The list of pages is corrected to show list starting from 1
+        # since lists starts with index 0
+        elif type(st.session_state["sets"]) is list:
+            st.session_state["row_range"] = st.session_state["sets"]
+            st.session_state["page_range"] = range(len(st.session_state["row_range"]) + 1)[1:]
+    else:
+        st.session_state["sets"] = None
 
 
 def _value_selector(col_left, col_right, col_label, no_limit: bool):
@@ -159,10 +171,12 @@ Bottom: position within section
 - Select a section and a position for both start and end events.  
 The calculation traverses all intermediate sections and returns the total value."""
     col_label.markdown(" ", help=calculator_help)
-
-    # Input page (set) for start and stop event
-    page_range = st.session_state["page_range"]
-    row_range = st.session_state["row_range"]
+    if st.session_state["sets"]:
+        # Input page (set) for start and stop event
+        page_range = st.session_state["page_range"]
+        row_range = st.session_state["row_range"]
+    else:
+        page_range, row_range = 0, 0
     col_left.selectbox(
         "Current", options=page_range, 
         key="curr_page", disabled=no_limit, label_visibility="collapsed")
@@ -409,6 +423,9 @@ def _define_sets():
     progress_data = hold.load_progress_data()
     set_options = list(progress_data.keys())
     col1, col2 = st.columns(2)
+    if not len(progress_data) > 0:
+        st.info("No tracking data found.")
+        return
     with st.container(border=False, height=330):
         selection = col1.selectbox(f"Select {TERMS["source"].lower()} to edit", options=set_options)
         col2.space(32)

@@ -1,13 +1,14 @@
 {
     "Main object": {
         "Origin": [
-            null
+            "-"
         ],
         "Attribute": [
-            null
+            "-"
         ],
         "Utility": [
-            null
+            "-",
+            "Asdf"
         ]
     },
     "main_required": {
@@ -38,8 +39,9 @@
         "collection_start_count": true
     },
     "user_indicators": {
+        "use_highlights": true,
         "reverse_positive": false,
         "high_highlight": 90,
-        "low_highligh": 10
+        "low_highlight": 10
     }
 }

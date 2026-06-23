@@ -45,7 +45,9 @@ def small_stats(component_key: str, sub_keys: list,
             st.markdown("##### *Statistics*", text_alignment="left")
 
     # Main container
-    feat_height = "content" if set_height > 400 else "stretch"
+    feat_height = "stretch"
+    if set_height:
+        if set_height > 400: feat_height = "content" 
     with st.container(
             border=True, key=f"{component_key}_main", 
             width=set_width, height=feat_height):
@@ -66,7 +68,11 @@ def small_stats(component_key: str, sub_keys: list,
                     with st.container():
                         col_left, col_right = st.columns(2)
                         # Last recorded main event value, delta compared to median
-                        reverse = hold.load_options()["user_indicators"]["reverse_positive"]
+                        options = hold.load_options()
+                        if len(options) > 0:
+                            reverse = options["user_indicators"]["reverse_positive"]
+                        else:
+                            reverse = False
                         compare_to_median = int(last - att_median)
                         sign = "+" if compare_to_median > 0 else "-"
                         delta_color = "inverse" if reverse else "normal"
@@ -112,7 +118,9 @@ def small_stats(component_key: str, sub_keys: list,
             
             # Label count 
             with col_2:
-                stat_height = "stretch" if set_height > 600 else 245
+                stat_height = 245
+                if set_height:
+                    if set_height > 600: stat_height = "stretch" 
                 with st.container(border=False, key="label_list", height=stat_height):
                     collist = st.columns(3)
                     n = 0

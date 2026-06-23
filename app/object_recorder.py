@@ -261,12 +261,11 @@ def _type_selection(secretary: Secretary, preset_options: dict) -> bool:
             control for enabling only "utility" label for secondary objects
     """
     if st.pills(
-        "Object type", 
-        options=preset_options["options_type"], 
-        key="reg_object_type", 
-        on_change=secretary.collect_database,
-        label_visibility="collapsed"
-    ):
+            "Object type", 
+            options=preset_options["options_type"], 
+            key="reg_object_type", 
+            on_change=secretary.collect_database,
+            label_visibility="collapsed"):
         if st.session_state["reg_object_type"] == main_ref:
             st.session_state["current_database"] = copy.deepcopy(
                 hold.load_main_database())
@@ -275,6 +274,8 @@ def _type_selection(secretary: Secretary, preset_options: dict) -> bool:
             st.session_state["current_database"] = copy.deepcopy(
                 hold.load_secondary_database())
             disable_extras = True
+    else:
+        disable_extras = False
 
     return disable_extras
 
@@ -511,7 +512,8 @@ def _date_input(data_options: dict):
     else:
         options_dates = None
     # Preset earliest date defined in options file, and latest as today
-    date_min = data_options["value_limits"]["date"][0]
+    date_min = None
+    if len(data_options) > 0: date_min = data_options["value_limits"]["date"][0]
     if date_min:
         date_min = datetime.datetime(
             int("20"+date_min[0:2]),

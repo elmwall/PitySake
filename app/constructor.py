@@ -84,8 +84,11 @@ def header():
             with st.container(key="tools"):
                 if not st.session_state["leave_theme_open"]:
                     st.session_state["show_theme_settings"] = False
-                if st.button("Theme", type="secondary"):
+
+                # Theme button
+                if st.button("Theme", type="secondary", disabled=st.session_state["theme_missing"]):
                     st.session_state["show_theme_settings"] = True
+
                 if st.session_state["show_theme_settings"]:
                     # Set theme temp keys here for editing to have them available when dialog is opened
                     st.session_state["active_theme_temp"] = st.session_state["themes"]["active"]

@@ -34,7 +34,10 @@ def timeline(component_key: str, set_height: int):
                 - Fill color highlights outcomes {TERMS["state_win"]} or {TERMS["state_loss"]}  
                 - Line color highlights rare {TERMS["attempt"]} values"""
             st.markdown(f"##### *Timeline*", help=help_text, text_alignment="left")
-    fheight = 300 if set_height > 300 else set_height
+    fheight = 300
+    if set_height:
+        if set_height < 300: 
+            fheight = set_height
 
     # Main container
     with st.container(border=True, key=f"{component_key}_main", width="stretch", height=fheight):
@@ -47,16 +50,29 @@ def timeline(component_key: str, set_height: int):
             data[x] = main_data[x] + secondary_data[x]
         
         # Settings: adapted theme; values for date, name, progress, and state
-        theme = {
-            "positive": st.session_state["positive_color"],
-            "neutral": st.session_state["neutral_color"],
-            "negative": st.session_state["negative_color"],
-            "text": st.session_state["text_color"],
-            "background": st.session_state["background"],
-            "subarea": st.session_state["sub_container"],
-            "lines": st.session_state["input_field"],
-            "highlights": st.session_state["highlights"]
-        }
+        if not st.session_state["theme_missing"]:
+            theme = {
+                "positive": st.session_state["positive_color"],
+                "neutral": st.session_state["neutral_color"],
+                "negative": st.session_state["negative_color"],
+                "text": st.session_state["text_color"],
+                "background": st.session_state["background"],
+                "subarea": st.session_state["sub_container"],
+                "lines": st.session_state["input_field"],
+                "highlights": st.session_state["highlights"]
+            }
+        else:
+            theme = {
+                "positive": "#ffffff",
+                "neutral": "#ffffff",
+                "negative": "#ffffff",
+                "text": "#ffffff",
+                "background": "#ffffff",
+                "subarea": "#ffffff",
+                "lines": "#ffffff",
+                "highlights": "#ffffff"
+            }
+
         options = hold.load_options()
         dates = data["date"]
         names = data["name"]
@@ -65,20 +81,28 @@ def timeline(component_key: str, set_height: int):
 
         fig = go.Figure()
         # Set highlights for high/low depending on project settings
-        if options["user_indicators"]["reverse_positive"]:
-            high_color = theme["negative"]
-            low_color = theme["positive"]
+        if len(options) > 0:
+            use_highlights = options["user_indicators"]["use_highlights"]
+            if options["user_indicators"]["reverse_positive"]:
+                high_color = theme["negative"]
+                low_color = theme["positive"]
+            else:
+                high_color = theme["positive"]
+                low_color = theme["negative"]
         else:
-            high_color = theme["positive"]
-            low_color = theme["negative"]
+            use_highlights = True
+            high_color, low_color = None, None
         
         for i in range(len(dates)):
             if value[i] is not None: 
-                if highlight[i] is True:
-                    hightlight_col = high_color
-                elif highlight[i] is False:
-                    hightlight_col = low_color
-                elif highlight[i] is None:
+                if use_highlights:
+                    if highlight[i] is True:
+                        hightlight_col = high_color
+                    elif highlight[i] is False:
+                        hightlight_col = low_color
+                    elif highlight[i] is None:
+                        hightlight_col = theme["neutral"]
+                else:
                     hightlight_col = theme["neutral"]
                 
                 if data["state"][i] is True:

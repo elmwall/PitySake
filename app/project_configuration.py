@@ -42,6 +42,13 @@ def initialize_constants(project_name: str):
         file="config.json",
         initialized=False)
     config = arch.reader(join_path="settings")
+    if not config:
+        config_location = os.path.abspath(settings_path)
+        st.error("PROJECT CONFIGURATION FILE MISSING OR CORRUPT")
+        with st.container(border=True):
+            st.markdown(f"""Could not find config.json in:  \n{config_location}""")
+            st.markdown("A generic version can be found [here](https://github.com/elmwall/PitySake/blob/main/user_project/settings/config.json). Place it in the folder above.")
+        quit()
 
     # Store config dictionaries in session state
     for dictionary, content in config.items():
@@ -67,6 +74,10 @@ def edit_options(attempts: dict, options: dict):
         options (dict):
             project unique settings and alternatives
     """
+    if not len(options) > 0:
+        st.error("Critical data options missing.")
+        return
+    
     from app.initialize import arciv
     if not st.session_state["dialog_active"]:
         st.session_state["edit_options_complete"] = False
@@ -89,11 +100,17 @@ def edit_options(attempts: dict, options: dict):
                 # Select to add new or remove option if available
                 if st.checkbox("Remove option", value=False, key="remove_option"):
                     # If user selected to remove:
+                    single_option = False
+                    if len(st.session_state["remove_options"]) < 2:
+                        no_options = True
+                        single_option = True
                     placeholder = "No removable options" if no_options else None
                     st.selectbox(
                         "Select option", options=st.session_state["remove_options"], 
                         key="selected_removal", on_change=_reset_changes, 
                         disabled=no_options, placeholder=placeholder)
+                    if single_option: 
+                        st.markdown("At least one option required. Add a new one first.")
                     
                     # Render confirm button
                     # - is disabled if no options exist that isn't in requirements
@@ -283,7 +300,7 @@ def edit_options(attempts: dict, options: dict):
             SETTINGS["Options"], "options")
         logger.info(f"Update called for {SETTINGS["Options"]}")
         if arciv.backup(
-                [7, 5, 3, 1], "options", set_file=SETTINGS["Options"]): 
+                [7, 5, 3, 1], "options", set_file=SETTINGS["Options"], empty_allowed=True): 
             arciv.writer(
                 st.session_state["changed_options"], 
                 set_file=SETTINGS["Options"], join_path="settings")
@@ -332,7 +349,7 @@ def _initiate_option_edit(TERMS):
         st.session_state["changed_progress"] = copy.deepcopy(load_progress_data())
     elif not st.session_state["changed_progress"]:
         st.session_state["changed_progress"] = copy.deepcopy(load_progress_data())
-    
+
     # Text-based options and project reference
     named_option_ref = {
         "edit_utility": TERMS["utility"],
