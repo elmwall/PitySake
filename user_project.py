@@ -23,7 +23,9 @@ import datetime
 
 import streamlit as st
 
+# Project initiation
 from app.project_configuration import initialize_constants
+# File name of project main is key to project folder --> configuration and data
 if "SETTINGS" not in st.session_state:
     project = os.path.splitext(
         os.path.basename(__file__))[0]
@@ -38,11 +40,10 @@ else:
     logger.info("")
     now = datetime.datetime.now()
     logger.info(f"Rerun: {now}")
-
+# Modules dependent on project files
 import app.initialize as init
 import app.style as page
 import app.constructor as construct
-import app.error_handler as error
 
 
 # Previous essential database/option changes resets system

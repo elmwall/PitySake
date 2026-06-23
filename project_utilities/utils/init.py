@@ -9,7 +9,11 @@ INIT = {
     "checklists": {
         "project_save": None,
         "objects_save": None,
-        "label_save": None,
+        "label_save": {
+            "utility": None,
+            "attribute": None,
+            "origin": None
+        },
         "event_save": None,
         "progress_save": None
     },
@@ -48,19 +52,10 @@ INIT = {
             "negative_value": None
         }
     },
-    # Page
+    # Pages
+    "page_initial_state": True,
     "page": 0,
     "page_incomplete": True,
-    # Form
-    # "submitted": dict(),
-    # Names
-    "ui_title": None,
-    "title_is_valid": False,
-    "main": None,
-    "secondary": None,
-    "utility": None,
-    "attribute": None,
-    "origin": None,
     "project_need_save": "secondary",
     "project_is_changed": False,
     "objects_need_save": "secondary",
@@ -69,6 +64,16 @@ INIT = {
     "event_is_changed": False,
     "progress_need_save": "secondary",
     "progress_is_changed": False,
+    # Project
+    "ui_title": None,
+    "title_is_valid": False,
+    "selected_template": None,
+    # Objects
+    "main": None,
+    "secondary": None,
+    "utility": None,
+    "attribute": None,
+    "origin": None,
     # Labels
     "label_1_number": 1,
     "label_2_number": 1,

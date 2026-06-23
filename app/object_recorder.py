@@ -26,16 +26,13 @@ TERMS = st.session_state["TERMS"]
 
 attempt_ref = TERMS["attempt"]
 attribute_ref = TERMS["attribute"]
-# common_ref = TERMS["common_source"]
 event_ref = TERMS["event"]
-# gift_ref = TERMS["gift"]
 main_ref = TERMS["main"]
 origin_ref = TERMS["origin"]
 secondary_ref = TERMS["secondary"]
 source_ref = TERMS["source"]
 state_ref = TERMS["state"]
 utility_ref = TERMS["utility"]
-# utility_sec_ref = TERMS["utility"]
 
 
 def register_object(component_key: str, sub_keys: list, 

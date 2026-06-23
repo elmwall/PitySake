@@ -31,7 +31,6 @@ INIT_STATE = {
     "error": False,
     "pending_backup": False,
     "pending_save": False,
-    # "vertical_view": False,
     # Constructor
     "show_theme_settings": False,
     "theme_edited": 0,
@@ -43,9 +42,6 @@ INIT_STATE = {
     "message": "",
     "calculation": None,
     "rows": 5,
-    # "start_at_1": False,
-    # "set_limit": 1000,
-    # "page_range": range(10+1),
     # Database
     "current_database": "state_import",
     # Object info manager - main
@@ -119,13 +115,12 @@ def initialize():
     # Special case: define values from external sources 
     # For source and progress values, import value for first source in list
     source_options = hold.load_options()["source"]
-    # limit_disabled = hold.load_options()["source_limit"][source_options[0]]
-    # state_disabled = hold.load_options()["states"][source_options[0]]
     state_import = {
         # Database
         "current_database": copy.deepcopy(hold.load_main_database()),
         # Object info manager - main
         "reg_object_type": TERMS["main"],
+        # Collect data from first value among items as inital option
         "reg_state": hold.load_options()["results"][0],
         "reg_source": list(hold.load_options()["source_limit"].keys())[0],
         "limit_disabled": hold.load_options()["source_limit"][source_options[0]] is False,
@@ -162,7 +157,7 @@ def initialize():
         if key not in st.session_state:
             st.session_state[key] = themes[st.session_state["active_theme"]][key]
     
-    # Correct settings dependent on last project active
+    # Correct view settings dependent on last project active
     # Settings in .strealit/config.toml (currently only themes) requires this check
     meta = st.session_state["meta"]
     active_theme = st.session_state["active_theme"]
@@ -256,6 +251,7 @@ def refresh():
 
 def _settings_correction(active_theme_settings, meta):
     "Adjusts config file settings to match project settings."
+
     config = f"""
 [server]
 runOnSave = true
@@ -289,6 +285,7 @@ font = 'sans serif'
 
 
 def set_orientation():
+    "Store current orientation to be maintain upon reload."
     meta = st.session_state["meta"]
     meta["vertical_view"] = st.session_state["vertical_view"]
     arciv.writer(meta, set_file="meta.json")

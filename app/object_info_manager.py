@@ -42,9 +42,7 @@ class Secretary:
 
         self.attempt_ref = TERMS["attempt"]
         self.attribute_ref = TERMS["attribute"]
-        # self.common_ref = TERMS["common_source"]
         self.event_ref = TERMS["event"]
-        # self.gift_ref = TERMS["gift"]
         self.main_ref = TERMS["main"]
         self.origin_ref = TERMS["origin"]
         self.progress_ref = TERMS["progress"]
@@ -182,8 +180,6 @@ class Secretary:
             st.session_state["translated_values"][x] = st.session_state[x]
         if type(st.session_state["reg_date"]) is str:
             st.session_state["translated_values"]["reg_date"] = st.session_state["reg_date"]
-        # elif any([not st.session_state["translated_values"]["reg_date"], 
-        #           not st.session_state["include_event"]]):
         elif not st.session_state["translated_values"]["reg_date"]:
             pass
         else:
@@ -208,7 +204,7 @@ class Secretary:
             # Do not attempt if event data is empty 
             # - should only occur after previous deletion
             data_is_valid = True if event_length else False
-        # "Save" - use case for adding new object or editing without deletion
+        # "Save" to existing: adding events, or editing info without deletion
         else:
             data_is_valid, save_button_msg = True, "Save"
         # Main type of object or utilitarian object

@@ -65,7 +65,7 @@ SETTINGS: {self.settings_directory},
 BACKUP: {self.backup_directory}""")
 
 
-    def reader(self, set_file :str = None, join_path: str | None = None, 
+    def reader(self, set_file : str = None, join_path: str | None = None, 
                is_json: bool = True, allow_missing: bool = False, 
                allow_empty: bool = False) -> dict | bool | None:
         """
@@ -424,7 +424,23 @@ FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
             return False
 
 
-    def _resolve_path(self, join_path, set_file, stage):
+    def _resolve_path(self, join_path: str|None, set_file: str|None, stage: str) -> tuple:
+        """
+        Joins file name with declared folder.
+
+        Args:
+            join_path (str|None):
+                folder name, if any
+            set_file (str|None):
+                file to read, if not self.file
+            stage (str):
+                process indicator for log
+
+        Returns:
+            Tuple (str, bool):
+                read_file (str): official file path
+                path_is_resolved (bool): control value for further processes
+        """
         read_file = self.file if not set_file else set_file
         path_is_resolved = True
         if join_path == "data":

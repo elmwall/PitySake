@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 def table_view(component_key: str, object_type: str, 
                table_style: str, table_height: int | str):
     """
-    Renders table feature for main or secondary object database.
+    Renders table feature for main or secondary object database, with tabs 
+    for history or overview.
     """
-
     logger.info(f"Running for {object_type}") 
 
     # Feature header
@@ -33,6 +33,13 @@ def table_view(component_key: str, object_type: str,
     else:
         _tab(tab_key, object_type)
 
+    # Tab 
+    # - Generated with st.segmented_control instead of st.tabs # due to limitations in customization, 
+    #   with the tab field taking up too much space. 
+    # - There is also an issue with jumping stretch layout when loading table data
+    #   upon switching tabs, generating a tall view when loading data and then limiting it to stretch. 
+    #   Instead both "tabs" and there tables are generated, but stacked on top of each other,
+    #   the tab not shown is set to 1 pixel height. Switching can then adapt the stretch to already existing data.
     if st.session_state[f"{component_key}_select_view"] == f"{object_type}_history":
         st.space(1)
         history_height = "stretch"
@@ -95,13 +102,13 @@ def table_view(component_key: str, object_type: str,
             styled_dataframe_overview, height=table_height, hide_index=True,
             column_config={
                 "Name": st.column_config.Column(width=125),
-                "Total": st.column_config.Column(width=45),
-                # attempt_title: st.column_config.Column(width=50),
+                "Total": st.column_config.Column(width=45)
             },
             key=f"{component_key}_table_overview", placeholder="")
 
 
 def _tab(key, object_type):
+    "Generates tab view control via Streamlit segmented control element."
     st.html("""
     <style>
         .st-key-KEY_REF button[data-testid='stBaseButton-segmented_control'], 
@@ -123,6 +130,8 @@ def _tab(key, object_type):
     </style>"""
     .replace("ELEMENT_REF", "button[data-testid='stBaseButton-segmented_control']")
     .replace("KEY_REF", key))
+
+    # Tab titles
     view_options = {
         f"{object_type}_history": f"{TERMS[object_type]} history",
         f"{object_type}_overview": f"{TERMS[object_type]} overview"

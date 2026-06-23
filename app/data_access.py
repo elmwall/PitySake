@@ -67,10 +67,12 @@ def load_themes() -> dict:
 
 @st.cache_data
 def process_main_db(database):
+    "Cache processed database for main type object."
     return _process_collection_db(database, "main")
 
 @st.cache_data
 def process_secondary_db(database):
+    "Cache processed database for secondary type object."
     return _process_collection_db(database, "secondary")
 
 def _process_collection_db(database: dict, datatype: str):
@@ -87,8 +89,14 @@ def _process_collection_db(database: dict, datatype: str):
 
     Returns:
         processed database (dict):
-            label count, attempt values, last event value, 
-            success/fail count, rows for tables, graph data
+            counts (dict): couts of labels for main type objects  
+            attempt_list (list): collected values for analysis  
+            last_event (list): last recorded  
+            success_fail (list): counts of positive (index 0) and negative (index 1)  
+            table_data (list): rows for history table  
+            overview_data (list): rows for overview table  
+            graph_data (dict): data for timeline  
+            attempt_title: term for attempt (value) for view  
     """
     data_options = load_options()
     graph_data = {
@@ -103,7 +111,7 @@ def _process_collection_db(database: dict, datatype: str):
     
     # For analysis of values
     attempt_value_list = list()
-    # To count Category - Label - How many  
+    # To count labels of main divided into categories
     counts = dict()
     # To record last attempt [date, attempt value]
     last_event = [0, 0]
@@ -132,60 +140,34 @@ def _process_collection_db(database: dict, datatype: str):
                 object_option = info[category]
                 counts[category][object_option] += 1
         
-        attempt_per_object = list()
-        # add_prefix = False
-        # add_suffix = False
-        
+        attempt_per_object = list()  
         # Collect event data
         for event_id, event_data in info[TERMS["event"]].items(): 
             # Collect date and index
             date, index = event_id.split("-")
-            # For main type object, date or main field in dataview should may show collection count 
+            # For main type object, dataview should show collection count 
             formatted_date = datetime.datetime.strptime("20" + date, "%Y%m%d").strftime("%Y-%m-%d")
             if datatype == "main":
                 if name in object_count:
                     object_count[name] += 1
                 else:
                     object_count[name] = data_options["value_limits"]["collection_start_count"]
-                # suffix = str()
-                # prefix = str()
-                # if add_suffix:
-                #     for x in f"{object_count[name]}":
-                #         if x in ["0", "4", "5", "6", "7", "8", "9"]:
-                #             suffix = "th"
-                #         elif x == "1":
-                #             suffix = "st"
-                #         elif x == "2":
-                #             suffix = "nd"
-                #         elif x == "3":
-                #             suffix = "rd"
-                # if add_prefix:
-                #     prefix = "C"
-                # object_collection = f"{prefix}{object_count[name]}{suffix}"
                 object_collection = f"{object_count[name]}"
             else:
                 object_collection = ""
 
-            # Collect attempt and state
-            # For objects without attempts registered, skip both
+            # Collect attempt
             attempt_value = event_data[TERMS["attempt"]]
             attempt_per_object.append(attempt_value)
             state = event_data[TERMS["state"]]
-            source = event_data[TERMS["source"]]
             if attempt_value:
                 # Collect all attempt results in a list
                 attempt_value_list.append(attempt_value)
                 # Check date to identify latest value
                 if int(date) > last_event[0]:
                     last_event = [int(date), attempt_value]
-                # Check event outcome and update list [success, fail] with +1 for success or fail
-                # if attempt_value:
-                #     if state == TERMS["state_win"]:
-                #         state_value = True
-                #     elif state == TERMS["state_loss"]: 
-                #         state_value = False
-                #     else:
-                #         state_value = None
+
+            # Collect state
             if state == TERMS["state_win"]:
                 success_fail = [success_fail[0] + 1, success_fail[1]]
                 state_value = True
@@ -195,11 +177,13 @@ def _process_collection_db(database: dict, datatype: str):
             else:
                 state_value = None
 
-
+            # Collect values for graph data
             graph_data["date"].append(formatted_date)
             graph_data["name"].append(name)
             graph_data["state"].append(state_value)
             graph_data["type"].append(datatype)
+            # Adapt attempt and highlight values depending on data present
+            source = event_data[TERMS["source"]]
             if attempt_value is not None:
                 graph_data["attempt"].append(attempt_value)
                 graph_data["attempt_made"].append(True)
@@ -219,7 +203,7 @@ def _process_collection_db(database: dict, datatype: str):
                 graph_data["attempt_made"].append(False)
                 graph_data["highlight"].append(None)
 
-            # Create list of row sets for pandas
+            # Create list of row sets for pandas for tables
             if datatype == "main": 
                 utility = info[TERMS["utility"]]
                 attribute = info[TERMS["attribute"]]

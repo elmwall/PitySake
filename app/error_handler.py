@@ -228,7 +228,7 @@ def catch_backup_data(mode: str, data: any, file: str,
 
     return True
 
-
+# pending_backup ->
 def _confirm_action():
     """
     User Yes/No request

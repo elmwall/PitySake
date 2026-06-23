@@ -1,10 +1,30 @@
+"""
+Page C: Name personalized terms
+
+Guide: explain concept of value, source, and outcomes  
+Example images: 
+- table feature (source and value)
+- timeline feature (positive/negative/netral outcomes)
+- object registration feature (source, value, outcome)
+
+Manages:
+- Form: collect terms for each
+"""
+
 import streamlit as st
 
 from utils import tools
 
 
 # Step 3: name terms for progress, sources and outcome
-def define_event_terms(set_width, set_heigth):
+def define_event_terms(set_width: int|str):
+    """
+    Define terms for values, sources and outcomes - present user info and collect details.
+
+    Behavior:
+    - disables save button until all fields are filled, re-enables if a field is changed
+    - disables next button until first save
+    """
     with st.container(
             border=False, width=set_width, 
             height="stretch", horizontal_alignment="center"):
@@ -24,23 +44,23 @@ def define_event_terms(set_width, set_heigth):
 
         # Form
         submission_key = "event_terms"
-        event_need_save = "event_need_save"
-        event_is_changed = "event_is_changed"
+        button_format_key = "event_need_save"
+        is_changed_key = "event_is_changed"
         with st.container(horizontal_alignment="center"):
-            submission = _name_events(event_need_save, event_is_changed, submission_key)
+            submission = _name_events(button_format_key, is_changed_key)
         with col_apply:
-            tools.apply("event_save", event_need_save, event_is_changed, submission_key, submission)
+            tools.apply("event_save", button_format_key, is_changed_key, submission_key, submission)
 
         # Demo
         col_d1, col_d2 = st.columns(2)
         with col_d1.expander("Explanation"):
-            with st.container(border=False, height=300):
+            with st.container(border=False):
                 st.markdown("""
                 ##### Events  
-                Events may be recorded with or without value or outcome, but:  
-                - An event is required for an object event to appear in history
-                - An event with a value is required for timeline visualization
-                - Events without an outcome or with a neutral outcome do not affect evaluation statistics
+                - Events registered are always associated with a date and a source and is displayed in history.  
+                - They may be recorded with or without value or outcome, but:  
+                    - An event with a value is required for timeline visualization
+                    - Events without an outcome or with a neutral outcome do not affect evaluation statistics
                 
                 ##### Outcomes  
                 Outcomes do not need to be good or bad states, examples:  
@@ -50,28 +70,51 @@ def define_event_terms(set_width, set_heigth):
                 
                 The 'positive' and 'negative' states receive have unique color annotations in the timeline and are used when calculating outcome statistics.
                 """)
-        with col_d2.expander("View example", width=set_width):
-            with st.container(border=False, height=300):
+        with col_d2.expander("View examples", width=set_width):
+            with st.container(border=False):
                 st.image(
-                    "images/sample_obj.png", 
-                    caption="**Main objects** has three group of labels.", 
+                    "../accessories/tab_notes.png", 
+                    output_format="PNG"
+                )
+                st.image(
+                    "../accessories/timeline2_notes.png", 
+                    output_format="PNG"
+                )
+                st.image(
+                    "../accessories/object_reg2_notes3.png", 
                     output_format="PNG"
                 )
 
 
-def _name_events(event_need_save, event_is_changed, submission_key):
-    submitted = st.session_state["submitted"]["objects_details"]
+def _name_events(button_format_key: str, is_changed_key: str) -> dict:
+    """
+    User info and input fields for terms.  
+    Generate error message for invalid names.
+
+    Args:
+        button_format_key (str):
+            format key, setting discrete or highlighted save button
+        is_changed_key (str): 
+            control key for behavior upon change
+
+    Returns:
+        (dict):
+            attempt, sources_name, state_det, state_win, state_loss"""
     col_1, col_2, col_3 = st.columns([1, 1.5, 1.5])
-    col_1.markdown("Terms regarding values and occurrences")
+
+    # User info
+    col_1.markdown("For events registered, here you name recorded values, sources and outcomes.")
     col_1.markdown(f"""
-        - **Value:** a value associated with objects ({submitted["main"]} and {submitted["secondary"]})  
-        - **Events:** object events record information about date, source, outcome, and value  
-        - **Source:** event categories which can be associated with values
+        - **Events:** recorded for individual objects, with date, source, value, and outcome
+        - **Value:** a value associated with the event  
+        - **Source:** event categories
     """)
     col_1.markdown("""
         - **Outcome:** for evaluating your events with a particular state (e.g. positive/negative/neutral)
     """)
 
+    # Input fields
+    # - Value and source terms
     with col_2.container(border=True, height="stretch"):
         st.markdown("##### Value and event terms", text_alignment="center")
         st.markdown("")
@@ -81,7 +124,7 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             help="""A name for the value you track for objects,  
             e.g. a count, a result, or cost.""", 
             on_change=tools.need_update, 
-            args=(event_need_save, event_is_changed), 
+            args=(button_format_key, is_changed_key), 
             placeholder="Exercises / Length / Value")
         st.text_input(
             """Event source, as in  
@@ -92,9 +135,10 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             help="""You track values within one source,  
             here you set a name for sources as a group (in singular).""", 
             on_change=tools.need_update, 
-            args=(event_need_save, event_is_changed), 
+            args=(button_format_key, is_changed_key), 
             placeholder="Learning track / Workout program / Collection")
-
+        
+    # - Outcome terms
     with col_3.container(border=True, height="stretch"):
         st.markdown("##### Outcome evaluations terms", text_alignment="center")
 
@@ -107,7 +151,7 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             key="state_det", 
             help=neu_help,
             on_change=tools.need_update, 
-            args=(event_need_save, event_is_changed), 
+            args=(button_format_key, is_changed_key), 
             placeholder="Neutral / Not applicable / Expected")
 
         pos_help = """
@@ -118,7 +162,7 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             key="state_win", 
             help=pos_help, 
             on_change=tools.need_update, 
-            args=(event_need_save, event_is_changed), 
+            args=(button_format_key, is_changed_key), 
             placeholder="Easy / Success / High value")
         
         neg_help = """
@@ -129,9 +173,10 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             key="state_loss", 
             help=neg_help, 
             on_change=tools.need_update, 
-            args=(event_need_save, event_is_changed), 
+            args=(button_format_key, is_changed_key), 
             placeholder="Hard / Fail / Low value")
-        
+    
+    # Word validation
     validated = dict()
     ref = {
         "attempt": "value term",
@@ -140,7 +185,7 @@ def _name_events(event_need_save, event_is_changed, submission_key):
         "state_win": "positive outcome term",
         "state_loss": "negative outcome term"
     }
-    for x, y in ref.items():
+    for x in ref.keys():
         word_is_invalid = tools.symbol_validation(st.session_state[x])
         value = None if word_is_invalid else st.session_state[x]
         validated[x] = value
@@ -150,6 +195,7 @@ def _name_events(event_need_save, event_is_changed, submission_key):
             else:
                 col_3.error(f"{ref[x].capitalize()}: {word_is_invalid}")
 
+    # Checklist for enabling save
     st.session_state["checklists"]["event_save"] = [
         validated["attempt"],
         validated["sources_name"],
