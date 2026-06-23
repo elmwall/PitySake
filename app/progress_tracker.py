@@ -43,8 +43,11 @@ def progress_meter(component_key: list, sub_keys: list,
     logger.info("Running")
 
     attempts = hold.load_progress_data()
-    active_theme = st.session_state["themes"]["active"]
-    widget_color = st.session_state["themes"][active_theme]["input_field"]
+    if not st.session_state["theme_missing"]:
+        active_theme = st.session_state["themes"]["active"]
+        widget_color = st.session_state["themes"][active_theme]["input_field"]
+    else:
+        widget_color = ""
     reset_key = f"reset_key"
     height, html_label, html_add10 = _feature_style(component_key, widget_color, reset_key)
 
@@ -74,12 +77,19 @@ def progress_meter(component_key: list, sub_keys: list,
             st.space("xxsmall")
             # Define a key for each subfeature and initiate their init value
             init_values, shared_init, keys = _initiate(attempts, category, init_values, i)
-            limit = hold.load_options()["source_limit"][category]
+            options = hold.load_options()
+            if not len(options) > 0:
+                st.error("Critical option data missing.")
+                return
+            limit = options["source_limit"][category]
             with st.container(key=sub_keys[i]):
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()
                 with col_state:
                     is_static = False
-                    color = st.session_state["themes"][active_theme]["text_color"]
+                    if not st.session_state["theme_missing"]:
+                        color = st.session_state["themes"][active_theme]["text_color"]
+                    else:
+                        color = ""
                     # Indicate prognisis state of source
                     if attempts[category]["State"]:
                         if attempts[category]["State"] == staterand_ref:
@@ -166,6 +176,11 @@ def progress_meter(component_key: list, sub_keys: list,
 def _feature_style(component_key: str, widget_color: str, reset_key:str):
     "Runs HTML/CSS settings for components"
     height = 282
+    if not st.session_state["theme_missing"]:
+        positive_color = st.session_state["positive_color"]
+    else:
+        positive_color = ""
+
     st.html("""
             <style> 
                 .st-key-REF {min-width: 1000px;} 
@@ -192,7 +207,7 @@ def _feature_style(component_key: str, widget_color: str, reset_key:str):
                 .st-key-KEY_REF button {margin: -2rem 0rem;}
             </style>"""
             .replace("KEY_REF", reset_key)
-            .replace("COLOR_REF", st.session_state["positive_color"]))
+            .replace("COLOR_REF", positive_color))
     return height, html_label, html_add10
 
 
@@ -290,7 +305,7 @@ def _update_progress(attempts: dict, category: str,
     error.catch_data(attempts, file, progress_ref)
     if arciv.backup(
             [101, 47, 19, 7, 3], progress_ref, 
-            set_file=file):
+            set_file=file, empty_allowed=True):
         arciv.writer(
             attempts, object_type=progress_ref, 
             set_file=file, join_path="data")

@@ -138,8 +138,8 @@ FULL_PATH: {read_file}""")
                 return False
 
 
-    def backup(self, backup_frequency: list[int], 
-               object_type: str, set_file: str | None = None) -> bool:
+    def backup(self, backup_frequency: list[int], object_type: str, 
+               set_file: str | None = None, empty_allowed: bool = False) -> bool:
         """
         Automated backup in multiple files.
         - performes backup at listed intervals
@@ -209,6 +209,10 @@ BACKUP_PATH: {backup_file}, EDIT_COUNT: {file_edit_count} mod {value}""")
             file_length = "not collected"
         elif data:
             file_length = len(data)
+        elif empty_allowed:
+            logger.warning(f"\n{file} is empty. Empty allowed but backup not performed.")
+            backup_file = False
+            file_length = 0
         else:
             logger.warning(f"\n{file} backup stopped - new data is empty.")
             st.session_state["pending_backup"] = True

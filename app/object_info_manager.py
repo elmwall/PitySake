@@ -71,15 +71,24 @@ class Secretary:
         except:
             options_object = list(hold.load_main_database().keys())
 
-        preset_options = {
-            "options_utility": self.options[self.main_ref][self.utility_ref],
-            "options_object": options_object,
-            "options_attribute": self.options[self.main_ref][self.attribute_ref],
-            "options_origin": self.options[self.main_ref][self.origin_ref],
-            "options_type": [self.main_ref, self.secondary_ref],
-            "options_source": list(self.options["source_limit"].keys()),
-            "options_states": self.options["results"]
-        }
+        if len(self.options) > 0:
+            preset_options = {
+                "options_utility": self.options[self.main_ref][self.utility_ref],
+                "options_object": options_object,
+                "options_attribute": self.options[self.main_ref][self.attribute_ref],
+                "options_origin": self.options[self.main_ref][self.origin_ref],
+                "options_type": [self.main_ref, self.secondary_ref],
+                "options_source": list(self.options["source_limit"].keys()),
+                "options_states": self.options["results"]}
+        else:
+            preset_options = {
+                "options_utility": None,
+                "options_object": None,
+                "options_attribute": None,
+                "options_origin": None,
+                "options_type": None,
+                "options_source": None,
+                "options_states": None}
 
         required_keys = [
             "reg_utility", "reg_attribute", "reg_origin", "reg_name", 
@@ -185,11 +194,15 @@ class Secretary:
         else:
             adjusted_date = st.session_state["reg_date"].strftime("%y%m%d")
             st.session_state["translated_values"]["reg_date"] = adjusted_date
-        if not self.options["states"][st.session_state["reg_source"]]: 
-            st.session_state["translated_values"]["reg_state"] = None
-        if not self.options["source_limit"][st.session_state["reg_source"]]: 
-            st.session_state["translated_values"]["reg_attempt"] = None
-        
+        if len(self.options) > 0:
+            if not self.options["states"][st.session_state["reg_source"]]: 
+                st.session_state["translated_values"]["reg_state"] = None
+            if not self.options["source_limit"][st.session_state["reg_source"]]: 
+                st.session_state["translated_values"]["reg_attempt"] = None
+        else:
+                st.session_state["translated_values"]["reg_state"] = None
+                st.session_state["translated_values"]["reg_attempt"] = None
+
         # "Already in library" 
         # - to avoid losing data, prevent adding same object more than once
         if reg_selection == "add_new" and object_in_library:
@@ -268,22 +281,25 @@ class Secretary:
             else:
                 data_checks["source_done"] = True
             
-            # State
-            if not st.session_state["translated_values"]["reg_state"]:
-                reg_source = st.session_state["translated_values"]["reg_source"]
-                if any([not self.options["states"][reg_source], 
-                       not st.session_state["include_event"]]): 
-                    data_checks["state_done"] = True
-            else:
-                data_checks["state_done"] = True
-            
-            # Limit
-            if st.session_state["translated_values"]["reg_attempt"] is None:
-                if any([not self.options["source_limit"][reg_source],
+            data_checks["state_done"] = False
+            data_checks["attempt_done"] = False
+            if len(self.options) > 0:
+                # State
+                if not st.session_state["translated_values"]["reg_state"]:
+                    reg_source = st.session_state["translated_values"]["reg_source"]
+                    if any([not self.options["states"][reg_source], 
                         not st.session_state["include_event"]]): 
+                        data_checks["state_done"] = True
+                else:
+                    data_checks["state_done"] = True
+            
+                # Limit
+                if st.session_state["translated_values"]["reg_attempt"] is None:
+                    if any([not self.options["source_limit"][reg_source],
+                            not st.session_state["include_event"]]): 
+                        data_checks["attempt_done"] = True
+                else:
                     data_checks["attempt_done"] = True
-            else:
-                data_checks["attempt_done"] = True
 
         return list(data_checks.values())
 
@@ -378,7 +394,7 @@ class Secretary:
             stage="pre_backup", prefix=object_type)
         updated_library = False
         # Backup old data before save
-        if arciv.backup(backup_frequency, object_type, set_file=datafile): 
+        if arciv.backup(backup_frequency, object_type, set_file=datafile, empty_allowed=True): 
             updated_library = arciv.join_data(
                 new_data, name, reg_setting["for_deletion"], reg_setting["for_renaming"], 
                 set_file=datafile, join_path="data", 

@@ -253,13 +253,7 @@ def _data_options(terms: dict, submitted: dict) -> dict:
             terms["attribute"]: submitted["label_details"]["attribute"],
             terms["utility"]: submitted["label_details"]["utility"]
         },
-        "main_required": {
-            terms["origin"]: [],
-            terms["attribute"]: [],
-            terms["utility"]: []
-        },
         "source": list(submitted["progress_details"]["sources"].keys()),
-        "source_required": [],
         "results": [
             submitted["event_terms"]["state_win"],
             submitted["event_terms"]["state_loss"],
@@ -275,9 +269,10 @@ def _data_options(terms: dict, submitted: dict) -> dict:
             "collection_start_count": submitted["objects_details"]["start_from_0"]
         },
         "user_indicators": {
+            "reverse_positive": submitted["progress_details"]["switches"]["use_highlights"],
             "reverse_positive": submitted["progress_details"]["switches"]["reverse_positive"],
             "high_highlight": submitted["progress_details"]["high_limit"],
-            "low_highligh": submitted["progress_details"]["low_limit"]
+            "low_highlight": submitted["progress_details"]["low_limit"]
         }
     }
 

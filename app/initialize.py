@@ -34,6 +34,7 @@ INIT_STATE = {
     # Constructor
     "show_theme_settings": False,
     "theme_edited": 0,
+    "theme_missing": False,
     # Calculate progress
     "curr_page": 1, 
     "curr_row": 0, 
@@ -103,10 +104,9 @@ def initialize():
         st.session_state["rerun"] = 0
 
     # Cache databases and collect the needed 
-    hold.load_options()
-    hold.load_progress_data()
-    hold.load_main_database()
-    hold.load_secondary_database()
+    options = hold.load_options()
+    progress_data = hold.load_progress_data()
+    main_database = hold.load_main_database()
     # Store theme collection
     if "themes" not in st.session_state:
         st.session_state["themes"] = hold.load_themes()
@@ -114,24 +114,41 @@ def initialize():
 
     # Special case: define values from external sources 
     # For source and progress values, import value for first source in list
-    source_options = hold.load_options()["source"]
+    attempt = 0
+    if len(options) > 0:
+        source_options = options["source"]
+        states = options["results"][0]
+        source = list(options["source_limit"].keys())[0]
+        limit_disabled = options["source_limit"][source_options[0]] is False
+        state_disabled = options["states"][source_options[0]] is False
+        limit = options["source_limit"][source_options[0]]
+        if len(progress_data) > 0:
+            attempt = progress_data[source_options[0]][TERMS["attempt"]]
+    else:
+        states, limit = [False]*2
+        limit_disabled, state_disabled = [True]*2
+        source = None
+    if len(themes) > 0:
+        active = themes["active"]
+    else:
+        active = None
     state_import = {
         # Database
-        "current_database": copy.deepcopy(hold.load_main_database()),
+        "current_database": copy.deepcopy(main_database),
         # Object info manager - main
         "reg_object_type": TERMS["main"],
         # Collect data from first value among items as inital option
-        "reg_state": hold.load_options()["results"][0],
-        "reg_source": list(hold.load_options()["source_limit"].keys())[0],
-        "limit_disabled": hold.load_options()["source_limit"][source_options[0]] is False,
-        "state_disabled": hold.load_options()["states"][source_options[0]] is False,
+        "reg_state": states,
+        "reg_source": source,
+        "limit_disabled": limit_disabled,
+        "state_disabled": state_disabled,
         "reg_type": TERMS["main"],
-        "reg_attempt": hold.load_progress_data()[source_options[0]][TERMS["attempt"]],
-        "selection_limit": hold.load_options()["source_limit"][source_options[0]],
+        "reg_attempt": attempt,
+        "selection_limit": limit,
         # Style
-        "active_theme": themes["active"],
-        "active_theme_temp": themes["active"]}
-
+        "active_theme": active,
+        "active_theme_temp": active}
+    
     # Initiate all keys
     init_state = copy.deepcopy(INIT_STATE)
     for key, state in init_state.items():
@@ -153,9 +170,10 @@ def initialize():
                 logger.exception(f"\ninitialize could not initialize key: {key}")
     
     # Initialize theme setting keys
-    for key in themes[st.session_state["active_theme"]].keys():
-        if key not in st.session_state:
-            st.session_state[key] = themes[st.session_state["active_theme"]][key]
+    if st.session_state["active_theme"]:
+        for key in themes[st.session_state["active_theme"]].keys():
+            if key not in st.session_state:
+                st.session_state[key] = themes[st.session_state["active_theme"]][key]
     
     # Correct view settings dependent on last project active
     # Settings in .strealit/config.toml (currently only themes) requires this check
@@ -171,7 +189,10 @@ Current session theme: {st.session_state["active_theme"]}""")
     project_nomatch = meta["project"] != st.session_state["project"]
     theme_nomatch = meta["theme"] != st.session_state["active_theme"]
     if project_nomatch or theme_nomatch:
-        _settings_correction(themes[active_theme], meta)
+        if len(themes) > 0: 
+            _settings_correction(themes[active_theme], meta)
+        else: 
+            st.session_state["theme_missing"] = True
     st.session_state["vertical_view"] = meta["vertical_view"]
         
     # Follow up backups from prior activity

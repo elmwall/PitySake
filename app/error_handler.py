@@ -51,10 +51,15 @@ def notify():
                 info += f"- {x}  "
 
         col_1, col_2, col_4 = st.columns([3, 6, 1])
-        with col_1.container(border=False, width="stretch"):
-            st.error(error["message"])
+        # with col_1.container(border=False, width="stretch"):
         with col_2.expander(f"Details - Error ID {error["ID"]}"):
             st.markdown(info)
+        if col_1.button(f":red[{error["message"]}]", width="stretch"):
+            file = os.path.abspath(__file__)
+            directory = os.path.dirname(
+                os.path.dirname(file)
+            )
+            col_2.markdown(f"Location: {directory}", text_alignment="center")
 
         if col_4.button("Ok", width="stretch"): 
             st.session_state["error"] = False

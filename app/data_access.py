@@ -29,32 +29,40 @@ logger = logging.getLogger(__name__)
 arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
 
+def data_loader(datafile, join_path):
+    database = arciv.reader(datafile, join_path)
+    if database:
+        return arciv.reader(datafile, join_path)
+    else:
+        return {}
+
+
 @st.cache_data
 def load_main_database() -> dict:
     "Loads main database via file_manager, and caches data"
     datafile = DATAPATH[TERMS["main"]]
-    return arciv.reader(datafile, join_path="data")
+    return data_loader(datafile, join_path="data")
 
 
 @st.cache_data
 def load_secondary_database() -> dict:
     "Loads secondary database via file_manager, and caches data"
     datafile = DATAPATH[TERMS["secondary"]]
-    return arciv.reader(datafile, join_path="data")
+    return data_loader(datafile, join_path="data")
 
 
 @st.cache_data
 def load_progress_data() -> dict:
     "Loads progress data via file_manager, and caches it"
     datafile = DATAPATH["progress"]
-    return arciv.reader(datafile, join_path="data")
+    return data_loader(datafile, join_path="data")
 
 
 @st.cache_data
 def load_options() -> dict:
     "Loads project-unique data options, and caches data"
     options_file = SETTINGS["Options"]
-    return arciv.reader(set_file=options_file, join_path="settings")
+    return data_loader(options_file, join_path="settings")
 
 
 # For best syncronization after editing theme, 
@@ -62,7 +70,7 @@ def load_options() -> dict:
 def load_themes() -> dict:
     "Loads theme settings, and stores in session state"
     options_file = SETTINGS["Themes"]
-    return arciv.reader(set_file=options_file, join_path="settings")
+    return data_loader(options_file, join_path="settings")
 
 
 @st.cache_data
@@ -108,7 +116,7 @@ def _process_collection_db(database: dict, datatype: str):
         "highlight": [],
         "type": []
     }
-    
+
     # For analysis of values
     attempt_value_list = list()
     # To count labels of main divided into categories
@@ -125,6 +133,18 @@ def _process_collection_db(database: dict, datatype: str):
     attempt_title = TERMS["attempt"]
     if TERMS["unit"]: 
         attempt_title = f"{TERMS["unit"]} {attempt_title}" 
+
+    if not len(data_options) > 0:
+        return {
+            "counts": counts,
+            "attempt_list": attempt_value_list,
+            "last_event": last_event,
+            "success_fail": success_fail, 
+            "table_data": rows_for_history,
+            "overview_data": rows_for_overview,
+            "graph_data": graph_data,
+            "attempt_title": attempt_title,
+            "valid": False}
 
     # For counting object labels - Define dictionary with category keys and data keys 
     if datatype == "main": 
@@ -184,6 +204,7 @@ def _process_collection_db(database: dict, datatype: str):
             graph_data["type"].append(datatype)
             # Adapt attempt and highlight values depending on data present
             source = event_data[TERMS["source"]]
+            print(data_options)
             if attempt_value is not None:
                 graph_data["attempt"].append(attempt_value)
                 graph_data["attempt_made"].append(True)
@@ -300,7 +321,8 @@ def _process_collection_db(database: dict, datatype: str):
         "table_data": rows_for_history,
         "overview_data": rows_for_overview,
         "graph_data": graph_data,
-        "attempt_title": attempt_title}
+        "attempt_title": attempt_title,
+        "valid": True}
 
 
 @st.cache_data

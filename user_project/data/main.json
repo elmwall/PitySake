@@ -1,1 +1,14 @@
-{}
+{
+    "Fdgdf": {
+        "Utility": "-",
+        "Origin": "-",
+        "Attribute": "-",
+        "event": {
+            "260623-195258": {
+                "Source": "Primary source",
+                "Value": 0,
+                "Outcome": "Positive"
+            }
+        }
+    }
+}
