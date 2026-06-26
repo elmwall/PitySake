@@ -127,8 +127,7 @@ def register_object(component_key: str, sub_keys: list,
             with st.container(height="stretch", vertical_alignment="bottom"):
                 st.button(
                     "Edit options", key="edit_options", 
-                    on_click=config.edit_options, 
-                    args=(attempts, data_options),
+                    on_click=_call_edit, args=(data_options, ),
                     type="secondary", width="stretch")
             
 
@@ -527,7 +526,7 @@ def _date_input(data_options: dict):
         st.selectbox(
             f"Select date", options_dates, key="reg_date", 
             help=f"Displays {event_ref.lower()} [Date]-[Time].",
-            disabled=disable_dates, label_visibility="visible")
+            disabled=disable_dates, label_visibility="collapsed")
     # Standard setting, write date or select by calender
     else:
         try:
@@ -603,3 +602,6 @@ def _update_source_progress(data_type: str):
         st.session_state["state_disabled"] = True
 
 
+def _call_edit(data_options):
+    st.session_state["reset_edits"] = True
+    config.edit_options(data_options)

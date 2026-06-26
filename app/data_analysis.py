@@ -172,8 +172,8 @@ def _analyze_data() -> tuple:
 
     # Collect progress not yet registered as event
     attempts = 0
-    for x  in progress.values():
-        attempts += x[attempt_ref]
+    for x in progress.values():
+        if x[attempt_ref]: attempts += x[attempt_ref]
     # Collect all (completed) progress values registered as events
     attempt_list = processed_main["attempt_list"] + processed_secondary["attempt_list"]
     total_val = sum(attempt_list) + attempts

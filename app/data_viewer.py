@@ -127,8 +127,8 @@ def _tab(key, object_type):
             border-right: none; 
             min-height: 24px;
             height: 24px;
-            padding: 0rem 0.1rem;
-            margin: 0rem 1rem 0rem 0rem;
+            padding: 0px 1.6px;
+            margin: 0px 16px 0px 0px;
         }
         .st-key-KEY_REF button[data-testid='stBaseButton-segmented_control'] {
             border-bottom: 2px solid transparent;

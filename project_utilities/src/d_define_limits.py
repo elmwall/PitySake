@@ -227,10 +227,16 @@ def _define_sources(button_format_key: str, is_changed_key: str) -> dict:
         st.markdown("##### Timeline highlights", text_alignment="center")
         col_left, col_right = st.columns(2)
 
-        disable_highlights = col_left.checkbox("Use highlights", value=True, key="use_highlights") == False
-        col_right.checkbox("High values are positive", key="reverse_positive", disabled=disable_highlights)
-        col_left.number_input("Low value % threshold", min_value=-1, value=10, key="low_value", disabled=disable_highlights)
-        col_right.number_input("High value % threshold", min_value=0, value=90, key="high_value", disabled=disable_highlights)
+        disable_highlights = col_left.checkbox(
+            "Use highlights", value=True, key="use_highlights") == False
+        col_right.checkbox(
+            "High values are positive", key="reverse_positive", disabled=disable_highlights)
+        col_left.number_input(
+            "Low value % threshold", min_value=0, max_value=100, value=90, 
+            key="low_value", disabled=disable_highlights)
+        col_right.number_input(
+            "High value % threshold", min_value=0, max_value=100, value=90, 
+            key="high_value", disabled=disable_highlights)
         if not disable_highlights:
             checks.append(st.session_state["low_value"])
             checks.append(st.session_state["high_value"])

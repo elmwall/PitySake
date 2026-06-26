@@ -24,7 +24,7 @@ import pythoncom
 from pyshortcuts import make_shortcut
 
 
-def register(key: str, use_template: bool = False):
+def register(key: str, disable: bool, use_template: bool = False):
     """
     Controls submission data compiling, generating folders and files for defined project.
     
@@ -42,9 +42,12 @@ def register(key: str, use_template: bool = False):
             controls collection of data from template and saving of new template
     """
     if st.button(
-            "**Register**", key=key, type="primary", width="stretch"):
+            "**Register**", key=key, type="primary", disabled=disable, width="stretch"):
+        error = False
         # Collect and compile submission/template info
         submitted = st.session_state["submitted"]
+        root = Path(__file__).resolve().parent.parent.parent
+        templates_folder = root / "templates"
         if not use_template:
             new_template = True
             terms = {
@@ -68,21 +71,23 @@ def register(key: str, use_template: bool = False):
             themes = _themes()
         else:
             new_template = False
-            template = _collect_template(submitted["template"])
-            config = template["config"]
-            data_options = template["data_options"]
-            progress = template["progress"]
-            themes = template["themes"]
+            template_path = templates_folder / submitted["project_details"]["template"]
+            template = _collect_template(template_path)
+            if template:
+                config = template["config"]
+                data_options = template["data_options"]
+                progress = template["progress"]
+                themes = template["themes"]
+            else:
+                st.rerun()
         title = submitted["project_details"]["ui_title"]
         file_name = submitted["project_details"]["file_name"]
         streamlit_config = _streamlit_config()
         bat_content = _bat(file_name)
 
         # Collect app and project info
-        root = Path(__file__).resolve().parent.parent.parent
         root_py = root / "user_project.py"
         folder_list = [x.name for x in root.iterdir() if x.is_dir()]
-        if new_template: templates_folder = root / "templates"
         streamlit_config_folder = root / ".streamlit"
         log_folder = root / "logs"
 
@@ -93,7 +98,10 @@ def register(key: str, use_template: bool = False):
         # Prevent overwriting projects
         project_is_vacant = False
         if project_folder in folder_list:
-            st.error(f"A project already exists named {title}.")
+            error = True
+            msg = f"A project already exists named {title}."
+            e = None
+            _errors(e, "creating folder", f"In {project_folder}", msg, call_stop=True)
             name_ok = False
         else:
             name_ok = True
@@ -109,11 +117,20 @@ def register(key: str, use_template: bool = False):
                 backup_folder.mkdir(exist_ok=False)
                 data_folder.mkdir(exist_ok=False)
                 settings_folder.mkdir(exist_ok=False)
-                templates_folder.mkdir(exist_ok=True)
+                if new_template: templates_folder.mkdir(exist_ok=True)
                 log_folder.mkdir(exist_ok=True)
                 project_is_vacant = True
             except FileExistsError as e:
-                quit()
+                error = True
+                msg = "A folder already exists."
+                _errors(e, "creating folder", f"In {project_folder}", msg, call_stop=True)
+            except Exception as e:
+                error = True
+                msg = "A folder could not be created."
+                _errors(e, "creating folder", f"In {project_folder}", msg, call_stop=True)
+
+        if error:
+            return
 
         # Create project files
         if project_is_vacant:
@@ -147,13 +164,23 @@ def register(key: str, use_template: bool = False):
             # Windows shortcuts
             os_name = platform.system()
             if os_name == "Windows":
-                pythoncom.CoInitialize()
-                make_shortcut(
-                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
-                    icon=str(icon_path), desktop=True)
-                make_shortcut(
-                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
-                    icon=str(icon_path), folder=str(root_shortcut))
+                place = ""
+                try:
+                    pythoncom.CoInitialize()
+                    place = "On desktop"
+                    make_shortcut(
+                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                        icon=str(icon_path), desktop=True)
+                    place = "In folder"
+                    make_shortcut(
+                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                        icon=str(icon_path), folder=str(root_shortcut))
+                except Exception as e:
+                    error = True
+                    msg = "Shortcut could not be created."
+                    _errors(e, "creating shortcut", place, msg)
+            st.session_state["registration_complete"] = True
+            st.rerun()
 
 
 def _config(terms: dict) -> dict:
@@ -235,25 +262,30 @@ def _data_options(terms: dict, submitted: dict) -> dict:
     states = dict()
     for name, details in submitted["progress_details"]["sources"].items():
         if details["limit"]:
-            state = "Uncertain" if details["evaluate"] else None
-            progress[name] = {
-                terms["attempt"]: 0,
-                "State": state,
-                "sets": {
-                    "pages": 250,
-                    "rows": 5
-                }
+            sets = {
+                "pages": 250,
+                "rows": 5
             }
+        else:
+            sets = None
+            
+        state = "Uncertain" if details["evaluate"] else None
+        progress[name] = {
+            terms["attempt"]: 0,
+            "State": state,
+            "active": True,
+            "sets": sets
+        }
         source_limit[name] = details["limit"]
         states[name] = details["evaluate"]
 
+    collection_start_count = 0 if submitted["objects_details"]["start_from_0"] else 1
     data_options = {
         terms["main"]: {
             terms["origin"]: submitted["label_details"]["origin"],
             terms["attribute"]: submitted["label_details"]["attribute"],
             terms["utility"]: submitted["label_details"]["utility"]
         },
-        "source": list(submitted["progress_details"]["sources"].keys()),
         "results": [
             submitted["event_terms"]["state_win"],
             submitted["event_terms"]["state_loss"],
@@ -266,10 +298,10 @@ def _data_options(terms: dict, submitted: dict) -> dict:
                 None,
                 None
             ],
-            "collection_start_count": submitted["objects_details"]["start_from_0"]
+            "collection_start_count": collection_start_count
         },
         "user_indicators": {
-            "reverse_positive": submitted["progress_details"]["switches"]["use_highlights"],
+            "use_highlights": submitted["progress_details"]["switches"]["use_highlights"],
             "reverse_positive": submitted["progress_details"]["switches"]["reverse_positive"],
             "high_highlight": submitted["progress_details"]["high_limit"],
             "low_highlight": submitted["progress_details"]["low_limit"]
@@ -296,7 +328,7 @@ def _themes():
             "highlight_text": "#000000",
             "text_color": "#ffffff",
             "main_container": "#020720",
-            "feature_header": "#06011c",
+            "main_gradient": "#06011c",
             "sub_container": "#01062b",
             "small_widget": "#12022b",
             "positive_color": "#00ff80",
@@ -311,7 +343,7 @@ def _themes():
             "highlight_text": "#000000",
             "text_color": "#8dff94",
             "main_container": "#2d0936",
-            "feature_header": "#231E2B",
+            "main_gradient": "#231E2B",
             "sub_container": "#34113C",
             "small_widget": "#460b46",
             "positive_color": "#00ff1a",
@@ -326,7 +358,7 @@ def _themes():
             "highlight_text": "#000000",
             "text_color": "#000000",
             "main_container": "#74bbce",
-            "feature_header": "#2da3b5",
+            "main_gradient": "#2da3b5",
             "sub_container": "#78d2ea",
             "small_widget": "#bbdacf",
             "positive_color": "#00ffde",
@@ -341,7 +373,7 @@ def _themes():
             "highlight_text": "#000000",
             "text_color": "#ff7110",
             "main_container": "#2b0808",
-            "feature_header": "#000000",
+            "main_gradient": "#000000",
             "sub_container": "#460607",
             "small_widget": "#1a0202",
             "positive_color": "#00ff51",
@@ -356,7 +388,7 @@ def _themes():
             "highlight_text": "#000000",
             "text_color": "#00e8ff",
             "main_container": "#00191a",
-            "feature_header": "#000000",
+            "main_gradient": "#000000",
             "sub_container": "#000000",
             "small_widget": "#051212",
             "positive_color": "#00ff1a",
@@ -423,15 +455,21 @@ def _collect_template(template: str) -> dict|bool:
     try:
         with open(template, "r", encoding="utf-8") as f:
             return json.load(f)
-    except FileNotFoundError:
-        print(f"Failed to read file {template}.")
+    except FileNotFoundError as e:
+        msg = f"Failed to read file {template}."
+        print(msg)
+        _errors(e, "Collecting template", template, msg, call_stop=True)
         return False
-    except json.JSONDecodeError:
-        print(f"File {template} could not be decoded as JSON.")
+    except json.JSONDecodeError as e:
+        msg = f"File {template} could not be decoded as JSON."
+        print(msg)
+        _errors(e, "Collecting template", template, msg, call_stop=True)
         return False
     except Exception as e:
+        msg = f"Failed to read file {template}."
         print(e)
-        print(f"Failed to read file {template}.")
+        print(msg)
+        _errors(e, "collecting template", template, msg, call_stop=True)
         return False
 
 
@@ -465,11 +503,40 @@ def _write(data: dict|str, folder: Path, file: str,
         if file_path.exists():
             file_path = folder
     if file_type == "json":
-        with open(file_path, "x", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+        try: 
+            with open(file_path, "x", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except FileExistsError as e:
+            msg = f"File '{file} already exists.'"
+            _errors(e, "writing JSON file", file_path, msg)
+        except Exception as e:
+            msg = f"Could not create file '{file}.'"
+            _errors(e, "writing JSON file", file_path, msg)
     elif file_type == "toml":
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(data)
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(data)
+        except Exception as e:
+            msg = f"Could not create file '{file}.'"
+            _errors(e, "writing TOML file", file_path, msg)
     elif file_type == "bat":
-        with open(file_path, "x", encoding="utf-8") as f:
-            f.write(data)
+        try:
+            with open(file_path, "x", encoding="utf-8") as f:
+                f.write(data)
+        except FileExistsError as e:
+            msg = f"File '{file} already exists.'"
+            _errors(e, "writing batch file", file_path, msg)
+        except Exception as e:
+            msg = f"Could not create file '{file}.'"
+            _errors(e, "writing batch file", file_path, msg)
+
+
+def _errors(exception, file, process, msg, call_stop=False):
+    st.session_state["error"] = {
+        "state": True,
+        "process": process,
+        "file": file,
+        "message": msg,
+        "exception": exception
+    }
+    if call_stop: st.rerun()

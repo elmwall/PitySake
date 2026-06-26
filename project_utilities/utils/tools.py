@@ -65,8 +65,8 @@ def symbol_validation(word: str, strict: bool = False):
     if word:
         if not strict:
             valid_symbols = (
-                "-", " ", "_", "–", "—", "'", '"', "&", ".", "*", "!", "?",
-                "(", ")", "[", "]", "{", "}", "/", "+", "<", ">", "@", )
+                "-", " ", "_", "–", "—", "'", '"', "&", ".", "*", "!", "?", "%", "§",
+                "(", ")", "[", "]", "{", "}", "/", "+", "<", ">", "@", "#", "=")
             invalid_first = (" ")
         else:
             valid_symbols = ("-", " ")
@@ -199,8 +199,11 @@ def dev_tools(show_dev_tools: bool):
 
 def clear():
     "Clears session state of all keys."
+    # print("\n----------------------")
     for key in st.session_state.keys():
+        # print(key, st.session_state[key])
         del st.session_state[key]
+    # print(st.session_state)
     st.rerun()
 
 

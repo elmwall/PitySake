@@ -132,8 +132,12 @@ def _summarize_events(submitted):
     source_evals = list()
     for x, y in submitted["progress_details"]["sources"].items():
         source_names.append(x)
-        source_limits.append(y["limit"])
-        source_evals.append(y["evaluate"])
+        
+        limit = str(y["limit"]) if y["limit"] else "No values"
+        source_limits.append(limit)
+        
+        outcome = "Yes" if y["evaluate"] else "No"
+        source_evals.append(outcome)
     event_table = {
         f":grey[{sources} events]": source_names,
         ":grey[Value range]": source_limits,
@@ -207,7 +211,7 @@ def _summarize_display(submitted):
     # Build view content
     # - Outcomes
     st.markdown("##### Display method")
-    st.markdown("Terms and indicators displayed for values")
+    st.markdown("Terms and indicators displayed for values.")
     st.markdown("Outcome evaluation")
     st.table(outcome_table, border="horizontal", width="stretch")
     # - Highlights
@@ -216,8 +220,13 @@ def _summarize_display(submitted):
         st.table(highlight_table, border="horizontal", width="stretch")
     else:
         st.markdown("- You have disabled highlights - timeline values will not be color coded")
+
     if unit: 
         st.markdown(f"""Set unit: {unit}, values will be displayed as e.g. 300{unit}""")
+    
+    first_value = 0 if submitted["objects_details"]["start_from_0"] else 1
+    st.markdown("Counting objects:")
+    st.markdown(f"- The first event is listed as {first_value}")
 
 def _summarize_files(submitted, project):
     "Creates context view of project name and derived folders/files."
