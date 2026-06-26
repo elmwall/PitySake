@@ -58,64 +58,79 @@ def calculator(component_key: str, feature_width: int | str,
         with st.container(horizontal_alignment="center"):
             # Select pages setts for calculation
             # Each progress tracking source has defined sets
-            set_options = list(hold.load_progress_data().keys())
             col_select, col_define = st.columns([3, 2.5])
 
+            if st.session_state["calc_mode"]:
+                set_options = [" ", ]
+                mode_text = "Mode: values"
+            else:
+                set_options = list(hold.load_progress_data().keys())
+                mode_text = "Mode: sets"
+            help = """☐ calculate distance across sets  
+            🗹 calculate values (%, +, ×)"""
+            percent_mode = col_select.checkbox(mode_text, key="calc_mode", help=help)
+            col_define.checkbox(
+                "Start from 1", value=False, key="start_at_1", disabled=percent_mode,
+                help="""When enabled, begins count from 1 instead of 0  
+                for the first position after the start event.""")
             col_select.selectbox(
-                f"Select {TERMS["source"]}", options=set_options, 
-                key="select_set", on_change=_page_sets, label_visibility="collapsed")
+                f"Select {TERMS["source"]}", options=set_options, key="select_set", 
+                on_change=_page_sets, disabled=percent_mode, label_visibility="collapsed")
             # Empty field placeholder
             set_help = """Create custom sets by defining the  
                 number of sections and positions per section."""
             if col_define.button(
-                "Define sets", help=set_help, type="secondary", width="stretch"):
+                "Define sets", help=set_help, disabled=percent_mode, type="secondary", width="stretch"):
                 _define_sets()
-            col_define.checkbox(
-                "Start from 1", value=False, key="start_at_1", 
-                help="""When enabled, begins count from 1 instead of 0  
-                for the first position after the start event.""")
-            st.space(5)
-            no_limit = True
-            if st.session_state["select_set"]:
-                options = hold.load_options()
-                if len(options) > 0:
-                    limit = options["source_limit"][st.session_state["select_set"]]
-                else:
-                    limit = 0
-                no_limit = False
-            
-            # Value selector field: Enter values for calculation
-            # UI structured as left for "current" and right for "previous"
-            msg, appearance = "Lacking sets", "secondary"
-            usertip_current, usertip_previous = "", ""
+            st.space(1)
             col_left, col_right, col_label = st.columns([5, 5, 7])
-            _value_selector(col_left, col_right, col_label, no_limit)
-            # Field for submit and result
-            if not no_limit:
-                is_current_valid, is_previous_valid, msg, usertip_current, usertip_previous = _validation(limit)
+            if not percent_mode:
+                no_limit = True
+                if st.session_state["select_set"]:
+                    options = hold.load_options()
+                    if len(options) > 0:
+                        limit = options["source_limit"][st.session_state["select_set"]]
+                    else:
+                        limit = 0
+                    no_limit = False
+                
+                # Value selector field: Enter values for calculation
+                # UI structured as left for "current" and right for "previous"
+                msg, appearance = "Lacking sets", "secondary"
+                usertip_current, usertip_previous = "", ""
+                _value_selector(col_left, col_right, col_label, no_limit)
+                # Field for submit and result
+                if not no_limit:
+                    is_current_valid, is_previous_valid, msg, usertip_current, usertip_previous = _validation(limit)
 
-                # View settings depending on data validity
-                if is_current_valid and is_previous_valid:
-                    st.html(highlight_html.replace("KEY_REF", "calc_button"))
-                    is_invalid, appearance = False, "primary"
+                    # View settings depending on data validity
+                    if is_current_valid and is_previous_valid:
+                        st.html(highlight_html.replace("KEY_REF", "calc_button"))
+                        is_invalid, appearance = False, "primary"
+                    else:
+                        is_invalid, appearance = True, "secondary"
+                        st.session_state["calculation"] = None
                 else:
-                    is_invalid, appearance = True, "secondary"
-                    st.session_state["calculation"] = None
+                    is_invalid = True
+                # Submit button
+                if col_label.button(
+                        f"{msg}", key="calc_button", type=appearance, 
+                        disabled=is_invalid, width="stretch"):
+                    output = _submit(
+                        st.session_state["prev_page"], st.session_state["curr_page"],
+                        st.session_state["prev_row"], st.session_state["curr_row"],
+                        is_invalid)
+                else:
+                    output = None
+                # Output viewer field 
+                # - views tip for correcting data or result of calculation
+                _result_viewer(col_label, output, usertip_current, usertip_previous)
+
             else:
-                is_invalid = True
-            # Submit button
-            if col_label.button(
-                    f"{msg}", key="calc_button", type=appearance, 
-                    disabled=is_invalid, width="stretch"):
-                output = _submit(
-                    st.session_state["prev_page"], st.session_state["curr_page"],
-                    st.session_state["prev_row"], st.session_state["curr_row"],
-                    is_invalid)
-            else:
-                output = None
-            # Output viewer field 
-            # - views tip for correcting data or result of calculation
-            _result_viewer(col_label, output, usertip_current, usertip_previous)
+                _value_input(col_left, col_right, col_label, setting="percentage")
+                # _value_input(col_left, col_right, col_label, setting="addition")
+                # _value_input(col_left, col_right, col_label, setting="multiplication")
+                # _percent_viewer(col_label, perc_output)
 
 
 def _page_sets():
@@ -325,6 +340,39 @@ def _validation(limit: int) -> tuple:
     return is_current_valid, is_previous_valid, msg, usertip_current, usertip_previous
 
 
+def _value_input(col_left, col_right, col_label, setting):
+    print(setting == "multiplication")
+    col_label.space(23)
+    output = None
+    part = col_left.number_input("Part", value=0, key="per1")
+    total = col_right.number_input("Total", value=100, key="per2")
+    if part is not None and total != 0: 
+        output = part / total * 100
+    result_output = f"—"
+    if output is not None:
+        result_output = (f"{int(output)} %")
+    col_label.button(result_output, key="per3", width="stretch")
+    st.space(5)
+
+    col_1, col_sym, col_2, col_res = st.columns([4.3, 1.4, 4.3, 7])
+    add_1 = col_1.number_input("Add1", value=0, key="add1", label_visibility="collapsed", width="stretch")
+    col_sym.button("+", type="tertiary")
+    add_2 = col_2.number_input("Add2", value=0, key="add2", label_visibility="collapsed", width="stretch")
+    addition = "-"
+    if add_1 is not None and add_2 is not None:
+        addition = add_1 + add_2
+    col_res.button(str(addition), key="add3", width="stretch")
+
+    # col_1, col_sym, col_2, col_res = st.columns([4.5, 1, 4.5, 7])
+    factor_1 = col_1.number_input("Mult1", value=0, key="mult1", label_visibility="collapsed", width="stretch")
+    col_sym.button("×", type="tertiary")
+    factor_2 = col_2.number_input("Mult2", value=0, key="mult2", label_visibility="collapsed", width="stretch")
+    multiplied = "-"
+    if factor_1 is not None and factor_2 is not None:
+        multiplied = factor_1 * factor_2
+    col_res.button(str(multiplied), key="mult3", width="stretch")
+
+
 def _submit(prev_page: int, curr_page: int, 
             prev_row: int, curr_row: int, 
             is_invalid: bool) -> (int | None):
@@ -400,7 +448,7 @@ def _result_viewer(col_label, output: int|None,
                     .st-key-warning_sign button {
                         margin-top: 6px; 
                         border-radius: 30px; 
-                        border: solid 0.1rem COLOR_REF;
+                        border: solid 1.6px COLOR_REF;
                     } 
                 </style>""")
                 # .replace("COLOR_REF", st.session_state["negative_color"]))
@@ -421,7 +469,7 @@ def _define_sets():
     """
     st.session_state["dialog_active"] = True
     progress_data = hold.load_progress_data()
-    set_options = list(progress_data.keys())
+    set_options = [x for x in st.session_state["active_trackers"] if progress_data[x][TERMS["attempt"]] is not None]
     col1, col2 = st.columns(2)
     if not len(progress_data) > 0:
         st.info("No tracking data found.")
@@ -433,7 +481,9 @@ def _define_sets():
         is_invalid = True
         # if not selection:
         #     pass
-        if type(progress_data[selection]["sets"]) is dict:
+        if not selection:
+            page_preset, row_preset = None, None
+        elif type(progress_data[selection]["sets"]) is dict:
             page_preset = progress_data[selection]["sets"]["pages"]
             row_preset = progress_data[selection]["sets"]["rows"]
             preset = ""

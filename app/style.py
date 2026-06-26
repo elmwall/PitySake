@@ -41,8 +41,8 @@ def settings():
         <style> 
             /* Remove page header presets */
             .block-container {
-                margin: 0rem 0rem; 
-                padding: 0rem 0rem;
+                margin: 0px 0px; 
+                padding: 0px 0px;
             } 
             header {
                 visibility: hidden;
@@ -50,7 +50,7 @@ def settings():
             
             /* Feature spacing */
             [data-testid='stVerticalBlock'] {
-                gap: 0.2rem;
+                gap: 3.2px;
             } 
 
         </style>""")
@@ -69,7 +69,7 @@ def settings():
             /* Page header title button */
             .st-key-page_title button {
                 width: 280px; 
-                margin: 0rem 1rem;
+                margin: 0px 16px;
             } 
 
             /* Progress calculator result display */
@@ -103,23 +103,28 @@ def style(feature_keys, keylist_prog_calc):
     themes = st.session_state["themes"]
     active_theme = themes["active"]
     active_theme_settings = themes[active_theme]
+
+    # Top feature frame
     html_main_container = """
         <style> 
             .st-key-REF {
-                background-color: BGR_COLOR_REF;
+                background-color: GRD_COLOR_REF;
+                box-shadow: inset 0px 0px 40px 20px BGR_COLOR_REF;
             } 
-        </style>""".replace("BGR_COLOR_REF", active_theme_settings["main_container"])
+        </style>""".replace(
+            "BGR_COLOR_REF", active_theme_settings["main_container"]).replace(
+                "GRD_COLOR_REF", active_theme_settings["main_gradient"])
     html_header = """
         <style> 
             .st-key-REF {
                 background-color: COLOR_REF; 
                 border: none; 
-                margin-bottom: 0rem; 
-                padding: 0rem 1rem 0rem; 
+                margin-bottom: 0px; 
+                padding: 0px 16px 0px; 
                 border-top-left-radius: 10px; 
                 border-top-right-radius: 30px;
             } 
-        </style>""".replace("COLOR_REF", active_theme_settings["feature_header"])
+        </style>""".replace("COLOR_REF", active_theme_settings["background"])
     
     for x in feature_keys:
         style_main_container = html_main_container.replace("REF", f"{x}_main")
@@ -147,8 +152,8 @@ def style(feature_keys, keylist_prog_calc):
         <style> 
             .st-key-REF {
                 background-color: COLOR_REF; 
-                margin: 0rem 0rem; 
-                padding: 0.1rem 0rem 0.1rem 0.2rem; 
+                margin: 0px 0px; 
+                padding: 1.6px 0px 1.6px 3.2px; 
                 border-radius: 50px;
             } 
         </style>""".replace("COLOR_REF", active_theme_settings["small_widget"])
@@ -157,7 +162,7 @@ def style(feature_keys, keylist_prog_calc):
     prog_meter_keys = list()
     options = hold.load_options()
     if len(options) > 0:
-        source_options = options["source"]
+        source_options = list(options["source_limit"].keys())
         for x in range(len(source_options) + 5):
             # Generate a key per source for progress tracker sub-component 
             key = f"sub2_{str(x)}"
@@ -177,7 +182,7 @@ def style(feature_keys, keylist_prog_calc):
             } 
 
             .st-key-KEY_REF p {
-                font-size: 1.05rem; 
+                font-size: 16.8px; 
                 font-weight: 700;
             } 
         </style>""".replace("COLOR_REF", active_theme_settings["highlight_text"])
@@ -270,7 +275,7 @@ gatherUsageStats = false
                     "highlight_text": st.session_state["highlight_text_temp"],
                     "text_color": st.session_state["text_color_temp"],
                     "main_container": st.session_state["main_container_temp"],
-                    "feature_header": st.session_state["feature_header_temp"],
+                    "main_gradient": st.session_state["main_gradient_temp"],
                     "sub_container": st.session_state["sub_container_temp"],
                     "small_widget": st.session_state["small_widget_temp"],
                     "positive_color": st.session_state["positive_color_temp"],
@@ -350,7 +355,7 @@ def _color_selector(themes, active_theme):
     col_1.button("Background", key="bgr_col", width="stretch")
     col_2.color_picker("Background", key="background_temp", label_visibility="collapsed")
     
-    # Main feature container - in json
+    # Main feature container inner / page header - in json
     st.html("""
         <style> 
             .st-key-ft_col button {
@@ -360,6 +365,17 @@ def _color_selector(themes, active_theme):
         </style>""".replace("COLOR_REF", themes[active_theme]["main_container"]))
     col_1.button("Feature", key="ft_col", width="stretch")
     col_2.color_picker("Feature", key="main_container_temp", label_visibility="collapsed")
+
+    # Main feature container outer - in json
+    st.html("""
+        <style> 
+            .st-key-fhd_col button {
+                background-color: COLOR_REF; 
+                border-color: VIS_REF;
+            } 
+        </style>""".replace("COLOR_REF", themes[active_theme]["main_gradient"]))
+    col_1.button("Header", key="fhd_col", width="stretch")
+    col_2.color_picker("Headers", key="main_gradient_temp", label_visibility="collapsed")
     
     # Feature sub-container - in json
     st.html("""
@@ -382,17 +398,6 @@ def _color_selector(themes, active_theme):
         </style>""".replace("COLOR_REF", themes[active_theme]["small_widget"]))
     col_1.button("Widget", key="sw_col", width="stretch")
     col_2.color_picker("Widget", key="small_widget_temp", label_visibility="collapsed")
-
-    # Feature header - in json
-    st.html("""
-        <style> 
-            .st-key-fhd_col button {
-                background-color: COLOR_REF; 
-                border-color: VIS_REF;
-            } 
-        </style>""".replace("COLOR_REF", themes[active_theme]["feature_header"]))
-    col_1.button("Header", key="fhd_col", width="stretch")
-    col_2.color_picker("Headers", key="feature_header_temp", label_visibility="collapsed")
 
     # Input field - in config
     st.html("""

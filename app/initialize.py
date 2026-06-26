@@ -43,6 +43,7 @@ INIT_STATE = {
     "message": "",
     "calculation": None,
     "rows": 5,
+    "calc_mode": False,
     # Database
     "current_database": "state_import",
     # Object info manager - main
@@ -73,6 +74,8 @@ INIT_STATE = {
     "new_state": None,
     "new_limit": None,
     "progress_changed": None,
+    "options_are_edited": True,
+    "reset_edits": False,
     # Style
     "active_theme": "state_import",
     "active_theme_temp": "state_import",
@@ -80,6 +83,7 @@ INIT_STATE = {
     "theme_edited": 0,
     # Progress tracker
     "initiated": False,
+    "active_trackers": "state_import",
     # Data viewer tables
     "main_data_select_view": "main_history",
     "secondary_data_select_view": "secondary_history"
@@ -116,7 +120,7 @@ def initialize():
     # For source and progress values, import value for first source in list
     attempt = 0
     if len(options) > 0:
-        source_options = options["source"]
+        source_options = list(options["source_limit"].keys())
         states = options["results"][0]
         source = list(options["source_limit"].keys())[0]
         limit_disabled = options["source_limit"][source_options[0]] is False
@@ -124,6 +128,9 @@ def initialize():
         limit = options["source_limit"][source_options[0]]
         if len(progress_data) > 0:
             attempt = progress_data[source_options[0]][TERMS["attempt"]]
+            active_trackers = list()
+            for x in progress_data.keys():
+                if progress_data[x]["active"]: active_trackers.append(x)
     else:
         states, limit = [False]*2
         limit_disabled, state_disabled = [True]*2
@@ -147,7 +154,9 @@ def initialize():
         "selection_limit": limit,
         # Style
         "active_theme": active,
-        "active_theme_temp": active}
+        "active_theme_temp": active,
+        # Progress tracker
+        "active_trackers": active_trackers}
     
     # Initiate all keys
     init_state = copy.deepcopy(INIT_STATE)

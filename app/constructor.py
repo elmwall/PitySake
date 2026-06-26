@@ -202,7 +202,7 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
     st.html("""
         <style> 
             .st-key-main_content {width: 100vw; min-width: 800px; max-width: WIDTH_REFpx;} 
-            .st-key-content_frame {padding: 1rem;} 
+            .st-key-content_frame {padding: 16px;} 
         </style>""".replace("WIDTH_REF", f"{WIDTH_TOT_LEFT}"))
     table_height = 350
 

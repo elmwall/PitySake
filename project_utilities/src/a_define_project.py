@@ -10,6 +10,8 @@ Manages:
 - Form: object and label categories
 """
 
+from copy import deepcopy 
+
 import streamlit as st
 
 from utils import tools
@@ -27,7 +29,9 @@ def define_objects(set_width: int|str):
     with st.container(
             border=False, width=set_width, 
             height="stretch", horizontal_alignment="center"):
-        if not all(st.session_state["submitted"]["objects_details"].values()):
+        check_status = deepcopy(st.session_state["submitted"]["objects_details"])
+        if "start_from_0" in check_status: check_status.pop("start_from_0")
+        if not all(check_status.values()):
             st.session_state["page_incomplete"] = True
         else:
             st.session_state["page_incomplete"] = False

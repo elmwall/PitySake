@@ -20,6 +20,7 @@ INIT = {
     "submitted": {
         "project_details": {
             "ui_title": None,
+            "file_name": None,
             "template": None
         },
         "objects_details": {
@@ -56,6 +57,7 @@ INIT = {
     "page_initial_state": True,
     "page": 0,
     "page_incomplete": True,
+    # Status
     "project_need_save": "secondary",
     "project_is_changed": False,
     "objects_need_save": "secondary",
@@ -64,6 +66,14 @@ INIT = {
     "event_is_changed": False,
     "progress_need_save": "secondary",
     "progress_is_changed": False,
+    "registration_complete": False,
+    "error": {
+        "state": False,
+        "process": None,
+        "file": None,
+        "message": None,
+        "exception": None
+    },
     # Project
     "ui_title": None,
     "title_is_valid": False,

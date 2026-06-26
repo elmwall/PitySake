@@ -78,7 +78,7 @@ class Secretary:
                 "options_attribute": self.options[self.main_ref][self.attribute_ref],
                 "options_origin": self.options[self.main_ref][self.origin_ref],
                 "options_type": [self.main_ref, self.secondary_ref],
-                "options_source": list(self.options["source_limit"].keys()),
+                "options_source": st.session_state["active_trackers"],
                 "options_states": self.options["results"]}
         else:
             preset_options = {

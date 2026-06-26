@@ -148,17 +148,18 @@ def _process_collection_db(database: dict, datatype: str):
 
     # For counting object labels - Define dictionary with category keys and data keys 
     if datatype == "main": 
-        for category, options in data_options[TERMS["main"]].items():
+        category_list = [TERMS["utility"], TERMS["attribute"], TERMS["origin"]]
+        for category in category_list:
             counts[category] = dict()
-            for x in options:
-                counts[category][x] = 0
     state_value, date, object_collection, name, attempt_value, source, state, index = [None]*8
     for name, info in database.items():
         # Only count labels for main type object
         if datatype == "main": 
-            for category, options in counts.items():
-                object_option = info[category]
-                counts[category][object_option] += 1
+            for category in category_list:
+                if info[category] not in counts[category]:
+                    counts[category][info[category]] = 1
+                else:
+                    counts[category][info[category]] += 1
         
         attempt_per_object = list()  
         # Collect event data
@@ -204,7 +205,6 @@ def _process_collection_db(database: dict, datatype: str):
             graph_data["type"].append(datatype)
             # Adapt attempt and highlight values depending on data present
             source = event_data[TERMS["source"]]
-            print(data_options)
             if attempt_value is not None:
                 graph_data["attempt"].append(attempt_value)
                 graph_data["attempt_made"].append(True)
@@ -275,6 +275,12 @@ def _process_collection_db(database: dict, datatype: str):
                 "Mean": mean_attempt,
                 TERMS["utility"]: info[TERMS["utility"]]
             })
+
+    if datatype == "main": 
+        for category in category_list:
+            for option in data_options[TERMS["main"]][category]:
+                if option not in counts[category]:
+                    counts[category][option] = 0
 
     if len(database) == 0: 
         if datatype == "main": 

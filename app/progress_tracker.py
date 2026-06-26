@@ -71,9 +71,15 @@ def progress_meter(component_key: list, sub_keys: list,
             width=feature_size_left, height=340):
         # Generate a subfeature for every source category in file
         # Each utilizes a unique key generated in style module
-        init_values = list()
+        init_values = dict()
+        accepted_trackers = list()
         for i, category in enumerate(attempts.keys()):
             # Per source:
+            if any([category not in st.session_state["active_trackers"],
+                    attempts[category][TERMS["attempt"]] is None]):
+                continue
+            else:
+                accepted_trackers.append(i)
             st.space("xxsmall")
             # Define a key for each subfeature and initiate their init value
             init_values, shared_init, keys = _initiate(attempts, category, init_values, i)
@@ -137,7 +143,7 @@ def progress_meter(component_key: list, sub_keys: list,
                 add10_style = html_add10.replace("REF", keys["add10"])
                 st.html(add10_style)
                 with col_10:
-                    if st.session_state[keys["num"]] < limit-10:
+                    if st.session_state[keys["num"]] < limit - 10:
                         st.button(
                             "**+ 10**", key=keys["add10"], width="stretch", 
                             on_click=_increment_counter, args=(i,))
@@ -163,13 +169,12 @@ def progress_meter(component_key: list, sub_keys: list,
                             width="stretch")
                     else:
                         st.button(f"Save", key=keys["button"], type="secondary", width="stretch")
-        
         # Reset all values
         with col_res:
             st.markdown("")
             st.button(
-                "**Reset**", key=reset_key, type="tertiary", 
-                on_click=_reset, args=(attempts, init_values), width="stretch")
+                "**Reset**", key=reset_key, type="tertiary", on_click=_reset, 
+                args=(init_values, accepted_trackers), width="stretch")
         return height
     
     
@@ -198,13 +203,13 @@ def _feature_style(component_key: str, widget_color: str, reset_key:str):
             .st-key-REF button {
                 background-color: COLOR_REF; 
                 border: none; 
-                padding-left: -0.9rem;
+                padding-left: -14.4px;
             } 
         </style>""".replace("COLOR_REF", widget_color)
     st.html("""
             <style> 
                 .st-key-KEY_REF button * {color: COLOR_REF} 
-                .st-key-KEY_REF button {margin: -2rem 0rem;}
+                .st-key-KEY_REF button {margin: -32px 0px;}
             </style>"""
             .replace("KEY_REF", reset_key)
             .replace("COLOR_REF", positive_color))
@@ -212,7 +217,7 @@ def _feature_style(component_key: str, widget_color: str, reset_key:str):
 
 
 def _initiate(attempts: dict, category: str, 
-              init_values: list, i: int):
+              init_values: dict, i: int):
     """
     Initiates unique keys for each input widget per source progress tracker.
     
@@ -221,12 +226,12 @@ def _initiate(attempts: dict, category: str,
             database of progress in all sources
         category (str):
             identifier of current source to build tracker for
-        init_values (list):
+        init_values (dict):
             container to store earlier value of progress at corresponding index
         i (int):
             index for the current sub-feature to build
     """
-    init_values.append(attempts[category][attempt_ref])
+    init_values[i] = attempts[category][attempt_ref]
     keys = {
         "label": f"label_{i}",
         "state": f"state_{i}",
@@ -264,13 +269,14 @@ def _increment_counter(idx: int, increment_value: int = 10):
     st.session_state[f"num_{idx}"] += increment_value 
     st.session_state[f"slider_{idx}"] += increment_value 
 
-def _reset(attempts: dict, init_values: dict): 
+def _reset(init_values: dict, accepted_trackers: list): 
     """Resets the values for all subfeatures to the current registered progress.
     
     Interates through indexes and updates session state 
     for shared value, number input, and slider
     """
-    for i in range(len(attempts.keys())):
+    for i in accepted_trackers:
+        print("attempting", i)
         st.session_state[f"val_{i}"], st.session_state[f"num_{i}"], st.session_state[f"slider_{i}"] = [init_values[i]]*3
 
 

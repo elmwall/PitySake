@@ -72,15 +72,15 @@ def welcome(set_width: int):
         button_format_key = "project_need_save"
         is_changed_key = "project_is_changed"
         submission = _define_project(col_2, button_format_key, is_changed_key)
-
+        print(st.session_state["submitted"]["project_details"])
         # Apply & reset buttons
         with col_apply:
             if not submission["template"]:
                 tools.apply(
                     "project_save", button_format_key, is_changed_key, submission_key, 
                     submission, invalid_input=not st.session_state["title_is_valid"])
-            elif submission["ui_title"]:
-                reg.register("register", use_template=True)
+            else:
+                reg.register("register", disable=not submission["ui_title"], use_template=True)
         if col_reset.button("**Reset**", type="primary", disabled=disable_reset, width="stretch"):
             tools.clear()
                        
@@ -111,6 +111,7 @@ def welcome(set_width: int):
                 caption="Example for collections in game: Honkai Star Rail", 
                 output_format="PNG")
 
+
 def _define_project(col, button_format_key: str, is_changed_key: str) -> dict:
     """
     User info and input fields for project name and template.  
@@ -130,7 +131,7 @@ def _define_project(col, button_format_key: str, is_changed_key: str) -> dict:
     col.space(1)
     col.markdown("""**New project:** enter a unique name for project files and display.  
                  Case sensitive: as you EnTeR terms is how they are shown.""")
-    col.text_input(
+    entered_title = col.text_input(
         "Project title", 
         key="ui_title", 
         on_change=tools.need_update,
@@ -138,7 +139,6 @@ def _define_project(col, button_format_key: str, is_changed_key: str) -> dict:
         help="Name for folder and display", 
         placeholder="e.g. Learning path / Activity log / Collection",
         label_visibility="collapsed")
-
     # Files - check files if there is a project folder with the name
     root = Path(__file__).resolve().parent.parent
     folder_list = [x.name for x in root.iterdir() if x.is_dir()]
@@ -157,7 +157,7 @@ def _define_project(col, button_format_key: str, is_changed_key: str) -> dict:
     # Clearing template clears submission - Save button then required to submit title
     selected_template = col.selectbox(
         "Templates", options=templates, index=0,
-        format_func=lambda x:str(x).replace("_", " ").replace(".json", "").title(), 
+        format_func=lambda x:f"{x}".replace("_", " ").replace(".json", "").title(), 
         key="selected_template", on_change=_set_submission, args=(button_format_key, is_changed_key),
         label_visibility="collapsed")
     st.session_state["checklists"]["project_save"] = [st.session_state["ui_title"],]
@@ -172,6 +172,7 @@ def _define_project(col, button_format_key: str, is_changed_key: str) -> dict:
     else:
         title = st.session_state["ui_title"]
         st.session_state["title_is_valid"] = True
+        _set_submission(button_format_key, is_changed_key)
 
     return {
         "ui_title": title,
@@ -194,14 +195,54 @@ def _set_submission(button_format_key: str, is_changed_key: str):
     if st.session_state["selected_template"]:
         st.session_state["submitted"]["project_details"] = {
             "ui_title": st.session_state["ui_title"],
+            "file_name": str(st.session_state["ui_title"]).lower().replace(" ", "_"),
             "template": st.session_state["selected_template"]}
     else:
         st.session_state["submitted"]["project_details"] = {
             "ui_title": None,
+            "file_name": None,
             "template": None}
         if st.session_state["ui_title"]:
             tools.need_update(button_format_key, is_changed_key)
 
+
+def done(set_width):
+    with st.container(border=False, key="done", width=set_width, height="content", horizontal_alignment="center"):
+        # Header
+        # Progress bar
+        st.progress(100, width="stretch")
+        col_prev, col_reset, col_title, col_apply, col_next = st.columns([2, 2, 5, 2, 2])
+        # Title
+        col_title.markdown("#### *Done!*", text_alignment="center")
+        col_1, col_sp1, col_2, col_sp2, col_3 = st.columns([8, 1, 10, 1, 8])
+
+        col_2.markdown(
+            f"#### Project :green[{st.session_state["submitted"]["project_details"]["ui_title"]}] created.", 
+            text_alignment="center")
+        col_2.markdown("Data files are now in PitySake folder.", text_alignment="center")
+        col_2.info("Close the terminal before starting your project or initializing a new project.")
+
+
+def error(set_width):
+    with st.container(border=False, key="error_view", width=set_width, height="content", horizontal_alignment="center"):
+        # Header
+        # Progress bar
+        st.progress(100, width="stretch")
+        col_prev, col_reset, col_title, col_apply, col_next = st.columns([2, 2, 5, 2, 2])
+        # Title
+        col_title.markdown("#### *Something went wrong...*", text_alignment="center")
+        col_1, col_sp1, col_2, col_sp2, col_3 = st.columns([8, 1, 10, 1, 8])
+        project = st.session_state["submitted"]["project_details"]["file_name"]
+        error_details = st.session_state["error"]
+        col_2.markdown(f"#### :red[Error!] {error_details["message"]}")
+        if error_details["exception"]: exception = error_details["exception"]
+        col_2.markdown(f"""{exception}  \nOccurred while {error_details["process"]}""")
+        col_2.markdown(f"File details: {error_details["file"]}")
+        col_2.markdown(f"""
+        - Check files in PitySake folder named :orange[{project}]
+        - Try to start the project.
+        - If shortcuts are missing, you can start it using {project}.bat
+        - If it doesn't work, all files/folders named :orange[{project}] can be removed safely.""")
 
 
 # Settings
@@ -212,7 +253,11 @@ init.initialize()
 # Build app pages
 if st.session_state["initialized"]:
     with col_page_center.container(horizontal_alignment="center"):
-        if st.session_state["page"] == 0:
+        if st.session_state["error"]["state"]:
+            error(SET_WIDTH)
+        elif st.session_state["registration_complete"]:
+            done(SET_WIDTH)
+        elif st.session_state["page"] == 0:
             welcome(SET_WIDTH)
         elif st.session_state["page"] == 1:
             define_objects(SET_WIDTH)
