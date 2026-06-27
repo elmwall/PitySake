@@ -9,7 +9,6 @@ from pathlib import Path
 
 import streamlit as st
 
-
 # Set log path/file
 log_directory = Path("logs")
 log_directory.mkdir(exist_ok=True)
@@ -24,7 +23,7 @@ logging_config = {
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": "%(asctime)s %(levelname)-7s | %(lineno)-3d %(module)s.%(funcName)s %(message)s"
+            "format": "%(asctime)s %(levelname)s | %(lineno)-3d %(module)-20s .%(funcName)-20s %(message)s"
         }
     },
     "handlers": {

@@ -88,7 +88,8 @@ def _summarize_objects(submitted):
     for x in ["utility", "attribute", "origin"]:
         labels[x] = str()
         for y in registered_labels[x]:
-            labels[x] += f"- {y}  \n"
+            text = y if y else "*Blank*"
+            labels[x] += f"- {text}  \n"
     # Generate table for view as "table column header": list of rows in column
     project_table = {
         "Concept": [
@@ -103,14 +104,14 @@ def _summarize_objects(submitted):
             secondary,
             label_terms['utility'],
             label_terms['attribute'],
-            label_terms['origin'],
+            label_terms['origin']
         ],
         "Details": [
             "Most essential object group",
             "Additional tracked object",
             labels['utility'],
             labels['attribute'],
-            labels['origin'],
+            labels['origin']
         ]
     }
 

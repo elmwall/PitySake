@@ -94,13 +94,11 @@ def check_duplicates(value_list, message=True):
     None-values are ignored, considered not-yet-filled."""
     collect = list()
     check = list()
-    print(value_list)
     for value in value_list:
         if value is not None: check.append(value in collect)
         collect.append(value)
     if any(check):
         if message: st.warning("Multiples excluded")
-        print("is dup")
         return True
     else:
         return False

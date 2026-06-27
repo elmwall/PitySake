@@ -138,7 +138,7 @@ FULL_PATH: {read_file}""")
                 return False
 
 
-    def backup(self, backup_frequency: list[int], object_type: str, 
+    def backup(self, backup_frequency: list[int], object_type: str, join_path: str | None = None,
                set_file: str | None = None, empty_allowed: bool = False) -> bool:
         """
         Automated backup in multiple files.
@@ -161,6 +161,8 @@ FULL_PATH: {read_file}""")
         # confirm_backup = False
         if not set_file:
             file = self.file 
+        elif join_path:
+            file = self._resolve_path(join_path, set_file, stage="Backup")[0]
         else:
             file = os.path.join(self.data_directory, set_file)
             
@@ -204,7 +206,6 @@ BACKUP_PATH: {backup_file}, EDIT_COUNT: {file_edit_count} mod {value}""")
 
         if self.diagnostics: 
             backup_file = os.path.join(self.backup_directory, "backuptest_nofile.json")
-
         if data == "postpone":
             file_length = "not collected"
         elif data:
@@ -396,8 +397,7 @@ static {is_static}           sorting {need_sorting}""")
             (bool):
                 success verification
         """
-        save_file, path_is_resolved = self._resolve_path(
-            join_path, set_file, stage="Writing")
+        save_file = self._resolve_path(join_path, set_file, stage="Writing")[0]
         try:
             length = len(data)
         except:
@@ -445,16 +445,21 @@ FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
                 read_file (str): official file path
                 path_is_resolved (bool): control value for further processes
         """
-        read_file = self.file if not set_file else set_file
+        target_file = self.file if not set_file else set_file
         path_is_resolved = True
         if join_path == "data":
-            read_file = os.path.join(self.data_directory, read_file)
+            logger.info(f"Path resolve requested with directory {join_path} for {target_file}.")
+            target_file = os.path.join(self.data_directory, target_file)
         elif join_path == "settings":
-            read_file = os.path.join(self.settings_directory, read_file)
+            logger.info(f"Path resolve requested with directory {join_path} for {target_file}.")
+            target_file = os.path.join(self.settings_directory, target_file)
         elif join_path is not None:
             path_is_resolved = False
-            logger.info(f"Invalid value of path indicator 'join_path' for {read_file}.")
+            logger.info(f"Invalid value of path indicator 'join_path' for {target_file}.")
             error.message("Invalid file path for datafile.", f"Archivist: {stage}", 
-                          name=None, file=read_file, details=None)
+                          name=None, file=target_file, details=None)
+        elif not join_path:
+            logger.info(f"Path resolve requested without directory for {target_file}.")
+            path_is_resolved = True
         
-        return read_file, path_is_resolved
+        return target_file, path_is_resolved

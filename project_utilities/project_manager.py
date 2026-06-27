@@ -72,7 +72,6 @@ def welcome(set_width: int):
         button_format_key = "project_need_save"
         is_changed_key = "project_is_changed"
         submission = _define_project(col_2, button_format_key, is_changed_key)
-        print(st.session_state["submitted"]["project_details"])
         # Apply & reset buttons
         with col_apply:
             if not submission["template"]:
@@ -172,7 +171,7 @@ def _define_project(col, button_format_key: str, is_changed_key: str) -> dict:
     else:
         title = st.session_state["ui_title"]
         st.session_state["title_is_valid"] = True
-        _set_submission(button_format_key, is_changed_key)
+        if selected_template: _set_submission(button_format_key, is_changed_key)
 
     return {
         "ui_title": title,
@@ -246,7 +245,7 @@ def error(set_width):
 
 
 # Settings
-st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_icon = "../accessories/icon2.ico", layout="wide", initial_sidebar_state="collapsed")
 col_page_left, col_page_center, col_page_right = st.columns([1, 12, 1])
 init.initialize()
 
