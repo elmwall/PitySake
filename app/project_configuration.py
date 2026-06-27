@@ -47,7 +47,9 @@ def initialize_constants(project_name: str):
         st.error("PROJECT CONFIGURATION FILE MISSING OR CORRUPT")
         with st.container(border=True):
             st.markdown(f"""Could not find config.json in:  \n{config_location}""")
-            st.markdown("A generic version can be found [here](https://github.com/elmwall/PitySake/blob/main/user_project/settings/config.json). Place it in the folder above.")
+            st.markdown("""A generic version can be found 
+                        [here](https://github.com/elmwall/PitySake/blob/main/user_project/settings/config.json). 
+                        Place it in the folder above.""")
         quit()
 
     # Store config dictionaries in session state
@@ -205,9 +207,9 @@ def _reset_changes():
     st.session_state["changed_progress"] = copy.deepcopy(load_progress_data())
     st.session_state["edit_options_complete"] = False
     st.session_state["edit_options_complete"] = False
-    # Value for progress_changed is set to None to separate initial state
+    # Value for progress_is_changed is set to None to separate initial state
     # and edited states (True/False)
-    st.session_state["progress_changed"] = None
+    st.session_state["progress_is_changed"] = None
 
 
 def _remove_option(col_2, TERMS: dict, selection: str):
@@ -258,7 +260,7 @@ def _remove_option(col_2, TERMS: dict, selection: str):
             # Timeline is dependent on source data refered to by registered objects
             # even if they are removed
             st.session_state["changed_progress"][source_selection]["active"] = False
-            st.session_state["progress_changed"] = True
+            st.session_state["progress_is_changed"] = True
             st.session_state["options_are_edited"] = False
         else:
             # Removing labels: remove from selected label's list 
@@ -266,7 +268,7 @@ def _remove_option(col_2, TERMS: dict, selection: str):
             # only on the labels attached to objects
             st.session_state["changed_options"][TERMS["main"]][TERMS[selection]].remove(
                 st.session_state["selected_removal"])
-            st.session_state["progress_changed"] = False
+            st.session_state["progress_is_changed"] = False
         st.session_state["edit_options_complete"] = True
     
 
@@ -283,7 +285,7 @@ def _edit_label(col_2, TERMS: dict, selection: str) -> bool:
     Updates for: 
     - Options: labels
     """
-    st.session_state["progress_changed"] = False
+    st.session_state["progress_is_changed"] = False
     
     add_blank = st.checkbox("Add a blank")
     new_option = st.text_input(
@@ -320,7 +322,7 @@ def _edit_source(col_b, col_2, TERMS: dict) -> bool:
     - Progress: adding new source; shifting active
     - Options: adding new source
     """
-    st.session_state["progress_changed"] = True
+    st.session_state["progress_is_changed"] = True
     reactivate = False
     # Source name
     if not col_b.checkbox(f"Re-activate an inactive", value=False):
@@ -400,34 +402,35 @@ def _edit_value_settings(col_2, TERMS: dict):
     Updates for: 
     - Options: source limits; user indicators
     """
-    st.session_state["progress_changed"] = False
+    st.session_state["progress_is_changed"] = False
     st.space(4)
 
     # View settings - independent of source
     change_general = st.checkbox("Change general settings")
     if change_general:
+        user_indicators = st.session_state["changed_options"]["user_indicators"]
         st.divider()
         col1, col2 = st.columns(2)
-        previous_highlight = st.session_state["changed_options"]["user_indicators"]["use_highlights"]
+        previous_highlight = user_indicators["use_highlights"]
         use_highlights = col1.checkbox("Highlights enabled", value=previous_highlight)
         st.space("small")
         
         disabled_highlights = not use_highlights
         reverse = col2.checkbox(
             """Reverse evaluation:  \n- low is positive  \n- high is negative""",
-            value=st.session_state["changed_options"]["user_indicators"]["reverse_positive"], 
+            value=user_indicators["reverse_positive"], 
             disabled=disabled_highlights)
 
         col1, col2 = st.columns(2)
         col1.space()
         col2.space()
-        previous_low = st.session_state["changed_options"]["user_indicators"]["low_highlight"]
+        previous_low = user_indicators["low_highlight"]
         new_low_text = f"Indication limit for low values. Current value: {previous_low}"
         new_low = col1.number_input(
             new_low_text, min_value=0, max_value=100, 
             value=previous_low, disabled=disabled_highlights)
         
-        previous_high = st.session_state["changed_options"]["user_indicators"]["high_highlight"]
+        previous_high = user_indicators["high_highlight"]
         new_high_text = f"Indication limit for high values. Current value: {previous_high}"
         new_high = col2.number_input(
             new_high_text, min_value=0, max_value=100, 
@@ -512,8 +515,9 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
         if length_check:
             symbol_check = True
             if not name.isalnum():
+                valid_symbols = st.session_state["valid_symbols"]
                 for symbol in name:
-                    if not symbol.isalnum() and symbol not in st.session_state["valid_symbols"]:
+                    if not symbol.isalnum() and symbol not in valid_symbols:
                         msg_sym = "Invalid characters. "
             if "  " in name:
                 
@@ -559,32 +563,37 @@ def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict):
     """
     from app.initialize import arciv
 
+    progress_is_changed = st.session_state["progress_is_changed"]
     not_complete = any([not st.session_state["edit_options_complete"], 
-                        st.session_state["progress_changed"] is None])
+                        progress_is_changed is None])
     if col_4.button("Save", disabled=not_complete, type="primary", width="stretch"):
         # Saving progress data
-        if st.session_state["progress_changed"]:
-            logger.info(f"Update was requrested for {DATAPATH["progress"]}")
+        if progress_is_changed:
+            changed_progress = st.session_state["changed_progress"]
+            progress_path = DATAPATH["progress"]
+            progress_ref = TERMS["progress"]
+            logger.info(f"Update was requrested for {progress_path}")
             error.catch_data(
-                st.session_state["changed_progress"], 
-                DATAPATH["progress"], TERMS["progress"])
+                changed_progress, progress_path, progress_ref)
             if arciv.backup(
-                    [101, 47, 19, 7, 3], TERMS["progress"], join_path="data",
-                    set_file=DATAPATH["progress"], empty_allowed=True):
+                    [101, 47, 19, 7, 3], progress_ref, join_path="data",
+                    set_file=progress_path, empty_allowed=True):
                 arciv.writer(
-                    st.session_state["changed_progress"], object_type=TERMS["progress"], 
-                    set_file=DATAPATH["progress"], join_path="data")
+                    changed_progress, object_type=progress_ref, 
+                    set_file=progress_path, join_path="data")
         # Saving options data
         if st.session_state["options_are_edited"]:
-            logger.info(f"Update was requrested for {SETTINGS["Options"]}")
+            options_path = SETTINGS["Options"]
+            changed_options = st.session_state["changed_options"]
+            logger.info(f"Update was requrested for {options_path}")
             error.catch_data(
-                st.session_state["changed_options"], 
-                SETTINGS["Options"], "options")
+                changed_options, 
+                options_path, "options")
             if arciv.backup(
                     [7, 5, 3, 1], "options", join_path="settings", 
-                    set_file=SETTINGS["Options"], empty_allowed=False): 
+                    set_file=options_path, empty_allowed=False): 
                 arciv.writer(
-                    st.session_state["changed_options"], 
-                    set_file=SETTINGS["Options"], join_path="settings")
+                    changed_options, 
+                    set_file=options_path, join_path="settings")
         st.session_state["processed_edits"] = True
         st.rerun()

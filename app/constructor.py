@@ -82,7 +82,8 @@ def header():
         # "leave_theme_open" bool is set to prevent dialog closing prematurely during edits
         with col_theme:
             with st.container(key="tools"):
-                if not st.session_state["leave_theme_open"]:
+                leave_theme_open = st.session_state["leave_theme_open"]
+                if not leave_theme_open:
                     st.session_state["show_theme_settings"] = False
 
                 # Theme button
@@ -94,7 +95,7 @@ def header():
                     st.session_state["active_theme_temp"] = st.session_state["themes"]["active"]
                     page.theme()
                     if "theme_edited" in st.session_state:
-                        if st.session_state["theme_edited"] and not st.session_state["leave_theme_open"]:
+                        if st.session_state["theme_edited"] and not leave_theme_open:
                             st.session_state["show_theme_settings"] = True
                             st.session_state["theme_edited"] = 0
 

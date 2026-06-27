@@ -132,10 +132,12 @@ class Secretary:
     def collect_object_info(self, reg_selection: str):
         "Retrieves info from existing object in library to session state."
         # Predefined settings collected from object details in library
-        if st.session_state["reg_name"] not in st.session_state["current_database"].keys():
+        reg_name = st.session_state["reg_name"]
+        current_database = st.session_state["current_database"]
+        if reg_name not in current_database:
             pass
-        elif st.session_state["reg_name"] and not reg_selection == "add_new":
-            settings = st.session_state["current_database"][st.session_state["reg_name"]]
+        elif reg_name and not reg_selection == "add_new":
+            settings = current_database[reg_name]
             if st.session_state["reg_type"] == self.main_ref:
                 st.session_state["reg_utility"] = settings[self.utility_ref]
                 st.session_state["reg_attribute"] = settings[self.attribute_ref]
@@ -148,14 +150,15 @@ class Secretary:
 
     def collect_database(self):
         "Retrieves database self-contained deepcopy of databases to session state."
-        object_is_main = st.session_state["reg_object_type"] == self.main_ref
-        no_selection = not st.session_state["reg_object_type"]
+        reg_object_type = st.session_state["reg_object_type"]
+        object_is_main = reg_object_type == self.main_ref
+        no_selection = not reg_object_type
         if object_is_main or no_selection:
             st.session_state["current_database"] = copy.deepcopy(
                 hold.load_main_database())
             st.session_state["reg_type"] = self.main_ref
             return hold.load_main_database()
-        if st.session_state["reg_object_type"] == self.secondary_ref:
+        if reg_object_type == self.secondary_ref:
             st.session_state["current_database"] = copy.deepcopy(
                 hold.load_secondary_database())
             st.session_state["reg_type"] = self.secondary_ref
@@ -193,10 +196,12 @@ class Secretary:
         else:
             adjusted_date = st.session_state["reg_date"].strftime("%y%m%d")
             st.session_state["translated_values"]["reg_date"] = adjusted_date
+
+        reg_source = st.session_state["reg_source"]
         if len(self.options) > 0:
-            if not self.options["states"][st.session_state["reg_source"]]: 
+            if not self.options["states"][reg_source]: 
                 st.session_state["translated_values"]["reg_state"] = None
-            if not self.options["source_limit"][st.session_state["reg_source"]]: 
+            if not self.options["source_limit"][reg_source]: 
                 st.session_state["translated_values"]["reg_attempt"] = None
         else:
                 st.session_state["translated_values"]["reg_state"] = None
@@ -220,8 +225,7 @@ class Secretary:
         else:
             data_is_valid, save_button_msg = True, "Save"
         # Main type of object or utilitarian object
-        is_secondary = st.session_state[
-            "translated_values"]["reg_object_type"] == self.secondary_ref
+        is_secondary = st.session_state["translated_values"]["reg_object_type"] == self.secondary_ref
 
         return data_is_valid, save_button_msg, is_secondary
 
@@ -246,25 +250,25 @@ class Secretary:
         tasklist = ["name_done", "utility_done", "attribute_done", 
                     "origin_done", "source_done", "state_done", "attempt_done"]
         data_checks = dict()
+        translated_values = st.session_state["translated_values"]
         for x in tasklist:
             data_checks[x] = False
         if data_is_valid:
             # Secondary object has attribute and origin labels disabled
-            disable_extras = st.session_state[
-                "translated_values"]["reg_object_type"] == self.secondary_ref
+            disable_extras = translated_values["reg_object_type"] == self.secondary_ref
             
             # Completion checks
             # Name
-            if st.session_state["translated_values"]["reg_name"]: 
+            if translated_values["reg_name"]: 
                 data_checks["name_done"] = True
             
             # Labels: all for main, only utility for secondary
-            if st.session_state["translated_values"]["reg_utility"]: 
+            if translated_values["reg_utility"]: 
                 data_checks["utility_done"] = True
             if not disable_extras:
-                if st.session_state["translated_values"]["reg_attribute"]: 
+                if translated_values["reg_attribute"]: 
                     data_checks["attribute_done"] = True
-                if st.session_state["translated_values"]["reg_origin"]: 
+                if translated_values["reg_origin"]: 
                     data_checks["origin_done"] = True
             else:
                 data_checks["attribute_done"], data_checks["origin_done"] = True, True
@@ -274,7 +278,7 @@ class Secretary:
                     data_checks[x] = True
             
             # Source
-            if not st.session_state["translated_values"]["reg_source"]:
+            if not translated_values["reg_source"]:
                 if not st.session_state["include_event"]: 
                     data_checks["source_done"] = True
             else:
@@ -282,9 +286,9 @@ class Secretary:
             data_checks["state_done"] = False
             data_checks["attempt_done"] = False
             if len(self.options) > 0:
-                reg_source = st.session_state["translated_values"]["reg_source"]
+                reg_source = translated_values["reg_source"]
                 # State
-                if not st.session_state["translated_values"]["reg_state"]:
+                if not translated_values["reg_state"]:
                     if any([not self.options["states"][reg_source], 
                             not st.session_state["include_event"]]): 
                         data_checks["state_done"] = True
@@ -292,7 +296,7 @@ class Secretary:
                     data_checks["state_done"] = True
             
                 # Limit
-                if st.session_state["translated_values"]["reg_attempt"] is None:
+                if translated_values["reg_attempt"] is None:
                     if any([not self.options["source_limit"][reg_source],
                             not st.session_state["include_event"]]): 
                         data_checks["attempt_done"] = True
@@ -379,7 +383,12 @@ class Secretary:
         """
 
         # Rename truth-check also carries new name, define as new_name from rename
-        if reg_setting["for_renaming"]: reg_setting["for_renaming"] = new_name
+        if reg_setting["for_renaming"]: 
+            for_renaming = new_name
+        else:
+            for_renaming = reg_setting["for_renaming"]
+        for_deletion = reg_setting["for_deletion"]
+        is_static = reg_setting["is_static"]
         datafile = self.paths[object_type]
         if DIAGNOSTICS: datafile = "nofile.json"
         logger.info(f"Update called for {datafile}")
@@ -387,20 +396,20 @@ class Secretary:
         # Secure new data in case of errors
         error.catch_data(
             new_data, datafile, object_type, name, 
-            reg_setting["for_deletion"], reg_setting["for_renaming"], 
-            join_path="data", need_sorting=True, is_static=reg_setting["is_static"],
+            for_deletion, for_renaming, 
+            join_path="data", need_sorting=True, is_static=is_static,
             stage="pre_backup", prefix=object_type)
         updated_library = False
         # Backup old data before save
         if arciv.backup(backup_frequency, object_type, set_file=datafile, empty_allowed=True): 
             updated_library = arciv.join_data(
-                new_data, name, reg_setting["for_deletion"], reg_setting["for_renaming"], 
+                new_data, name, for_deletion, for_renaming, 
                 set_file=datafile, join_path="data", 
-                need_sorting=True, is_static=reg_setting["is_static"])
+                need_sorting=True, is_static=is_static)
         edits_successful = False
         if updated_library: 
             edits_successful = True
-        elif type(updated_library) is dict and reg_setting["for_deletion"]:
+        elif type(updated_library) is dict and for_deletion:
             edits_successful = True
         # Save to file
         if DIAGNOSTICS: updated_library = False

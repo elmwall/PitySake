@@ -83,7 +83,7 @@ def pending_backup(arciv):
     backup_directory = DIRECTORIES["BackupFolder"]
     arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
-    st.session_state["updated_library"] = False
+    updated_library = False
     catch = st.session_state["pending_backup"]
     confirm_backup = False
 
@@ -133,7 +133,7 @@ def pending_backup(arciv):
 
         # Continue with joining/updating data for writing
         if catch["datatype"] in [TERMS["main"], TERMS["secondary"]]:
-            st.session_state["updated_library"] = arciv.join_data(
+            updated_library = arciv.join_data(
             data_details["new_data"], 
             data_details["name"], 
             data_details["for_deletion"], 
@@ -143,23 +143,22 @@ def pending_backup(arciv):
             data_details["need_sorting"], 
             data_details["is_static"])
         elif catch["datatype"] == TERMS["progress"]:
-            st.session_state["updated_library"] = data_details["new_data"]
+            updated_library = data_details["new_data"]
         elif catch["datatype"] == "options":
-            st.session_state["updated_library"] = data_details["new_data"]
+            updated_library = data_details["new_data"]
 
         # If library properly updated:
         # - Send data for writing
         # - Reset Backup values
         # - Rerun Streamlit 
-        if st.session_state["updated_library"]:
+        if updated_library:
             arciv.writer(
-                st.session_state["updated_library"], 
+                updated_library, 
                 set_file=data_details["save_file"], 
                 join_path=data_details["path"]
             )
             st.session_state["pending_backup"] = False
             st.session_state["pending_save"] = False
-            st.session_state["updated_library"] = False
             st.rerun()
     # Abort if denied, reset backup
     elif confirm is False:
@@ -225,10 +224,7 @@ def catch_backup_data(mode: str, data: any, file: str,
         "backup_file": backup_file,
         "datatype": object_type
     }
-    dump(
-        "backup", 
-        st.session_state["pending_backup"], 
-        prefix="backupcatch")
+    dump("backup", st.session_state["pending_backup"], prefix="backupcatch")
     logger.info(f"Caught backup for {file}")
 
     return True

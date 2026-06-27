@@ -71,8 +71,9 @@ def table_view(component_key: str, object_type: str,
         # Send for processing or collect cache for data and pandas dataframe
         dataframe = hold.history_dataframe(rows, object_type)
         # Set dataframe style (should not be cached)
+        style = table_style[1] if table_style else ""
         styled_dataframe = (
-            dataframe.style.set_properties(**{"background-color": table_style[1]})
+            dataframe.style.set_properties(**{"background-color": style})
             .set_properties(subset=["Name"], **{"width": "small"})
             .format(precision=0))
         
@@ -89,7 +90,7 @@ def table_view(component_key: str, object_type: str,
         overview_dataframe = hold.overview_dataframe(overview)
         # Set dataframe style (should not be cached)
         styled_dataframe_overview = (
-            overview_dataframe.style.set_properties(**{"background-color": table_style[1]})
+            overview_dataframe.style.set_properties(**{"background-color": style})
             .set_properties(subset=["Name"], **{"width": "small"})
             .format(precision=0))
         # Generate table
@@ -127,7 +128,6 @@ def _tab(key, object_type):
         f"{object_type}_history": f"{TERMS[object_type]} history",
         f"{object_type}_overview": f"{TERMS[object_type]} overview"
     }
-    options = list(view_options.keys())
     st.segmented_control(
-        "Select view", options=options,
+        "Select view", options=list(view_options.keys()),
         format_func=lambda x:view_options[x], key=key, label_visibility="collapsed")

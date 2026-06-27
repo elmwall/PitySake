@@ -42,15 +42,6 @@ def progress_meter(component_key: list, sub_keys: list,
     """
     logger.info("Running")
 
-    attempts = hold.load_progress_data()
-    if not st.session_state["theme_missing"]:
-        active_theme = st.session_state["themes"]["active"]
-        widget_color = st.session_state["themes"][active_theme]["input_field"]
-    else:
-        widget_color = ""
-    reset_key = f"reset_key"
-    height, html_label, html_add10 = _feature_style(component_key, widget_color, reset_key)
-
     # Feature header
     if st.session_state["header_switch"]:
         with st.container(
@@ -69,48 +60,71 @@ def progress_meter(component_key: list, sub_keys: list,
     with st.container(
             border=True, key=f"{component_key}_main", 
             width=feature_size_left, height=340):
+        themes = st.session_state["themes"]
+        theme_missing = st.session_state["theme_missing"]
+        if not theme_missing:
+            active_theme = themes["active"]
+            widget_color = themes[active_theme]["input_field"]
+        else:
+            widget_color = ""
+
+        state_rand_symbol = TERMS["state_rand_symbol"]
+        state_det_symbol = TERMS["state_det_symbol"]
+        if not theme_missing:
+            active_theme_settings = themes[active_theme]
+            highlight_color = active_theme_settings["highlights"]
+            text_color = active_theme_settings["text_color"]
+        else:
+            highlight_color, text_color = [""]*2
+        progress_data = hold.load_progress_data()
+        reset_key = f"reset_key"
+        height, html_label, html_add10 = _feature_style(component_key, widget_color, reset_key)
+        
         # Generate a subfeature for every source category in file
         # Each utilizes a unique key generated in style module
         init_values = dict()
         accepted_trackers = list()
-        for i, category in enumerate(attempts.keys()):
+        active_trackers = st.session_state["active_trackers"]
+        for i, category in enumerate(progress_data.keys()):
             # Per source:
-            if any([category not in st.session_state["active_trackers"],
-                    attempts[category][TERMS["attempt"]] is None]):
+            if any([category not in active_trackers,
+                    progress_data[category][TERMS["attempt"]] is None]):
                 continue
             else:
                 accepted_trackers.append(i)
             st.space("xxsmall")
             # Define a key for each subfeature and initiate their init value
-            init_values, shared_init, keys = _initiate(attempts, category, init_values, i)
+            init_values, shared_init, keys = _initiate(progress_data, category, init_values, i)
             options = hold.load_options()
             if not len(options) > 0:
                 st.error("Critical option data missing.")
                 return
             limit = options["source_limit"][category]
+            state = progress_data[category]["State"]
             with st.container(key=sub_keys[i]):
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()
                 with col_state:
                     is_static = False
-                    if not st.session_state["theme_missing"]:
-                        color = st.session_state["themes"][active_theme]["text_color"]
+                    if not theme_missing:
+                        color = text_color
                     else:
                         color = ""
                     # Indicate prognisis state of source
-                    if attempts[category]["State"]:
-                        if attempts[category]["State"] == staterand_ref:
-                            symbol = f"**{TERMS["state_rand_symbol"]}**"
+                    if state:
+                        if state == staterand_ref:
+                            symbol = f"**{state_rand_symbol}**"
                             switch_to = statedet_ref
-                        elif attempts[category]["State"] == statedet_ref:
-                            symbol = f"**{TERMS["state_det_symbol"]}**"
+                        elif state == statedet_ref:
+                            symbol = f"**{state_det_symbol}**"
                             switch_to = staterand_ref
-                            color = st.session_state["themes"][active_theme]["highlights"]
-                        state_values = (attempts, category, switch_to, "State")
+                            color = highlight_color
+                        state_values = (progress_data, category, switch_to, "State")
                     # Disable state for static state sources
                     else:
                         is_static = True
                         symbol = "**⦸**"
                         state_values = (None,)
+                    state_key = keys["state"]
                     st.html("""
                         <style>
                             .st-key-KEY_REF button {
@@ -119,33 +133,36 @@ def progress_meter(component_key: list, sub_keys: list,
                                 color: COLOR_REF;
                             }
                         </style>
-                        """.replace("KEY_REF", keys["state"]).replace("COLOR_REF", color))
+                        """.replace("KEY_REF", state_key).replace("COLOR_REF", color))
                     st.button(
-                        f"{symbol}", key=keys["state"], 
+                        f"{symbol}", key=state_key, 
                         width="stretch", on_click=_update_progress, args=state_values, 
                         disabled=is_static)
                 
                 # Category title
-                label_style = html_label.replace("REF", keys["label"])
+                label_key = keys["label"]
+                label_style = html_label.replace("REF", label_key)
                 st.html(label_style)
                 with col_cat:
-                    st.button(f"*{category}*", key=keys["label"], width="stretch") 
+                    st.button(f"*{category}*", key=label_key, width="stretch") 
                 
                 # Enter number / change by increments
                 # Syncs to slider
+                num_key = keys["num"]
                 with col_number:
                     st.number_input(
-                        "Number", min_value=0, max_value=limit, key=keys["num"], 
+                        "Number", min_value=0, max_value=limit, key=num_key, 
                         on_change=_sync_from_num, args=(accepted_trackers,), label_visibility="collapsed")
                 
                 # Increase-by-10 button
                 # Syncs to slider and number input
-                add10_style = html_add10.replace("REF", keys["add10"])
+                add10_key = keys["add10"]
+                add10_style = html_add10.replace("REF", add10_key)
                 st.html(add10_style)
                 with col_10:
-                    disable = st.session_state[keys["num"]] > limit - 10
+                    disable = st.session_state[num_key] > limit - 10
                     st.button(
-                        "**+ 10**", key=keys["add10"], disabled=disable, width="stretch", 
+                        "**+ 10**", key=add10_key, disabled=disable, width="stretch", 
                         on_click=_increment_counter, args=(init_values, accepted_trackers, i))
                 
                 # Slider view/interface
@@ -155,18 +172,20 @@ def progress_meter(component_key: list, sub_keys: list,
                         "Slider", min_value=0, max_value=limit, key=keys["slider"], 
                         on_change=_sync_from_slider, args=(accepted_trackers,), label_visibility="collapsed")
                 # Apply and call save function
+                shared_key = keys["shared"]
+                shared_button_key = keys["button"]
                 with col_apply:
-                    if st.session_state[keys["shared"]] != shared_init:
-                        st.html(highlight_html.replace("KEY_REF", keys["button"]))
+                    if st.session_state[shared_key] != shared_init:
+                        st.html(highlight_html.replace("KEY_REF", shared_button_key))
                         st.button(
-                            f"Save", key=keys["button"], type="primary", 
+                            f"Save", key=shared_button_key, type="primary", 
                             on_click=_update_progress, 
                             args=(
-                                attempts, category, 
-                                st.session_state[keys["shared"]], attempt_ref), 
+                                progress_data, category, 
+                                st.session_state[shared_key], attempt_ref), 
                             width="stretch")
                     else:
-                        st.button(f"Save", key=keys["button"], type="secondary", width="stretch")
+                        st.button(f"Save", key=shared_button_key, type="secondary", width="stretch")
         # Reset all values
         with col_res:
             st.markdown("")
@@ -214,13 +233,13 @@ def _feature_style(component_key: str, widget_color: str, reset_key:str):
     return height, html_label, html_add10
 
 
-def _initiate(attempts: dict, category: str, 
+def _initiate(progress_data: dict, category: str, 
               init_values: dict, i: int):
     """
     Initiates unique keys for each input widget per source progress tracker.
     
     Args:
-        attempts (dict):
+        progress_data (dict):
             database of progress in all sources
         category (str):
             identifier of current source to build tracker for
@@ -229,7 +248,7 @@ def _initiate(attempts: dict, category: str,
         i (int):
             index for the current sub-feature to build
     """
-    init_values[i] = attempts[category][attempt_ref]
+    init_values[i] = progress_data[category][attempt_ref]
     keys = {
         "label": f"label_{i}",
         "state": f"state_{i}",
@@ -240,7 +259,7 @@ def _initiate(attempts: dict, category: str,
         "add10": f"add10_{i}"
     }
     
-    shared_init = attempts[category][attempt_ref]
+    shared_init = progress_data[category][attempt_ref]
 
     st.session_state.setdefault(keys["shared"], shared_init)
     st.session_state.setdefault(keys["slider"], shared_init)
@@ -294,13 +313,13 @@ def _column_style():
         proggroup_column_size, gap="xxsmall", vertical_alignment="center")
 
 
-def _update_progress(attempts: dict, category: str, 
+def _update_progress(progress_data: dict, category: str, 
                      attempt_value: int, option: str):
     """
     Saves updated progress or state values in progress database.
 
     Args:
-        attempts (dict):
+        progress_data (dict):
             progress database
         category (str):
             source to be updated
@@ -310,17 +329,17 @@ def _update_progress(attempts: dict, category: str,
             sets progress or state to be updated
     """    
     if option == attempt_ref:
-        attempts[category][attempt_ref] = attempt_value
+        progress_data[category][attempt_ref] = attempt_value
     elif option == "State":
-        attempts[category]["State"] = attempt_value
+        progress_data[category]["State"] = attempt_value
     file = DATAPATH["progress"]
     logger.info(f"Update called for {file}")
-    error.catch_data(attempts, file, progress_ref)
+    error.catch_data(progress_data, file, progress_ref)
     if arciv.backup(
             [101, 47, 19, 7, 3], progress_ref, 
             set_file=file, empty_allowed=True):
         arciv.writer(
-            attempts, object_type=progress_ref, 
+            progress_data, object_type=progress_ref, 
             set_file=file, join_path="data")
         st.session_state["cleared_cache"] = True
         hold.load_progress_data.clear()
