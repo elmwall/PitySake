@@ -21,6 +21,8 @@ attempt_ref = TERMS["attempt"]
 event_ref = TERMS["event"]
 main_ref = TERMS["main"]
 secondary_ref = TERMS["secondary"]
+positive_ref = TERMS["state_win"]
+negative_ref = TERMS["state_loss"]
 
 
 def small_stats(component_key: str, sub_keys: list, 
@@ -53,7 +55,7 @@ def small_stats(component_key: str, sub_keys: list,
             width=set_width, height=feat_height):
         st.markdown("")
 
-        counts, total_val, last, att_median, success_rate = _analyze_data()
+        counts, total_val, last, att_median, success_rate, total_rate = _analyze_data()
         # Content frame
         with st.container(width="stretch", height="stretch"):
             col_1, col_2 = st.columns([30, 30])
@@ -69,46 +71,51 @@ def small_stats(component_key: str, sub_keys: list,
                         col_left, col_right = st.columns(2)
                         # Last recorded main event value, delta compared to median
                         options = hold.load_options()
-                        if len(options) > 0:
-                            reverse = options["user_indicators"]["reverse_positive"]
+                        if options["user_indicators"]["use_highlights"]:
+                            if len(options) > 0:
+                                reverse = options["user_indicators"]["reverse_positive"]
+                            else:
+                                reverse = False
+                            delta_color = "inverse" if reverse else "normal"
                         else:
-                            reverse = False
+                            delta_color = "off"
                         compare_to_median = int(last - att_median)
                         sign = "+" if compare_to_median > 0 else "-"
-                        delta_color = "inverse" if reverse else "normal"
                         unit = TERMS["unit"] if TERMS["unit"] else ""
-                        help = f"For {main_ref.lower()}s. {sign} {compare_to_median} compared to median"
+                        help = f"For {main_ref}s. {sign} {compare_to_median} compared to median"
                         with col_left:
                             _adjusted_metric(
-                                f"Last {event_ref.lower()}", metric_key="last_metric", 
+                                f"Last {event_ref}", metric_key="last_metric", 
                                 metric_value=f"{last}{unit}",
                                 base_limit=5, help_text=help, 
                                 delta={"text": f"{compare_to_median}", "color": delta_color})
                         # Median value for all main and secondary events (with value)
-                        help = f"""From {main_ref.lower()} {event_ref.lower()}s. 
+                        help = f"""From {main_ref} {event_ref}s. 
                             Median: mid-value, half above/half below."""
                         with col_right:
                             _adjusted_metric(
                                 "Median", metric_key="median_metric", 
                                 metric_value=f"{att_median}{unit}",
                                 base_limit=5, help_text=help)
-                        st.space(18)
+                        st.space(5)
 
                     # Bottom row
                     with st.container():
                         col_left, col_right = st.columns(2)
                         # Success rate (positives among positives + negatives)
                         # from main and secondary
-                        rate_help_text = f"""From {main_ref.lower()} 
-                            and {secondary_ref.lower()} {event_ref.lower()}s"""
+                        rate_help_text = f"""Rate of {positive_ref} compared to {negative_ref}.  
+                            Bottom: Rate of {positive_ref} among all events.  
+                            From {main_ref} and {secondary_ref} {event_ref}s"""
                         col_left.metric(
                             f"{TERMS["state_win"]}", value=f"{success_rate}%", 
                             help=rate_help_text, 
                             border=False, 
-                            width="stretch")
+                            width="stretch",
+                            delta_description=f"{total_rate}% of all")
                         # Total recorded values from main and secondary 
                         # from events and progress tracker
-                        help=f"""All-time total sum of {attempt_ref.lower()} 
+                        help=f"""All-time total sum of {attempt_ref}  
                             from {main_ref} and {secondary_ref} history and tracker"""
                         with col_right:
                             _adjusted_metric(
@@ -161,14 +168,20 @@ def _analyze_data() -> tuple:
     processed_secondary = hold.process_secondary_db(secondary_database)
 
     # Calculate success rate
-    main_success = processed_main["success_fail"]
-    secondary_success = processed_secondary["success_fail"]
+    main_success = processed_main["success_fail_tot"]
+    secondary_success = processed_secondary["success_fail_tot"]
     success = main_success[0] + secondary_success[0]
-    if sum(main_success + secondary_success) > 0:
-        success_rate = success / sum(main_success + secondary_success)*100
+    success_rate, total_rate = 0, 0
+    if sum(main_success[:2] + secondary_success[:2]) > 0:
+        success_rate = success / sum(
+            main_success[:2] + secondary_success[:2])*100
+    if sum([main_success[2] + secondary_success[2]]) > 0:
+        total_rate = success / int(main_success[2] + secondary_success[2])*100
     else:
         success_rate = 0
+        total_rate = 0
     success_rate = "%.f" % success_rate
+    total_rate = "%.f" % total_rate
 
     # Collect progress not yet registered as event
     attempts = 0
@@ -189,7 +202,7 @@ def _analyze_data() -> tuple:
 
     # Main object label count
     counts = processed_main["counts"]
-    return counts, total_val, last, att_median, success_rate
+    return counts, total_val, last, att_median, success_rate, total_rate
 
 
 def _adjusted_metric(title: str, metric_key: str, metric_value: int, base_limit: int, 

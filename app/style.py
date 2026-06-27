@@ -310,8 +310,11 @@ font = 'sans serif'
             except Exception as e:
                 logger.exception(f"\nError: {e}\nOccurred while attempting to write to config.toml")
             logger.info(f"Update called for ui_themes.json")
-            if arciv.writer(themes, set_file="ui_themes.json", join_path="settings"):
-                logger.info("Theme updated")
+            if arciv.backup(
+                    [47, 19, 7, 5, 3], "theme", join_path="settings", 
+                    set_file=SETTINGS["Themes"], empty_allowed=False): 
+                if arciv.writer(themes, set_file="ui_themes.json", join_path="settings"):
+                    logger.info("Theme updated")
             st.rerun()
 
         if col_3.button("Done", type="secondary", width="stretch"):

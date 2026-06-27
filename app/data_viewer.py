@@ -77,25 +77,14 @@ def table_view(component_key: str, object_type: str,
             .format(precision=0))
         
         # Generate table
-        #   - In view: Date, # (number in collection), Name, "Event term", "Source term"
-        #   - To the right of view (scroll sideways): origin, attribute, utility
-        # This way the view is not cluttered, 
-        # while they can still be shown through scroll
-        # and can be used for searching/sorting
+        # Columns not fitting in view can be shown through scroll
         st.dataframe(
             styled_dataframe, height=table_height, hide_index=True,
-            column_config={
-                "#": st.column_config.Column(width=40, alignment="center"),
-                "Name": st.column_config.Column(width=170),
-                # attempt_title: st.column_config.Column(width=50),
-                TERMS["source"]: st.column_config.Column(width=165),
-            },
             key=f"{component_key}_table_history", placeholder="")
     
     # Overview tab container
     with st.container(
             border=False, key=f"{component_key}_holder_overview", width="stretch", height=overview_height):
-
         # Send for processing or collect cache for data and pandas dataframe
         overview_dataframe = hold.overview_dataframe(overview)
         # Set dataframe style (should not be cached)
@@ -106,10 +95,6 @@ def table_view(component_key: str, object_type: str,
         # Generate table
         st.dataframe(
             styled_dataframe_overview, height=table_height, hide_index=True,
-            column_config={
-                "Name": st.column_config.Column(width=125),
-                "Total": st.column_config.Column(width=45)
-            },
             key=f"{component_key}_table_overview", placeholder="")
 
 

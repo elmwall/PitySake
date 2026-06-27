@@ -100,7 +100,8 @@ def _process_collection_db(database: dict, datatype: str):
             counts (dict): couts of labels for main type objects  
             attempt_list (list): collected values for analysis  
             last_event (list): last recorded  
-            success_fail (list): counts of positive (index 0) and negative (index 1)  
+            success_fail_tot (list): counts of positive (index 0) and negative (index 1) 
+            and total (index 2)  
             table_data (list): rows for history table  
             overview_data (list): rows for overview table  
             graph_data (dict): data for timeline  
@@ -124,7 +125,7 @@ def _process_collection_db(database: dict, datatype: str):
     # To record last attempt [date, attempt value]
     last_event = [0, 0]
     # To record [successful, failed] attempts
-    success_fail = [0, 0]
+    success_fail_tot = [0, 0, 0]
     # Recording no of an object collected
     object_count = dict()
     # Data for pandas/st.dataframe
@@ -139,16 +140,19 @@ def _process_collection_db(database: dict, datatype: str):
             "counts": counts,
             "attempt_list": attempt_value_list,
             "last_event": last_event,
-            "success_fail": success_fail, 
+            "success_fail_tot": success_fail_tot, 
             "table_data": rows_for_history,
             "overview_data": rows_for_overview,
             "graph_data": graph_data,
             "attempt_title": attempt_title,
             "valid": False}
 
+    utility_ref = TERMS["utility"]
+    attribute_ref = TERMS["attribute"]
+    origin_ref = TERMS["origin"]
     # For counting object labels - Define dictionary with category keys and data keys 
     if datatype == "main": 
-        category_list = [TERMS["utility"], TERMS["attribute"], TERMS["origin"]]
+        category_list = [utility_ref, attribute_ref, origin_ref]
         for category in category_list:
             counts[category] = dict()
     state_value, date, object_collection, name, attempt_value, source, state, index = [None]*8
@@ -190,12 +194,13 @@ def _process_collection_db(database: dict, datatype: str):
 
             # Collect state
             if state == TERMS["state_win"]:
-                success_fail = [success_fail[0] + 1, success_fail[1]]
+                success_fail_tot = [success_fail_tot[0] + 1, success_fail_tot[1], success_fail_tot[2] + 1]
                 state_value = True
             elif state == TERMS["state_loss"]: 
-                success_fail = [success_fail[0], success_fail[1] + 1]
+                success_fail_tot = [success_fail_tot[0], success_fail_tot[1] + 1, success_fail_tot[2] + 1]
                 state_value = False
             else:
+                success_fail_tot = [success_fail_tot[0], success_fail_tot[1], success_fail_tot[2] + 1]
                 state_value = None
 
             # Collect values for graph data
@@ -224,11 +229,12 @@ def _process_collection_db(database: dict, datatype: str):
                 graph_data["attempt_made"].append(False)
                 graph_data["highlight"].append(None)
 
-            # Create list of row sets for pandas for tables
+
+            # Create list of row sets for pandas for tables - history
             if datatype == "main": 
-                utility = info[TERMS["utility"]]
-                attribute = info[TERMS["attribute"]]
-                origin = info[TERMS["origin"]]
+                utility = _translate_label(info, utility_ref)
+                attribute = _translate_label(info, attribute_ref)
+                origin = _translate_label(info, origin_ref)
 
                 rows_for_history.append({
                     "Date": date, 
@@ -236,13 +242,13 @@ def _process_collection_db(database: dict, datatype: str):
                     "Name": name,
                     attempt_title: attempt_value, 
                     TERMS["source"]: source,
-                    TERMS["origin"]: origin, 
-                    TERMS["attribute"]: attribute, 
-                    TERMS["utility"]: utility, 
+                    utility_ref: utility, 
+                    attribute_ref: attribute, 
+                    origin_ref: origin, 
                     TERMS["state"]: state, 
                     "Index": index})
             else:
-                utility = info[TERMS["utility"]]
+                utility = _translate_label(info, utility_ref)
 
                 rows_for_history.append({
                     "Date": date, 
@@ -250,31 +256,40 @@ def _process_collection_db(database: dict, datatype: str):
                     "Name": name,
                     attempt_title: attempt_value, 
                     TERMS["source"]: source,
-                    TERMS["utility"]: utility, 
+                    utility_ref: utility, 
                     TERMS["state"]: state, 
                     "Index": index})
+                
+        # Adapt data
         if not any(attempt_per_object):
             mean_attempt = None
         else:
             if None in attempt_per_object:
                 attempt_per_object.remove(None)
             mean_attempt = "%.1f" % statistics.mean(attempt_per_object)
+        total = len(info[TERMS["event"]]) - 1 + data_options["value_limits"]["collection_start_count"]
+        if total < 0: total = None
+        # Create list of row sets for pandas for tables - overview
         if datatype == "main": 
+            utility = _translate_label(info, utility_ref)
+            attribute = _translate_label(info, attribute_ref)
+            origin = _translate_label(info, origin_ref)
+
             rows_for_overview.append({
                 "Name": name,
-                "Total": len(info[TERMS["event"]]) - 1,
+                "Total": total,
                 "Mean": mean_attempt,
-                TERMS["origin"]: info[TERMS["origin"]],
-                TERMS["attribute"]: info[TERMS["attribute"]],
-                TERMS["utility"]: info[TERMS["utility"]]
-            })
+                utility_ref: utility,
+                attribute_ref: attribute,
+                origin_ref: origin})
         else: 
+            utility = _translate_label(info, utility_ref)
+
             rows_for_overview.append({
                 "Name": name,
-                "Total": len(info[TERMS["event"]]) - 1,
+                "Total": total,
                 "Mean": mean_attempt,
-                TERMS["utility"]: info[TERMS["utility"]]
-            })
+                utility_ref: utility})
 
     if datatype == "main": 
         for category in category_list:
@@ -282,7 +297,8 @@ def _process_collection_db(database: dict, datatype: str):
                 if option not in counts[category]:
                     counts[category][option] = 0
 
-    if len(database) == 0: 
+    # Placeholder data for new/missing database
+    if len(rows_for_history) == 0: 
         if datatype == "main": 
             rows_for_history = [{
                     "Date": None, 
@@ -290,18 +306,11 @@ def _process_collection_db(database: dict, datatype: str):
                     "Name": None,
                     attempt_title: None, 
                     TERMS["source"]: None,
-                    TERMS["origin"]: None, 
-                    TERMS["attribute"]: None, 
-                    TERMS["utility"]: None, 
+                    utility_ref: None, 
+                    attribute_ref: None, 
+                    origin_ref: None, 
                     TERMS["state"]: None, 
                     "Index": None}]
-            rows_for_overview = [{
-                "Name": None,
-                "Total": None,
-                "Mean": None,
-                TERMS["origin"]: None,
-                TERMS["attribute"]: None,
-                TERMS["utility"]: None}]
         else:
             rows_for_history = [{
                     "Date": None, 
@@ -309,26 +318,39 @@ def _process_collection_db(database: dict, datatype: str):
                     "Name": None,
                     attempt_title: None, 
                     TERMS["source"]: None,
-                    TERMS["utility"]: None, 
+                    utility_ref: None, 
                     TERMS["state"]: None, 
                     "Index": None}]
+    if len(rows_for_overview) == 0:
+        if datatype == "main": 
             rows_for_overview = [{
                 "Name": None,
                 "Total": None,
                 "Mean": None,
-                TERMS["utility"]: None
-            }]
-            
+                utility_ref: None,
+                attribute_ref: None,
+                origin_ref: None}]
+        else:
+            rows_for_overview = [{
+                "Name": None,
+                "Total": None,
+                "Mean": None,
+                utility_ref: None}]
+
     return {
         "counts": counts,
         "attempt_list": attempt_value_list,
         "last_event": last_event,
-        "success_fail": success_fail, 
+        "success_fail_tot": success_fail_tot, 
         "table_data": rows_for_history,
         "overview_data": rows_for_overview,
         "graph_data": graph_data,
         "attempt_title": attempt_title,
         "valid": True}
+
+
+def _translate_label(info, label):
+    return info[label] if info[label] != "_Blank_" else ""
 
 
 @st.cache_data

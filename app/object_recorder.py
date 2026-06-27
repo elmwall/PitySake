@@ -184,7 +184,7 @@ def _action_selector(sub_keys: list, reg_options: dict,
         # while sending key to session state
         reg_selection = col_options.pills(
             "Registration setting", options=list(reg_options.keys()), 
-            format_func=lambda x:reg_options[x]["label"], 
+            format_func=lambda x:reg_options[x]["reg_key"], 
             key="regset", on_change=_update_event_choice,
             width="stretch", label_visibility="collapsed")
         if reg_selection:
@@ -222,7 +222,7 @@ def _naming_object(secretary: Secretary, reg_selection: str):
     if reg_selection == "add_new":
         st.text_input(
             "Name", key="reg_name", 
-            placeholder=f"Enter new {object_viewname.lower()}", 
+            placeholder=f"Enter new {object_viewname}", 
             label_visibility="collapsed")
     elif not reg_selection:
         st.text_input(
@@ -235,13 +235,13 @@ def _naming_object(secretary: Secretary, reg_selection: str):
         
         if not st.session_state["current_database"]:
             disable_selection = True
-            message = f"Select {object_viewname.lower()}"
+            message = f"Select {object_viewname}"
         elif len(st.session_state["current_database"]) == 0:
             disable_selection = True
             message = "No objects in library"
         else:
             disable_selection = False
-            message = f"Select {object_viewname.lower()}"
+            message = f"Select {object_viewname}"
         st.selectbox(
             f"{object_viewname}s", 
             options=object_options,
@@ -358,9 +358,9 @@ def _save_data(secretary: Secretary, preset_keys: list,
     event_length, old_data = [None]*2
     current_database = st.session_state["current_database"]
     if st.session_state["reg_name"] is not None: 
-        reg_name = st.session_state["reg_name"].title()
+        reg_name = st.session_state["reg_name"]
         object_in_library = reg_name in current_database
-        if reg_name.title() in current_database:
+        if reg_name in current_database:
             event_length = len(current_database[reg_name][event_ref])
             old_data = current_database[reg_name]
 
@@ -428,7 +428,7 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
     """
     # When finished, build dictionary entry for object
     if all(task_states):
-        name = st.session_state["translated_values"]["reg_name"].title()
+        name = st.session_state["translated_values"]["reg_name"]
         new_data = dict()
         new_data[name] = dict()
         if st.session_state["regset"] not in ["add_event", "del_event"]: 
@@ -525,7 +525,7 @@ def _date_input(data_options: dict):
         disable_dates = False if st.session_state["reg_name"] else True
         st.selectbox(
             f"Select date", options_dates, key="reg_date", 
-            help=f"Displays {event_ref.lower()} [Date]-[Time].",
+            help=f"Displays {event_ref} [Date]-[Time].",
             disabled=disable_dates, label_visibility="collapsed")
     # Standard setting, write date or select by calender
     else:
@@ -541,8 +541,8 @@ def _date_input(data_options: dict):
 
 def _event_details(preset_options, event_disabled):
     # Source selector 
-    source_help_text = f"""For anything not from a {event_ref.lower()} 
-        and without {attempt_ref.lower()}, select 'Reward'"""
+    source_help_text = f"""For anything not from a {event_ref} 
+        and without {attempt_ref}, select 'Reward'"""
     st.selectbox(
         f"{source_ref}", options=preset_options["options_source"], 
         index=0, key="reg_source", help=source_help_text,

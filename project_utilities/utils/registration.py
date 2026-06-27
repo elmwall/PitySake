@@ -24,7 +24,7 @@ import pythoncom
 from pyshortcuts import make_shortcut
 
 
-def register(key: str, disable: bool, use_template: bool = False):
+def register(key: str, disable: bool = False, use_template: bool = False):
     """
     Controls submission data compiling, generating folders and files for defined project.
     
@@ -227,7 +227,6 @@ def _config(terms: dict) -> dict:
             "progress": f"{terms["attempt"]}",
             "source": f"{terms["source"]}",
             "secondary": f"{terms["secondary"]}",
-            "sets": "Rows",
             "state": "Outcome",
             "state_win": f"{terms["positive"]}",
             "state_loss": f"{terms["negative"]}",
@@ -262,16 +261,18 @@ def _data_options(terms: dict, submitted: dict) -> dict:
     states = dict()
     for name, details in submitted["progress_details"]["sources"].items():
         if details["limit"]:
+            value = 0
             sets = {
-                "pages": 250,
-                "rows": 5
+                "sections": 250,
+                "positions": 5
             }
         else:
+            value = None
             sets = None
             
         state = "Uncertain" if details["evaluate"] else None
         progress[name] = {
-            terms["attempt"]: 0,
+            terms["attempt"]: value,
             "State": state,
             "active": True,
             "sets": sets
@@ -280,16 +281,17 @@ def _data_options(terms: dict, submitted: dict) -> dict:
         states[name] = details["evaluate"]
 
     collection_start_count = 0 if submitted["objects_details"]["start_from_0"] else 1
+    none_value = "_Blank_"
     data_options = {
         terms["main"]: {
-            terms["origin"]: submitted["label_details"]["origin"],
-            terms["attribute"]: submitted["label_details"]["attribute"],
-            terms["utility"]: submitted["label_details"]["utility"]
+            terms["origin"]: [x if x else none_value for x in submitted["label_details"]["origin"]],
+            terms["attribute"]: [x if x else none_value for x in submitted["label_details"]["attribute"]],
+            terms["utility"]: [x if x else none_value for x in submitted["label_details"]["utility"]]
         },
         "results": [
             submitted["event_terms"]["state_win"],
-            submitted["event_terms"]["state_loss"],
-            submitted["event_terms"]["state_det"]
+            submitted["event_terms"]["state_det"],
+            submitted["event_terms"]["state_loss"]
         ],
         "source_limit": source_limit,
         "states": states,

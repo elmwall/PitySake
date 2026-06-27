@@ -3,8 +3,8 @@
         "Value": 0,
         "State": "Uncertain",
         "sets": {
-            "pages": 250,
-            "rows": 5
+            "sections": 250,
+            "positions": 5
         }
     }
 }

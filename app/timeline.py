@@ -135,6 +135,7 @@ def timeline(component_key: str, set_height: int):
                     symbol_shape = "arrow"
                     symbol_size = 14
                     display_value = ""
+
                 # Draw dot
                 fig.add_trace(
                     go.Scatter(

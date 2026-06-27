@@ -70,7 +70,6 @@ class Secretary:
             options_object = list(st.session_state["current_database"].keys())
         except:
             options_object = list(hold.load_main_database().keys())
-
         if len(self.options) > 0:
             preset_options = {
                 "options_utility": self.options[self.main_ref][self.utility_ref],
@@ -96,31 +95,31 @@ class Secretary:
 
         registration_options = {
             "add_new": {
-                "label": "Add completely new",
+                "reg_key": "Add completely new",
                 "is_static": False,
                 "for_deletion": False,
                 "for_renaming": False
             },
             "add_event": {
-                "label": f"New {self.event_ref.lower()} of old",
+                "reg_key": f"New {self.event_ref} of old",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": False
             },
             "del_entry": {
-                "label": "Delete entry",
+                "reg_key": "Delete entry",
                 "is_static": False,
                 "for_deletion": True,
                 "for_renaming": False
             },
             "edit_entry": {
-                "label": "Edit details",
+                "reg_key": "Edit details",
                 "is_static": False,
                 "for_deletion": False,
                 "for_renaming": True
             },
             "del_event": {
-                "label": f"Delete {self.event_ref.lower()}",
+                "reg_key": f"Delete {self.event_ref}",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": False
@@ -213,7 +212,7 @@ class Secretary:
         # "Delete object event" 
         # - removing collection info of object at date
         elif reg_selection == "del_event":
-            save_button_msg = f"Delete {self.event_ref.lower()}"
+            save_button_msg = f"Delete {self.event_ref}"
             # Do not attempt if event data is empty 
             # - should only occur after previous deletion
             data_is_valid = True if event_length else False
@@ -280,15 +279,14 @@ class Secretary:
                     data_checks["source_done"] = True
             else:
                 data_checks["source_done"] = True
-            
             data_checks["state_done"] = False
             data_checks["attempt_done"] = False
             if len(self.options) > 0:
+                reg_source = st.session_state["translated_values"]["reg_source"]
                 # State
                 if not st.session_state["translated_values"]["reg_state"]:
-                    reg_source = st.session_state["translated_values"]["reg_source"]
                     if any([not self.options["states"][reg_source], 
-                        not st.session_state["include_event"]]): 
+                            not st.session_state["include_event"]]): 
                         data_checks["state_done"] = True
                 else:
                     data_checks["state_done"] = True
@@ -367,7 +365,7 @@ class Secretary:
         if st.button(
                 "Confirm", key="rename", type=appearance, disabled=not_updated):
             self.update_object(
-                name, object_type, new_data, reg_setting, new_name.title())
+                name, object_type, new_data, reg_setting, new_name)
             # Reload the update the list of objects and auto-close dialog box
             st.rerun()
 

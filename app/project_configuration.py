@@ -65,12 +65,12 @@ def edit_options(options: dict):
     """
     Project configuration of data options
     - new options can be added/removed for:
-        object labels, sources, source limits
-    - pre-defined options cannot be edited except for limit values
+        object labels, sources, source limits  
+        (removed sources are simply disabled)
+    - pre-defined options can be edited for:  
+        source limits, highlights enabling and triggers
 
     Args:
-        attempts (dict):
-            deepcopy of database of progress/attempt values
         options (dict):
             project unique settings and alternatives
     """
@@ -82,6 +82,9 @@ def edit_options(options: dict):
         st.session_state["edit_options_complete"] = False
     st.session_state["dialog_active"] = True
     logger.info("Edit options dialog opened")
+
+    DATAPATH = st.session_state["DATAPATH"]
+    SETTINGS = st.session_state["SETTINGS"]
     TERMS = st.session_state["TERMS"]
 
     col_main, col_p = st.columns([1, 0.01])
@@ -94,34 +97,29 @@ def edit_options(options: dict):
             if st.session_state["reset_edits"] and st.session_state["changed_options"]:
                 st.session_state["reset_edits"] = False
                 _reset_changes()
-            edit_named_option, selection, no_options, named_option_ref = _initiate_option_edit(TERMS)
+            edit_named_option, selection = _initiate_option_edit(TERMS)
             if edit_named_option:
                 # Select to add new or remove option if available
                 col_a, col_b = st.columns(2)
                 if col_a.checkbox("Remove option", value=False, key="remove_option"):
-                    _remove_option(col_2, selection, named_option_ref)
+                    _remove_option(col_2, TERMS, selection)
                 else:
-                    # If user selected to edit:
-                    not_valid = True
-
+                    # If user selected to edit
                     # Selected: edit options of a label
-                    if selection in [
-                            named_option_ref["edit_utility"], 
-                            named_option_ref["edit_attribute"], 
-                            named_option_ref["edit_origin"]]:
-                        not_valid = _edit_label(col_2, selection, not_valid)
+                    if selection in ["utility", "attribute", "origin"]:
+                        _edit_label(col_2, TERMS, selection)
 
                     # Selected: edit source
                     # Requires adding:
                     # - Name of source
                     # - Limit of progress/attempts
                     # - If fail/success states are relevant
-                    elif selection == named_option_ref["edit_source"]:
-                        _edit_source(col_b, col_2, selection, not_valid)
+                    elif selection == "edit_source":
+                        _edit_source(col_b, col_2, TERMS)
 
             # Selected: change limit of existing source
-            elif selection == named_option_ref["change_limits"]:
-                _edit_limit(col_2, selection)
+            elif selection == "change_limits":
+                _edit_value_settings(col_2, TERMS)
         
         # Reset button - restores changed_options and changed_progress databases
         no_changes = not st.session_state["edit_options_complete"]
@@ -129,26 +127,20 @@ def edit_options(options: dict):
             _reset_changes()
     
     # Save button - saves changed_options and changed_progress databases to file
-    _save_changes(col_4)
+    _save_changes(col_4, DATAPATH, SETTINGS, TERMS)
 
 
-def _initiate_option_edit(TERMS):
+def _initiate_option_edit(TERMS: dict) -> tuple:
     """
     Intiate database deepcopies in session state, 
     create references and lists of editable options.
 
     Returns:
-        Tuple (bool, str, bool, list):
+        Tuple (bool, str):
             edit_named_option (bool): selection is a 
             text-based option
 
             selection (str): selected by user to edit
-
-            no_options (bool): control value if there's nothing to edit
-
-            named_option_ref (list): text-based options and 
-            corresponding project term
-
     """
     # To avoid causing early stage initialization issues,
     # data_access module function are imported here 
@@ -167,26 +159,27 @@ def _initiate_option_edit(TERMS):
 
     # Text-based options and project reference
     named_option_ref = {
-        "edit_utility": TERMS["utility"],
-        "edit_attribute": TERMS["attribute"],
-        "edit_origin": TERMS["origin"],
+        "utility": TERMS["utility"],
+        "attribute": TERMS["attribute"],
+        "origin": TERMS["origin"],
         "edit_source": TERMS["source"],
         "change_limits": f"{TERMS["attempt"]} settings"
     }
 
     # User selection: what to edit
     selection = st.selectbox(
-        "Select option to edit", options=list(named_option_ref.values()), 
+        "Select option to edit", options=list(named_option_ref.keys()), 
+        format_func=lambda x:named_option_ref[x],
         key="options_to_edit", on_change=_reset_changes)
     st.space()
     
     # Initial states
     edit_named_option = False
-    remove_options, no_options, requirements = [None]*3
-    named_options = list(named_option_ref.values())
-    named_options.remove(named_option_ref["change_limits"])
+    remove_options = list()
+    named_options = list(named_option_ref.keys())
+    named_options.remove("change_limits")
     object_options = named_options.copy()
-    object_options.remove(named_option_ref["edit_source"])
+    object_options.remove("edit_source")
     if selection in named_options: 
         # Text-based options
         # selectable options are defined from existing options not in requirements
@@ -194,14 +187,13 @@ def _initiate_option_edit(TERMS):
         options = st.session_state["changed_options"]
         # Label edits
         if selection in object_options:
-            remove_options = options[TERMS["main"]][selection]
+            remove_options = options[TERMS["main"]][TERMS[selection]]
         # Source edits
-        elif selection == named_option_ref["edit_source"]:
+        elif selection == "edit_source":
             remove_options = st.session_state["active_trackers"]
-        no_options = len(remove_options) < 1
     st.session_state["remove_options"] = remove_options
 
-    return edit_named_option, selection, no_options, named_option_ref
+    return edit_named_option, selection
 
 
 def _reset_changes():
@@ -212,14 +204,27 @@ def _reset_changes():
     st.session_state["changed_options"] = copy.deepcopy(load_options())
     st.session_state["changed_progress"] = copy.deepcopy(load_progress_data())
     st.session_state["edit_options_complete"] = False
-    st.session_state["edited_options"] = list()
     st.session_state["edit_options_complete"] = False
+    # Value for progress_changed is set to None to separate initial state
+    # and edited states (True/False)
     st.session_state["progress_changed"] = None
 
 
-def _remove_option(col_2, selection, named_option_ref):
-    TERMS = st.session_state["TERMS"]
+def _remove_option(col_2, TERMS: dict, selection: str):
+    """
+    For labels: removes from data_options  
+    For sources: sets source inactive in progress
 
+    Args:
+        col_2 (DeltaGenerator):
+            Streamlit column instance
+        selection (str):
+            selected editing option
+
+    Updates for: 
+    - Progress: sources
+    - Options: labels
+    """
     # If user selected to remove:
     single_option = False
     if len(st.session_state["remove_options"]) < 2:
@@ -233,66 +238,102 @@ def _remove_option(col_2, selection, named_option_ref):
         "Select option", options=st.session_state["remove_options"], 
         key="selected_removal", on_change=_reset_changes, 
         disabled=no_options, placeholder=placeholder)
+    
     if single_option: 
         st.markdown("At least one option required. Add a new one first.")
-    if selection == named_option_ref["edit_source"]:
-        st.markdown(f"{TERMS["source"]} cannot be removed due to data dependencies, but are instead deactivated. You can re-activate again here.")
+    if selection in ["utility", "attribute", "origin"]:
+        st.markdown("Removing labels will not change labels on registered objects.")
+        st.markdown("To change labels on objects, use 'Edit details' in *Update library*.")
+    elif selection == "edit_source":
+        st.markdown(f"""{TERMS["source"]} cannot be removed due to data dependencies, 
+                    but are instead deactivated.""")
+        st.markdown("You can re-activate here by choosing 'Re-activate an inactive.'")
     
     # Render confirm button
     # - is disabled if no options exist that isn't in requirements
     if col_2.button("Confirm", disabled=no_options, width="stretch"):
-        if selection == named_option_ref["edit_source"]:
+        if selection == "edit_source":
             source_selection = st.session_state["selected_removal"]
-            # Removing source: remove in both options and progress databases
-            # In progress_data: 
+            # Removing source: set active as False
+            # Timeline is dependent on source data refered to by registered objects
+            # even if they are removed
             st.session_state["changed_progress"][source_selection]["active"] = False
             st.session_state["progress_changed"] = True
             st.session_state["options_are_edited"] = False
         else:
-            st.session_state["progress_changed"] = False
             # Removing labels: remove from selected label's list 
-            st.session_state["changed_options"][TERMS["main"]][selection].remove(
+            # Data views are not dependent on labels in option, 
+            # only on the labels attached to objects
+            st.session_state["changed_options"][TERMS["main"]][TERMS[selection]].remove(
                 st.session_state["selected_removal"])
+            st.session_state["progress_changed"] = False
         st.session_state["edit_options_complete"] = True
     
 
-def _edit_label(col_2, selection, not_valid):
-    TERMS = st.session_state["TERMS"]
+def _edit_label(col_2, TERMS: dict, selection: str) -> bool:
+    """
+    Change object labels available
+
+    Args:
+        col_2 (DeltaGenerator):
+            Streamlit column instance
+        selection (str):
+            selected editing option
+
+    Updates for: 
+    - Options: labels
+    """
     st.session_state["progress_changed"] = False
-    st.text_input(
-        "Enter name for new option. Mind spelling.", key="new_option")
     
-    if st.session_state["new_option"]:
+    add_blank = st.checkbox("Add a blank")
+    new_option = st.text_input(
+        "Enter name for new option. Mind spelling and case.", 
+        key="new_option", on_change=_changed, disabled=add_blank)
+    if add_blank: new_option = "_Blank_"
+    
+    not_valid = True
+    existing_options = st.session_state["changed_options"][TERMS["main"]][TERMS[selection]]
+    if new_option and existing_options and st.session_state["field_changed"]:
         not_valid, msg = _validity_check(
-            name=st.session_state["new_option"])
+            name=new_option, existing_options=existing_options)
         if msg: st.markdown(f":red[{msg}]")
 
     # Confirm input
     if col_2.button(
-            "Confirm", disabled=not_valid, width="stretch"): 
+            "Confirm", on_click=_change_confirmed, disabled=not_valid, width="stretch"): 
         # Adjust format and add to editing database
-        st.session_state["changed_options"][TERMS["main"]][selection].append(
-            st.session_state["new_option"].capitalize())
-        st.session_state["edited_options"].append(selection)
+        st.session_state["changed_options"][TERMS["main"]][TERMS[selection]].append(new_option)
         st.session_state["edit_options_complete"] = True
-    
-    return not_valid
 
 
-def _edit_source(col_b, col_2, selection, not_valid):
-    TERMS = st.session_state["TERMS"]
+def _edit_source(col_b, col_2, TERMS: dict) -> bool:
+    """
+    Adding a new source or re-activating an inactive
+
+    Args:
+        col_b (DeltaGenerator):
+            Streamlit column instance
+        col_2 (DeltaGenerator):
+            Streamlit column instance
+
+    Updates for: 
+    - Progress: adding new source; shifting active
+    - Options: adding new source
+    """
     st.session_state["progress_changed"] = True
     reactivate = False
     # Source name
     if not col_b.checkbox(f"Re-activate an inactive", value=False):
-        st.text_input(f"Enter name", key="new_option")
+        st.text_input(f"Enter name", key="new_option", on_change=_changed)
     else:
         reactivate = True
         options = [x for x in st.session_state["changed_progress"].keys() if x not in st.session_state["active_trackers"]]
         to_reactivate = st.selectbox(f"Select among inactive {TERMS["source"]}", options=options)
     col_left, col_right = st.columns(2)
+
     # Source attempt limit
-    progress_is_selected = col_left.checkbox(f"Track {TERMS["attempt"]}?", value=True, disabled=reactivate)
+    progress_is_selected = col_left.checkbox(
+        f"Track {TERMS["attempt"]}?", value=True, disabled=reactivate)
     if progress_is_selected:
         new_limit = col_left.number_input(
             f"Enter new max value.", min_value=1, value=100, disabled=reactivate)
@@ -302,24 +343,26 @@ def _edit_source(col_b, col_2, selection, not_valid):
         new_limit = None
 
     # Source states or not
-    state_is_selected = col_right.checkbox("Selectable outcomes?", value=True, disabled=reactivate)
+    state_is_selected = col_right.checkbox(
+        "Selectable outcomes?", value=True, disabled=reactivate)
     if state_is_selected:
         new_state = f"{TERMS["state_rand"]}" 
     else:
         new_state = None 
-        
-    if st.session_state["new_option"]:
+    
+    not_valid = True
+    if st.session_state["new_option"] and st.session_state["field_changed"]:
         not_valid, msg = _validity_check(
             name=st.session_state["new_option"], number=new_limit)
         if msg: st.markdown(f":red[{msg}]")
     elif reactivate and to_reactivate:
         not_valid = False
     
-    st.markdown("""***Note:** pages and rows for calculation can be 
+    st.markdown("""***Note:** sets for calculation can be 
                 defined in 'Calculate' feature.*""")
     
     # Confirm input
-    if col_2.button("Confirm", disabled=not_valid, width="stretch"):
+    if col_2.button("Confirm", on_click=_change_confirmed, disabled=not_valid, width="stretch"):
         # Ajust format and add to editing database
         new_option = st.session_state["new_option"]
         st.session_state["changed_options"]["source_limit"][new_option] = new_limit
@@ -334,29 +377,35 @@ def _edit_source(col_b, col_2, selection, not_valid):
                 "State": new_state,
                 "active": True,
                 "sets": {
-                    "pages": 200,
-                    "rows": 5
-                }
-            }
+                    "sections": 200,
+                    "positions": 5}}
         else:
             st.session_state["changed_progress"][new_option] = {
                 f"{TERMS["attempt"]}": None,
                 "State": None,
                 "active": True,
-                "sets": None
-            }
+                "sets": None}
 
-        st.session_state["edited_options"].append(selection)
         st.session_state["edit_options_complete"] = True
-    
-    return not_valid
 
 
-def _edit_limit(col_2, selection):
+def _edit_value_settings(col_2, TERMS: dict):
+    """
+    Changing source limits, highlights enabling and triggers
+
+    Args:
+        col_2 (DeltaGenerator):
+            Streamlit column instance
+
+    Updates for: 
+    - Options: source limits; user indicators
+    """
     st.session_state["progress_changed"] = False
+    st.space(4)
+
+    # View settings - independent of source
     change_general = st.checkbox("Change general settings")
     if change_general:
-        
         st.divider()
         col1, col2 = st.columns(2)
         previous_highlight = st.session_state["changed_options"]["user_indicators"]["use_highlights"]
@@ -383,20 +432,21 @@ def _edit_limit(col_2, selection):
         new_high = col2.number_input(
             new_high_text, min_value=0, max_value=100, 
             value=previous_high, disabled=disabled_highlights)
+        
+    # Source limit settings
     else:
         all_options = st.session_state["changed_options"]["source_limit"]
-        limit_options = list()
+        limit_options = [x for x in st.session_state["changed_progress"].keys() if all([
+            x in st.session_state["active_trackers"], 
+            st.session_state["changed_progress"][x][TERMS["attempt"]] is not None])]
         st.space()
         col1, col2 = st.columns(2)
-        for x in limit_options:
-            if st.session_state["changed_options"]["states"][x]:
-                limit_options.append(x)
         source_selection = col1.selectbox(
             "Select source to change", options=limit_options)
         if source_selection:
             current_value = all_options[source_selection]
             new_limit = col2.number_input(
-                f"Enter new max value. Current value: {current_value}", min_value=0, value=current_value)
+                "Enter new max value.", min_value=0, value=current_value)
         else:
             new_limit = col2.number_input(
                 f"Enter new max value.", min_value=0, disabled=True)
@@ -411,12 +461,27 @@ def _edit_limit(col_2, selection):
         else:
             category = source_selection
             st.session_state["changed_options"]["source_limit"][category] = new_limit
-        st.session_state["edited_options"].append(selection)
         st.session_state["edit_options_complete"] = True
 
 
-def _validity_check(name: str = False, number: int = False) -> tuple:
+def _changed():
+    st.session_state["field_changed"] = True
+
+def _change_confirmed():
+    st.session_state["field_changed"] = False
+
+
+def _validity_check(name: str | bool = False, number: int | bool = False, 
+                    existing_options: list | None = None) -> tuple:
     """Checks if input meets requirement in format
+
+    Args:
+        name (str):
+            text input
+        number (int):
+            number input
+        existing_options (list):
+            options not available for new names
     
     Returns:
         Tuple (bool, str | None):
@@ -424,40 +489,46 @@ def _validity_check(name: str = False, number: int = False) -> tuple:
             (str | None): message for user tip
     """
     # Message values for all potential errors
-    msg, msg_len, msg_sym, msg_ini, msg_val = [str()]*5
+    msg, msg_len, msg_sym, msg_ini, msg_val, msg_ext = [str()]*6
     
     # Text requirements checks:
     # - length
     # - extra whitespaces
     # - invalid symbols
-    if name:
-        valid_symbols = ("-", " ")
+    exist_check = False
+    symbol_check = False
+    length_check = False
+    num_check = True
+    if name and existing_options:
+        num_check = True
         max_length = 40
         min_length = 0
-        msg_len = "Too long. "
         length_check = len(name) > min_length and len(name) < max_length
+        if name in existing_options:
+            msg_ext = "Already exists. "
+        else:
+            exist_check = True
 
         if length_check:
             symbol_check = True
             if not name.isalnum():
                 for symbol in name:
-                    if not symbol.isalnum() and symbol not in valid_symbols:
-                        symbol_check = False
+                    if not symbol.isalnum() and symbol not in st.session_state["valid_symbols"]:
                         msg_sym = "Invalid characters. "
             if "  " in name:
-                symbol_check = False
+                
                 msg_sym = "Double whitespace. "
-            if name[0] in ("-", " "):
-                symbol_check = False
+            if name[0] in (" ", ):
                 msg_ini = "Invalid first character. "
         else:
-            symbol_check = None        
-    else:
-        symbol_check = True
-        length_check = True
+            symbol_check = None
+            msg_len = "Too long. "
+
     # Number requirement checks: min and max values
     if number:
-        num_check = True
+        exist_check = True
+        symbol_check = True
+        length_check = True
         max_value = None
         min_value = 0
         if min_value:
@@ -468,23 +539,25 @@ def _validity_check(name: str = False, number: int = False) -> tuple:
             if number > max_value:
                 num_check = False
                 msg_val = "Too high. "
-    else:
-        num_check = True
 
     # Construct message of all errors, if any
-    msg += f"{msg_len}{msg_sym}{msg_ini}{msg_val}"
-    if all([length_check, symbol_check, num_check]):
+    msg += f"{msg_ext}{msg_len}{msg_sym}{msg_ini}{msg_val}"
+    if all([exist_check, length_check, symbol_check, num_check]):
         return False, None
     else:
         return True, msg
 
 
-def _save_changes(col_4):
-    from app.initialize import arciv
+def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict):
+    """
+    If all required fields are complete, enable save button.  
+    Save button refers file for backup and sends info for writing file.
 
-    DATAPATH = st.session_state["DATAPATH"]
-    SETTINGS = st.session_state["SETTINGS"]
-    TERMS = st.session_state["TERMS"]
+    Args:
+        col_4 (DeltaGenerator):
+            Streamlit column instance
+    """
+    from app.initialize import arciv
 
     not_complete = any([not st.session_state["edit_options_complete"], 
                         st.session_state["progress_changed"] is None])
@@ -496,7 +569,7 @@ def _save_changes(col_4):
                 st.session_state["changed_progress"], 
                 DATAPATH["progress"], TERMS["progress"])
             if arciv.backup(
-                    [101, 47, 19, 7, 3], TERMS["progress"], 
+                    [101, 47, 19, 7, 3], TERMS["progress"], join_path="data",
                     set_file=DATAPATH["progress"], empty_allowed=True):
                 arciv.writer(
                     st.session_state["changed_progress"], object_type=TERMS["progress"], 
@@ -508,8 +581,8 @@ def _save_changes(col_4):
                 st.session_state["changed_options"], 
                 SETTINGS["Options"], "options")
             if arciv.backup(
-                    [7, 5, 3, 1], "options", 
-                    set_file=SETTINGS["Options"], empty_allowed=True): 
+                    [7, 5, 3, 1], "options", join_path="settings", 
+                    set_file=SETTINGS["Options"], empty_allowed=False): 
                 arciv.writer(
                     st.session_state["changed_options"], 
                     set_file=SETTINGS["Options"], join_path="settings")

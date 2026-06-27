@@ -36,13 +36,12 @@ INIT_STATE = {
     "theme_edited": 0,
     "theme_missing": False,
     # Calculate progress
-    "curr_page": 1, 
-    "curr_row": 0, 
-    "prev_page": 1, 
-    "prev_row": 2,
+    "start_section": 1, 
+    "start_position": 1,
+    "stop_section": 1, 
+    "stop_position": 2, 
     "message": "",
     "calculation": None,
-    "rows": 5,
     "calc_mode": False,
     # Database
     "current_database": "state_import",
@@ -68,7 +67,6 @@ INIT_STATE = {
     # Object info manager - edit options
     "changed_options": None,
     "changed_progress": None,
-    "edited_options": list(),
     "edit_options_complete": True,
     "new_option": None,
     "new_state": None,
@@ -76,6 +74,7 @@ INIT_STATE = {
     "progress_changed": None,
     "options_are_edited": True,
     "reset_edits": False,
+    "field_changed": False,
     # Style
     "active_theme": "state_import",
     "active_theme_temp": "state_import",
@@ -86,7 +85,11 @@ INIT_STATE = {
     "active_trackers": "state_import",
     # Data viewer tables
     "main_data_select_view": "main_history",
-    "secondary_data_select_view": "secondary_history"
+    "secondary_data_select_view": "secondary_history",
+    # General
+    "valid_symbols": (
+        "-", " ", "_", "–", "—", "'", '"', "&", ".", "*", "!", "?", "%", "§", 
+        "(", ")", "[", "]", "{", "}", "/", "+", "<", ">", "@", "#", "=")
 }
 
 
@@ -183,6 +186,8 @@ def initialize():
         for key in themes[st.session_state["active_theme"]].keys():
             if key not in st.session_state:
                 st.session_state[key] = themes[st.session_state["active_theme"]][key]
+                st.session_state[f"{key}_temp"] = themes[st.session_state["active_theme"]][key]
+
     
     # Correct view settings dependent on last project active
     # Settings in .strealit/config.toml (currently only themes) requires this check

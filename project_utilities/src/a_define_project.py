@@ -194,9 +194,9 @@ def _name_objects(button_format_key: str, is_changed_key: str) -> dict:
         validated[x] = value
         if word_is_invalid: 
             if x in ["main", "secondary"]:
-                col_2.error(f"{ref[x].capitalize()}: {word_is_invalid}")
+                col_2.error(f"{ref[x]}: {word_is_invalid}")
             else:
-                col_3.error(f"{ref[x].capitalize()}: {word_is_invalid}")
+                col_3.error(f"{ref[x]}: {word_is_invalid}")
 
     # Checklist for enabling save
     st.session_state["checklists"]["objects_save"] = [

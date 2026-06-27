@@ -11,10 +11,8 @@ this allows for interactive UI responses.
 Larger sets of data and options are kept in cache.
 
 To avoid hickups in states and interface not updating:
-
 - Bool for previous changes in data is checked in main
 - If true, forces a clean slate before re-building the app.
-
 """
 
 import logging
@@ -31,14 +29,17 @@ if "SETTINGS" not in st.session_state:
         os.path.basename(__file__))[0]
     initialize_constants(project)
     st.session_state["project"] = project
+    import app.logger
     logger = logging.getLogger(__name__)
-    logger.info(f"\n\n::::: {"PITYSAKE":^35} :::::")
+    logger.info(f"\n\n{":::::"*9} {"PITYSAKE":^10} {":::::"*9}\n")
     now = datetime.datetime.now()
     logger.info(f"New session: {now}")
 else:
+    import app.logger
     logger = logging.getLogger(__name__)
     logger.info("")
     now = datetime.datetime.now()
+    logger.info(f"\n{"....."*9}{"RERUN":^10}{"....."*9}")
     logger.info(f"Rerun: {now}")
 # Modules dependent on project files
 import app.initialize as init
@@ -49,6 +50,7 @@ import app.constructor as construct
 # Previous essential database/option changes resets system
 if "processed_edits" in st.session_state:
     if st.session_state["processed_edits"]: 
+        logger.info("Edits declared")
         init.refresh()
 
 # Initialize keys and chache databases
@@ -69,7 +71,3 @@ elif st.session_state["vertical_view"]:
     construct.vertical_view(registration_keys, prog_meter_keys, highlight_html, table_style)
 
 # st.json(st.session_state)
-
-
-
-
