@@ -113,13 +113,14 @@ def register_object(component_key: str, sub_keys: list,
             # Date selector: 
             # - render proper date selector (calender or selectbox)
             # - controlled by reg action type
-            checkbox_disabled = st.session_state["regset"] != "add_new"
-            st.checkbox(
+            regset = st.session_state["regset"]
+            checkbox_disabled = regset != "add_new"
+            include_event = st.checkbox(
                 "Add event", key="include_event", disabled=checkbox_disabled)
             _date_input(data_options)
             event_disabled = any([
-                not st.session_state["include_event"], 
-                st.session_state["regset"] not in ["add_new", "add_event"]])
+                not include_event, 
+                regset not in ["add_new", "add_event"]])
             # Event details: source, state, attempts
             _event_details(preset_options, event_disabled)
 
@@ -231,12 +232,13 @@ def _naming_object(secretary: Secretary, reg_selection: str):
             label_visibility="collapsed")
     # For old object --> select name
     else:
-        object_options = st.session_state.get("current_database", dict()).keys()
+        current_database = st.session_state.get("current_database", dict())
+        object_options = current_database.keys()
         
-        if not st.session_state["current_database"]:
+        if not current_database:
             disable_selection = True
             message = f"Select {object_viewname}"
-        elif len(st.session_state["current_database"]) == 0:
+        elif len(current_database) == 0:
             disable_selection = True
             message = "No objects in library"
         else:
@@ -364,8 +366,9 @@ def _save_data(secretary: Secretary, preset_keys: list,
             event_length = len(current_database[reg_name][event_ref])
             old_data = current_database[reg_name]
 
+    regset = st.session_state["regset"]
     data_is_valid, save_button_msg, is_secondary = secretary.data_validation(
-        preset_keys, st.session_state["regset"], 
+        preset_keys, regset, 
         object_in_library, event_length)
     task_states = secretary.checklist(data_is_valid)
     # 2. Compile object data on press of all data present, else disable button
@@ -374,12 +377,12 @@ def _save_data(secretary: Secretary, preset_keys: list,
     object_type = st.session_state["reg_object_type"]
     # 3. Saving process. For editing data, ask for renaming in dialog box
     if new_data and object_type: 
-        if st.session_state["regset"] == "edit_entry":
+        if regset == "edit_entry":
             secretary.rename(
                 name, object_type, new_data, reg_setting, highlight_html)
         else:
             # Update (with confirmation required for deletion)
-            if st.session_state["regset"] in ["del_entry", "del_event"]:
+            if regset in ["del_entry", "del_event"]:
                 secretary.confirm_deletion(
                     name, object_type, new_data, reg_setting, reg_selection, 
                     removal_date=st.session_state["translated_values"]["reg_date"])
@@ -428,17 +431,17 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
     """
     # When finished, build dictionary entry for object
     if all(task_states):
-        name = st.session_state["translated_values"]["reg_name"]
+        translated_values = st.session_state["translated_values"]
+        name = translated_values["reg_name"]
         new_data = dict()
         new_data[name] = dict()
-        if st.session_state["regset"] not in ["add_event", "del_event"]: 
-            new_data[name][utility_ref] = st.session_state[
-                "translated_values"]["reg_utility"]
+
+        regset = st.session_state["regset"]
+        if regset not in ["add_event", "del_event"]: 
+            new_data[name][utility_ref] = translated_values["reg_utility"]
             if not is_secondary:
-                new_data[name][origin_ref] = st.session_state[
-                    "translated_values"]["reg_origin"]
-                new_data[name][attribute_ref] = st.session_state[
-                    "translated_values"]["reg_attribute"]
+                new_data[name][origin_ref] = translated_values["reg_origin"]
+                new_data[name][attribute_ref] = translated_values["reg_attribute"]
         else:
             new_data[name][utility_ref] = old_data[utility_ref]
             if not is_secondary:
@@ -447,9 +450,9 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
             
         if st.session_state["include_event"]:
             new_event = {
-                source_ref: st.session_state["translated_values"]["reg_source"],
-                attempt_ref: st.session_state["translated_values"]["reg_attempt"],
-                state_ref: st.session_state["translated_values"]["reg_state"]
+                source_ref: translated_values["reg_source"],
+                attempt_ref: translated_values["reg_attempt"],
+                state_ref: translated_values["reg_state"]
             }
         st.html(highlight_html.replace("KEY_REF", "save"))
 
@@ -460,16 +463,16 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
         
         # If save is pressed, event info is adjusted
         if data_is_collected:
-            event_date = st.session_state["translated_values"]["reg_date"]
-            if st.session_state["regset"] == "edit_entry":
+            event_date = translated_values["reg_date"]
+            if regset == "edit_entry":
                 new_data[name][event_ref] = old_data[event_ref]
-            elif st.session_state["regset"] in ["add_new", "add_event", "del_event"]:
-                if st.session_state["regset"] == "add_new":
+            elif regset in ["add_new", "add_event", "del_event"]:
+                if regset == "add_new":
                     event_data = dict()
                 else:
                     event_data = old_data[event_ref]
 
-                if st.session_state["regset"] != "del_event": 
+                if regset != "del_event": 
                     if st.session_state["include_event"]:
                         now = datetime.datetime.now()
                         hhmmss = now.strftime("%H%M%S")
@@ -505,9 +508,11 @@ def _date_input(data_options: dict):
         options_dates (list):
             previous events for object
     """
-    if st.session_state["regset"] == "del_event" and st.session_state["reg_name"]: 
+    regset = st.session_state["regset"]
+    reg_name = st.session_state["reg_name"]
+    if regset == "del_event" and reg_name: 
         options_dates = st.session_state["current_database"][
-            st.session_state["reg_name"]][event_ref].keys()
+            reg_name][event_ref].keys()
     else:
         options_dates = None
     # Preset earliest date defined in options file, and latest as today
@@ -521,8 +526,8 @@ def _date_input(data_options: dict):
     date_max = datetime.date.today()
     disable_dates = False
     # Option "Delete event" sets the list options as previous event dates
-    if st.session_state["regset"] == "del_event" and options_dates:
-        disable_dates = False if st.session_state["reg_name"] else True
+    if regset == "del_event" and options_dates:
+        disable_dates = False if reg_name else True
         st.selectbox(
             f"Select date", options_dates, key="reg_date", 
             help=f"Displays {event_ref} [Date]-[Time].",
@@ -533,7 +538,7 @@ def _date_input(data_options: dict):
             st.session_state["reg_date"].strftime("%y%m%d")
         except:
             st.session_state["reg_date"] = datetime.date.today()
-        not_ready = not st.session_state["reg_name"]
+        not_ready = not reg_name
         st.date_input(
             "First received", min_value=date_min, max_value=date_max, 
             key="reg_date", disabled=not_ready, label_visibility="collapsed")    
@@ -567,6 +572,7 @@ def _event_details(preset_options, event_disabled):
     st.number_input(
         num_title, min_value=0, max_value=st.session_state["selection_limit"], 
         key="reg_attempt", disabled=limit_disabled)
+    
 
 # _event_details -> 
 def _update_source_progress(data_type: str):
@@ -585,10 +591,11 @@ def _update_source_progress(data_type: str):
     """
     reg_source = st.session_state["reg_source"]
     data_type = st.session_state["reg_object_type"]
+    reg_source_limit = hold.load_options()["source_limit"]
     if reg_source and data_type: 
-        if hold.load_options()["source_limit"][reg_source]:
+        if reg_source_limit:
             st.session_state["limit_disabled"] = False
-            st.session_state["selection_limit"] = hold.load_options()["source_limit"][reg_source]
+            st.session_state["selection_limit"] = reg_source_limit
             st.session_state["reg_attempt"] = hold.load_progress_data()[reg_source][TERMS["attempt"]]
         else:
             st.session_state["limit_disabled"] = True

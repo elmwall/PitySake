@@ -71,7 +71,7 @@ INIT_STATE = {
     "new_option": None,
     "new_state": None,
     "new_limit": None,
-    "progress_changed": None,
+    "progress_is_changed": None,
     "options_are_edited": True,
     "reset_edits": False,
     "field_changed": False,
@@ -116,29 +116,32 @@ def initialize():
     main_database = hold.load_main_database()
     # Store theme collection
     if "themes" not in st.session_state:
-        st.session_state["themes"] = hold.load_themes()
-    themes = st.session_state["themes"]
+        themes = st.session_state["themes"] = hold.load_themes()
+    else:
+        themes = st.session_state["themes"]
 
     # Special case: define values from external sources 
     # For source and progress values, import value for first source in list
     attempt = 0
-    if len(options) > 0:
-        source_options = list(options["source_limit"].keys())
+    active_trackers = list()
+    if options:
+        source_limit = options["source_limit"]
+        source_options = list(source_limit.keys())
         states = options["results"][0]
-        source = list(options["source_limit"].keys())[0]
-        limit_disabled = options["source_limit"][source_options[0]] is False
+        source = source_options[0]
+        limit_disabled = source_limit[source_options[0]] is False
         state_disabled = options["states"][source_options[0]] is False
-        limit = options["source_limit"][source_options[0]]
-        if len(progress_data) > 0:
+        limit = source_limit[source_options[0]]
+        if progress_data:
             attempt = progress_data[source_options[0]][TERMS["attempt"]]
-            active_trackers = list()
             for x in progress_data.keys():
                 if progress_data[x]["active"]: active_trackers.append(x)
     else:
         states, limit = [False]*2
         limit_disabled, state_disabled = [True]*2
         source = None
-    if len(themes) > 0:
+
+    if themes:
         active = themes["active"]
     else:
         active = None
@@ -182,26 +185,26 @@ def initialize():
                 logger.exception(f"\ninitialize could not initialize key: {key}")
     
     # Initialize theme setting keys
-    if st.session_state["active_theme"]:
-        for key in themes[st.session_state["active_theme"]].keys():
+    active_theme = st.session_state["active_theme"]
+    if active_theme:
+        for key in themes[active_theme].keys():
             if key not in st.session_state:
-                st.session_state[key] = themes[st.session_state["active_theme"]][key]
-                st.session_state[f"{key}_temp"] = themes[st.session_state["active_theme"]][key]
+                st.session_state[key] = themes[active_theme][key]
+                st.session_state[f"{key}_temp"] = themes[active_theme][key]
 
     
     # Correct view settings dependent on last project active
     # Settings in .strealit/config.toml (currently only themes) requires this check
     meta = st.session_state["meta"]
-    active_theme = st.session_state["active_theme"]
     logger.info(f"""
 Last session project: {meta["project"]}
 Current session project: {st.session_state["project"]}
 Last session theme: {meta["theme"]}
-Current session theme: {st.session_state["active_theme"]}""")
+Current session theme: {active_theme}""")
     # Themes are stored as Theme 1, Theme 2 etc, which themselves may differ
     # between projects, therefore check both project and set theme.
     project_nomatch = meta["project"] != st.session_state["project"]
-    theme_nomatch = meta["theme"] != st.session_state["active_theme"]
+    theme_nomatch = meta["theme"] != active_theme
     if project_nomatch or theme_nomatch:
         if len(themes) > 0: 
             _settings_correction(themes[active_theme], meta)

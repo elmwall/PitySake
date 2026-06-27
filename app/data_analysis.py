@@ -71,8 +71,8 @@ def small_stats(component_key: str, sub_keys: list,
                         col_left, col_right = st.columns(2)
                         # Last recorded main event value, delta compared to median
                         options = hold.load_options()
-                        if options["user_indicators"]["use_highlights"]:
-                            if len(options) > 0:
+                        if options:
+                            if options["user_indicators"]["use_highlights"]:
                                 reverse = options["user_indicators"]["reverse_positive"]
                             else:
                                 reverse = False

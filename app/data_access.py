@@ -131,9 +131,11 @@ def _process_collection_db(database: dict, datatype: str):
     # Data for pandas/st.dataframe
     rows_for_history = list()
     rows_for_overview = list()
-    attempt_title = TERMS["attempt"]
+    attempt_ref = TERMS["attempt"]
     if TERMS["unit"]: 
-        attempt_title = f"{TERMS["unit"]} {attempt_title}" 
+        attempt_title = f"{TERMS["unit"]} {attempt_ref}" 
+    else:
+        attempt_title = attempt_ref
 
     if not len(data_options) > 0:
         return {
@@ -155,7 +157,17 @@ def _process_collection_db(database: dict, datatype: str):
         category_list = [utility_ref, attribute_ref, origin_ref]
         for category in category_list:
             counts[category] = dict()
+
     state_value, date, object_collection, name, attempt_value, source, state, index = [None]*8
+    state_ref = TERMS["state"]
+    state_win_ref = TERMS["state_win"]
+    state_loss_ref = TERMS["state_loss"]
+    source_ref = TERMS["source"]
+    event_ref = TERMS["event"]
+    high_highlight = data_options["user_indicators"]["high_highlight"]
+    low_highlight = data_options["user_indicators"]["low_highlight"]
+    source_limit = data_options["source_limit"]
+    start_count_value = data_options["value_limits"]["collection_start_count"]
     for name, info in database.items():
         # Only count labels for main type object
         if datatype == "main": 
@@ -167,7 +179,7 @@ def _process_collection_db(database: dict, datatype: str):
         
         attempt_per_object = list()  
         # Collect event data
-        for event_id, event_data in info[TERMS["event"]].items(): 
+        for event_id, event_data in info[event_ref].items(): 
             # Collect date and index
             date, index = event_id.split("-")
             # For main type object, dataview should show collection count 
@@ -176,15 +188,15 @@ def _process_collection_db(database: dict, datatype: str):
                 if name in object_count:
                     object_count[name] += 1
                 else:
-                    object_count[name] = data_options["value_limits"]["collection_start_count"]
+                    object_count[name] = start_count_value
                 object_collection = f"{object_count[name]}"
             else:
                 object_collection = ""
 
             # Collect attempt
-            attempt_value = event_data[TERMS["attempt"]]
+            attempt_value = event_data[attempt_ref]
             attempt_per_object.append(attempt_value)
-            state = event_data[TERMS["state"]]
+            state = event_data[state_ref]
             if attempt_value:
                 # Collect all attempt results in a list
                 attempt_value_list.append(attempt_value)
@@ -193,10 +205,10 @@ def _process_collection_db(database: dict, datatype: str):
                     last_event = [int(date), attempt_value]
 
             # Collect state
-            if state == TERMS["state_win"]:
+            if state == state_win_ref:
                 success_fail_tot = [success_fail_tot[0] + 1, success_fail_tot[1], success_fail_tot[2] + 1]
                 state_value = True
-            elif state == TERMS["state_loss"]: 
+            elif state == state_loss_ref: 
                 success_fail_tot = [success_fail_tot[0], success_fail_tot[1] + 1, success_fail_tot[2] + 1]
                 state_value = False
             else:
@@ -209,14 +221,14 @@ def _process_collection_db(database: dict, datatype: str):
             graph_data["state"].append(state_value)
             graph_data["type"].append(datatype)
             # Adapt attempt and highlight values depending on data present
-            source = event_data[TERMS["source"]]
+            source = event_data[source_ref]
             if attempt_value is not None:
                 graph_data["attempt"].append(attempt_value)
                 graph_data["attempt_made"].append(True)
 
-                high_threshold = data_options["user_indicators"]["high_highlight"] / 100
-                low_threshold = data_options["user_indicators"]["low_highlight"] / 100
-                limit = data_options["source_limit"][source]
+                high_threshold = high_highlight / 100
+                low_threshold = low_highlight / 100
+                limit = source_limit[source]
                 relative = attempt_value / limit
                 if relative > high_threshold:
                     graph_data["highlight"].append(True)
@@ -241,11 +253,11 @@ def _process_collection_db(database: dict, datatype: str):
                     "#": object_collection, 
                     "Name": name,
                     attempt_title: attempt_value, 
-                    TERMS["source"]: source,
+                    source_ref: source,
                     utility_ref: utility, 
                     attribute_ref: attribute, 
                     origin_ref: origin, 
-                    TERMS["state"]: state, 
+                    state_ref: state, 
                     "Index": index})
             else:
                 utility = _translate_label(info, utility_ref)
@@ -255,9 +267,9 @@ def _process_collection_db(database: dict, datatype: str):
                     " ": object_collection, 
                     "Name": name,
                     attempt_title: attempt_value, 
-                    TERMS["source"]: source,
+                    source_ref: source,
                     utility_ref: utility, 
-                    TERMS["state"]: state, 
+                    state_ref: state, 
                     "Index": index})
                 
         # Adapt data
@@ -267,7 +279,7 @@ def _process_collection_db(database: dict, datatype: str):
             if None in attempt_per_object:
                 attempt_per_object.remove(None)
             mean_attempt = "%.1f" % statistics.mean(attempt_per_object)
-        total = len(info[TERMS["event"]]) - 1 + data_options["value_limits"]["collection_start_count"]
+        total = len(info[event_ref]) - 1 + start_count_value
         if total < 0: total = None
         # Create list of row sets for pandas for tables - overview
         if datatype == "main": 
@@ -305,11 +317,11 @@ def _process_collection_db(database: dict, datatype: str):
                     "#": None, 
                     "Name": None,
                     attempt_title: None, 
-                    TERMS["source"]: None,
+                    source_ref: None,
                     utility_ref: None, 
                     attribute_ref: None, 
                     origin_ref: None, 
-                    TERMS["state"]: None, 
+                    state_ref: None, 
                     "Index": None}]
         else:
             rows_for_history = [{
@@ -317,9 +329,9 @@ def _process_collection_db(database: dict, datatype: str):
                     " ": None, 
                     "Name": None,
                     attempt_title: None, 
-                    TERMS["source"]: None,
+                    source_ref: None,
                     utility_ref: None, 
-                    TERMS["state"]: None, 
+                    state_ref: None, 
                     "Index": None}]
     if len(rows_for_overview) == 0:
         if datatype == "main": 

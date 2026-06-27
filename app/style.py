@@ -95,14 +95,27 @@ def style(feature_keys, keylist_prog_calc):
     - defines HTML to be set within features
     """
     logger.info("Running style.style")
+    
 
     if st.session_state["theme_missing"]:
         st.session_state["header_switch"] = True
-        return list(range(0, 5)), list(range(5, 10)), "None", ["None", "None"]
-    
-    themes = st.session_state["themes"]
-    active_theme = themes["active"]
-    active_theme_settings = themes[active_theme]
+        main_container, main_gradient, background, sub_container, small_widget, highlight_text = [""]*6
+        table_style = None
+    else:
+        themes = st.session_state["themes"]
+        active_theme = themes["active"]
+        active_theme_settings = themes[active_theme]
+
+        main_container = active_theme_settings["main_container"]
+        main_gradient = active_theme_settings["main_gradient"]
+        background = active_theme_settings["background"]
+        sub_container = active_theme_settings["sub_container"]
+        small_widget = active_theme_settings["small_widget"]
+        highlight_text = active_theme_settings["highlight_text"]
+
+        # Data viewer feature tables "ch_data", "secondary_data", 
+        table_style = [active_theme_settings["background"], 
+                    active_theme_settings["main_container"]]
 
     # Top feature frame
     html_main_container = """
@@ -112,8 +125,8 @@ def style(feature_keys, keylist_prog_calc):
                 box-shadow: inset 0px 0px 40px 20px BGR_COLOR_REF;
             } 
         </style>""".replace(
-            "BGR_COLOR_REF", active_theme_settings["main_container"]).replace(
-                "GRD_COLOR_REF", active_theme_settings["main_gradient"])
+            "BGR_COLOR_REF", main_container).replace(
+                "GRD_COLOR_REF", main_gradient)
     html_header = """
         <style> 
             .st-key-REF {
@@ -124,7 +137,7 @@ def style(feature_keys, keylist_prog_calc):
                 border-top-left-radius: 10px; 
                 border-top-right-radius: 30px;
             } 
-        </style>""".replace("COLOR_REF", active_theme_settings["background"])
+        </style>""".replace("COLOR_REF", background)
     
     for x in feature_keys:
         style_main_container = html_main_container.replace("REF", f"{x}_main")
@@ -139,7 +152,7 @@ def style(feature_keys, keylist_prog_calc):
             .st-key-REF {
                 background-color: COLOR_REF;
             } 
-        </style>""".replace("COLOR_REF", active_theme_settings["sub_container"])
+        </style>""".replace("COLOR_REF", sub_container)
 
     # Object registration feature
     registration_keys = list()
@@ -156,23 +169,19 @@ def style(feature_keys, keylist_prog_calc):
                 padding: 1.6px 0px 1.6px 3.2px; 
                 border-radius: 50px;
             } 
-        </style>""".replace("COLOR_REF", active_theme_settings["small_widget"])
+        </style>""".replace("COLOR_REF", small_widget)
     
     # Progress meter feature
     prog_meter_keys = list()
-    options = hold.load_options()
-    if len(options) > 0:
-        source_options = list(options["source_limit"].keys())
-        for x in range(len(source_options) + 5):
+    progress_trackers = list(hold.load_progress_data().keys())
+    if progress_trackers:
+        for x in range(len(progress_trackers) + 5):
             # Generate a key per source for progress tracker sub-component 
             key = f"sub2_{str(x)}"
             x = prog_meter_keys.append(key)
             style_subcontainer = html_widget.replace("REF", key)
             st.html(style_subcontainer)
 
-    # Data viewer feature tables "ch_data", "secondary_data", 
-    table_style = [active_theme_settings["background"], 
-                   active_theme_settings["main_container"]]
 
     # Highlights and inicators
     highlight_html = """
@@ -185,7 +194,7 @@ def style(feature_keys, keylist_prog_calc):
                 font-size: 16.8px; 
                 font-weight: 700;
             } 
-        </style>""".replace("COLOR_REF", active_theme_settings["highlight_text"])
+        </style>""".replace("COLOR_REF", highlight_text)
 
     # Feature details
     detail_pill_style = """
