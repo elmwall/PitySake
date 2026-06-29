@@ -32,8 +32,6 @@ def initialize_constants(project_name: str) -> tuple:
             name of main file and folder for the specific project
         
     Returns:
-        meta (dict):
-            information about the last active session to update configuration and theme
         DATAPATH (dict):
             names of data files
         DIRECTORIES (dict):
@@ -91,10 +89,7 @@ def initialize_constants(project_name: str) -> tuple:
                 message=msg, stage="Project configuration", 
                 file="settings\\config.json")
 
-    # Collect project-specific settings to check in initialize
-    meta = arch.reader(set_file="meta.json")
-
-    return meta, DATAPATH, DIRECTORIES, SETTINGS, TERMS
+    return DATAPATH, DIRECTORIES, SETTINGS, TERMS
 
 
 @st.dialog("Edit options")
