@@ -25,7 +25,6 @@ from src.e_finalize import finalize
 from utils import init
 from utils import tools
 from utils import registration as reg
-from config import SET_WIDTH
 
 
 def welcome(set_width: int):
@@ -253,21 +252,21 @@ init.initialize()
 if st.session_state["initialized"]:
     with col_page_center.container(horizontal_alignment="center"):
         if st.session_state["error"]["state"]:
-            error(SET_WIDTH)
+            error(init.SET_WIDTH)
         elif st.session_state["registration_complete"]:
-            done(SET_WIDTH)
+            done(init.SET_WIDTH)
         elif st.session_state["page"] == 0:
-            welcome(SET_WIDTH)
+            welcome(init.SET_WIDTH)
         elif st.session_state["page"] == 1:
-            define_objects(SET_WIDTH)
+            define_objects(init.SET_WIDTH)
         elif st.session_state["page"] == 2:
-            define_labels(SET_WIDTH)
+            define_labels(init.SET_WIDTH)
         elif st.session_state["page"] == 3:
-            define_event_terms(SET_WIDTH)
+            define_event_terms(init.SET_WIDTH)
         elif st.session_state["page"] == 4:
-            define_event_limits(SET_WIDTH)
+            define_event_limits(init.SET_WIDTH)
         elif st.session_state["page"] == 5:
-            finalize(SET_WIDTH)
+            finalize(init.SET_WIDTH)
     tools.dev_tools(True)
 
 

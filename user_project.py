@@ -24,24 +24,18 @@ import streamlit as st
 # Project initiation
 from app.project_configuration import initialize_constants
 # File name of project main is key to project folder --> configuration and data
-if "SETTINGS" not in st.session_state:
-    project = os.path.splitext(
-        os.path.basename(__file__))[0]
-    initialize_constants(project)
-    st.session_state["project"] = project
-    import app.logger
-    logger = logging.getLogger(__name__)
-    logger.info(f"\n\n{":::::"*9} {"PITYSAKE":^10} {":::::"*9}\n")
+project = os.path.splitext(os.path.basename(__file__))[0]
+project_info = initialize_constants(project)
+st.session_state["meta"] = project_info[0]
+st.session_state["project"] = project
+import app.logger
+logger = logging.getLogger(__name__)
+if "initated" not in st.session_state:
+    logger.info(f"\n\n{":"*90}\n{"PITYSAKE":^90}\n{":"*90}\n")
     now = datetime.datetime.now()
     logger.info(f"New session: {now}")
 else:
-    import app.logger
-    logger = logging.getLogger(__name__)
-    logger.info("")
-    now = datetime.datetime.now()
-    logger.info(f"\n{"....."*9}{"RERUN":^10}{"....."*9}")
-    logger.info(f"Rerun: {now}")
-# Modules dependent on project files
+    logger.info(f"\n{"."*90}\n{"RERUN":^90}\n{"."*90}")
 import app.initialize as init
 import app.style as page
 import app.constructor as construct
@@ -70,4 +64,6 @@ elif not st.session_state["vertical_view"]:
 elif st.session_state["vertical_view"]:
     construct.vertical_view(registration_keys, prog_meter_keys, highlight_html, table_style)
 
+logger.info(f"System complete.")
+st.session_state["initated"] = True
 # st.json(st.session_state)

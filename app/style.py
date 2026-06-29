@@ -15,13 +15,10 @@ import time
 
 import streamlit as st
 
+from app.initialize import SETTINGS
 import app.data_access as hold
 
 
-DATAPATH = st.session_state["DATAPATH"]
-DIRECTORIES = st.session_state["DIRECTORIES"]
-SETTINGS = st.session_state["SETTINGS"]
-TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
 
 
@@ -95,27 +92,21 @@ def style(feature_keys, keylist_prog_calc):
     - defines HTML to be set within features
     """
     logger.info("Running style.style")
-    
 
-    if st.session_state["theme_missing"]:
-        st.session_state["header_switch"] = True
-        main_container, main_gradient, background, sub_container, small_widget, highlight_text = [""]*6
-        table_style = None
-    else:
-        themes = st.session_state["themes"]
-        active_theme = themes["active"]
-        active_theme_settings = themes[active_theme]
+    themes = st.session_state["themes"]
+    active_theme = themes["active"]
+    active_theme_settings = themes[active_theme]
 
-        main_container = active_theme_settings["main_container"]
-        main_gradient = active_theme_settings["main_gradient"]
-        background = active_theme_settings["background"]
-        sub_container = active_theme_settings["sub_container"]
-        small_widget = active_theme_settings["small_widget"]
-        highlight_text = active_theme_settings["highlight_text"]
+    # Data viewer feature tables "ch_data", "secondary_data", 
+    table_style = [active_theme_settings["background"], 
+                active_theme_settings["main_container"]]
 
-        # Data viewer feature tables "ch_data", "secondary_data", 
-        table_style = [active_theme_settings["background"], 
-                    active_theme_settings["main_container"]]
+    main_container = active_theme_settings["main_container"]
+    main_gradient = active_theme_settings["main_gradient"]
+    background = active_theme_settings["background"]
+    sub_container = active_theme_settings["sub_container"]
+    small_widget = active_theme_settings["small_widget"]
+    highlight_text = active_theme_settings["highlight_text"]
 
     # Top feature frame
     html_main_container = """

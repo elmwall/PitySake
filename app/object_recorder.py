@@ -14,19 +14,16 @@ import logging
 
 import streamlit as st
 
+from app.initialize import TERMS
 from .object_info_manager import Secretary
 import app.data_access as hold
 import app.project_configuration as config
 
 
 logger = logging.getLogger(__name__)
-DATAPATH = st.session_state["DATAPATH"]
-DIRECTORIES = st.session_state["DIRECTORIES"]
-TERMS = st.session_state["TERMS"]
 
 attempt_ref = TERMS["attempt"]
 attribute_ref = TERMS["attribute"]
-event_ref = TERMS["event"]
 main_ref = TERMS["main"]
 origin_ref = TERMS["origin"]
 secondary_ref = TERMS["secondary"]
@@ -60,9 +57,9 @@ def register_object(component_key: str, sub_keys: list,
     logger.info("Running")
     
     _feature_style(component_key)
-    attempts = copy.deepcopy(hold.load_progress_data())
+    progress_data = copy.deepcopy(hold.load_progress_data())
     data_options = hold.load_options()
-    secretary = Secretary(data_options, attempts, component_key, sub_keys)
+    secretary = Secretary(data_options, progress_data, component_key, sub_keys)
     # Define all initial settings, options and limits
     preset_options, reg_options, preset_keys = secretary.settings()
     # Main object (standard) has all labels, secondary has one
@@ -122,7 +119,7 @@ def register_object(component_key: str, sub_keys: list,
                 not include_event, 
                 regset not in ["add_new", "add_event"]])
             # Event details: source, state, attempts
-            _event_details(preset_options, event_disabled)
+            _event_details(preset_options, event_disabled, data_options, progress_data)
 
             # Project configuration - change options
             with st.container(height="stretch", vertical_alignment="bottom"):
@@ -216,10 +213,8 @@ def _naming_object(secretary: Secretary, reg_selection: str):
             user selection for action, controlling input method
     """
     # For new object --> enter name
-    try:
-        object_viewname = st.session_state["reg_object_type"]
-    except:
-        object_viewname = "Object"
+
+    object_viewname = st.session_state.get("reg_object_type", "object")
     if reg_selection == "add_new":
         st.text_input(
             "Name", key="reg_name", 
@@ -305,7 +300,6 @@ def _select_labels(sub_keys: list, preset_options: dict,
     with st.container(
             border=True, key=sub_keys[2], width="stretch", 
             height=pill_group_height, vertical_alignment="center"):
-
         col_label, col_options = _style_selector()
         col_label.markdown(attribute_ref)
         col_options.pills(
@@ -356,14 +350,14 @@ def _save_data(secretary: Secretary, preset_keys: list,
             action to be performed
     """
     # 1. Check data 
-    object_in_library, event_length, old_event_data = [None]*3
+    object_in_library, event_length = [None]*2
     event_length, old_data = [None]*2
     current_database = st.session_state["current_database"]
     if st.session_state["reg_name"] is not None: 
         reg_name = st.session_state["reg_name"]
         object_in_library = reg_name in current_database
         if reg_name in current_database:
-            event_length = len(current_database[reg_name][event_ref])
+            event_length = len(current_database[reg_name]["event"])
             old_data = current_database[reg_name]
 
     regset = st.session_state["regset"]
@@ -465,12 +459,12 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
         if data_is_collected:
             event_date = translated_values["reg_date"]
             if regset == "edit_entry":
-                new_data[name][event_ref] = old_data[event_ref]
+                new_data[name]["event"] = old_data["event"]
             elif regset in ["add_new", "add_event", "del_event"]:
                 if regset == "add_new":
                     event_data = dict()
                 else:
-                    event_data = old_data[event_ref]
+                    event_data = old_data["event"]
 
                 if regset != "del_event": 
                     if st.session_state["include_event"]:
@@ -482,7 +476,7 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
 
                 if len(event_data) > 0: 
                     event_data = dict(sorted(event_data.items()))
-                new_data[name][event_ref] = event_data
+                new_data[name]["event"] = event_data
             
             return name, new_data
         else:
@@ -512,7 +506,7 @@ def _date_input(data_options: dict):
     reg_name = st.session_state["reg_name"]
     if regset == "del_event" and reg_name: 
         options_dates = st.session_state["current_database"][
-            reg_name][event_ref].keys()
+            reg_name]["event"].keys()
     else:
         options_dates = None
     # Preset earliest date defined in options file, and latest as today
@@ -528,12 +522,14 @@ def _date_input(data_options: dict):
     # Option "Delete event" sets the list options as previous event dates
     if regset == "del_event" and options_dates:
         disable_dates = False if reg_name else True
+        st.session_state["date_helptext"] = """To delete an event, select from the above dropdown list.  
+            Events are with reference as Date-Time: YYMMDD-HHMMSS"""
         st.selectbox(
             f"Select date", options_dates, key="reg_date", 
-            help=f"Displays {event_ref} [Date]-[Time].",
             disabled=disable_dates, label_visibility="collapsed")
     # Standard setting, write date or select by calender
     else:
+        st.session_state["date_helptext"] = ""
         try:
             st.session_state["reg_date"].strftime("%y%m%d")
         except:
@@ -544,15 +540,27 @@ def _date_input(data_options: dict):
             key="reg_date", disabled=not_ready, label_visibility="collapsed")    
 
 
-def _event_details(preset_options, event_disabled):
+def _event_details(preset_options: dict, event_disabled: bool, 
+                   data_options: dict, progress_data: dict):
+    """
+    Render input fields to specify event details: source, outcome, and value.
+
+    Args:
+        preset_options (dict):
+            initial values of input fields
+        event_disabled (bool):
+            for registration of object-only, all fields are disabled
+        data_options (dict):
+            project options
+        options_dates (list):
+            previous events for object
+    """
     # Source selector 
-    source_help_text = f"""For anything not from a {event_ref} 
-        and without {attempt_ref}, select 'Reward'"""
     st.selectbox(
         f"{source_ref}", options=preset_options["options_source"], 
-        index=0, key="reg_source", help=source_help_text,
+        index=0, key="reg_source", help=st.session_state["date_helptext"], 
         on_change=_update_source_progress, 
-        args=(st.session_state["reg_object_type"],), 
+        args=(st.session_state["reg_object_type"], data_options, progress_data), 
         disabled=event_disabled, label_visibility="visible")
     
     # State selector
@@ -575,7 +583,7 @@ def _event_details(preset_options, event_disabled):
     
 
 # _event_details -> 
-def _update_source_progress(data_type: str):
+def _update_source_progress(data_type: str, data_options, progress_data):
     """
     Adjust progress/attempt field
 
@@ -584,24 +592,26 @@ def _update_source_progress(data_type: str):
     - All others: collect progress value for source from progress data
 
     Args:
-        attempts (dict):
+        progress_data (dict):
             data from progress database
         data_type (str):
             identifier for object data type
     """
     reg_source = st.session_state["reg_source"]
-    data_type = st.session_state["reg_object_type"]
-    reg_source_limit = hold.load_options()["source_limit"]
     if reg_source and data_type: 
-        if reg_source_limit:
+        data_type = st.session_state.get("reg_object_type", None)
+        source_limit = data_options.get("source_limit", None)
+        states = data_options.get("states", {})
+        if source_limit[reg_source]:
             st.session_state["limit_disabled"] = False
-            st.session_state["selection_limit"] = reg_source_limit
-            st.session_state["reg_attempt"] = hold.load_progress_data()[reg_source][TERMS["attempt"]]
+            st.session_state["selection_limit"] = source_limit[reg_source]
+            attempt = progress_data.get(reg_source, {}).get(TERMS["attempt"], None)
+            st.session_state["reg_attempt"] = attempt if attempt else 0
         else:
             st.session_state["limit_disabled"] = True
             st.session_state["selection_limit"] = 0
             st.session_state["reg_attempt"] = 0
-        st.session_state["state_disabled"] = hold.load_options()["states"][reg_source] is False
+        st.session_state["state_disabled"] = states.get(reg_source, True) is False
     else:
         st.session_state["selection_limit"] = 0
         st.session_state["limit_disabled"] = True

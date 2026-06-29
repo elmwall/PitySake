@@ -20,13 +20,30 @@ import app.error_handler as error
 logger = logging.getLogger(__name__)
 
 
-def initialize_constants(project_name: str):
+@st.cache_data
+def initialize_constants(project_name: str) -> tuple:
     """
     Collect and initialize project settings
     - collects settings dictionaries via file_manager Archivist
     - initializes configuration values in session state
-    """
 
+    Args:
+        project_name (str):
+            name of main file and folder for the specific project
+        
+    Returns:
+        meta (dict):
+            information about the last active session to update configuration and theme
+        DATAPATH (dict):
+            names of data files
+        DIRECTORIES (dict):
+            names of folders
+        SETTINGS (dict):
+            names settings files
+        TERMS (dict):
+            project unique terms
+        
+    """
     logger.info("Collecting project")
 
     # Use case for Archivist for unique single path-file:
@@ -55,11 +72,29 @@ def initialize_constants(project_name: str):
     # Store config dictionaries in session state
     for dictionary, content in config.items():
         st.session_state[dictionary] = content
-    for key, path in st.session_state["DIRECTORIES"].items():
-        st.session_state["DIRECTORIES"][key] = os.path.join(project_name, path)
+
+    DATAPATH = config["DATAPATH"]
+    DIRECTORIES = config["DIRECTORIES"]
+    SETTINGS = config["SETTINGS"]
+    TERMS = config["TERMS"]
+
+    # DIRECTORIES = st.session_state.get("DIRECTORIES", None)
+    if DIRECTORIES:
+        for key, path in DIRECTORIES.items():
+            config["DIRECTORIES"][key] = os.path.join(project_name, path)
+            # st.session_state["DIRECTORIES"][key] = os.path.join(project_name, path)
+    else:
+        msg = "Collecting directories failed."
+        logger.error("File directories could not be retrieved from config.json.")
+        if not "error" in st.session_state:
+            error.message(
+                message=msg, stage="Project configuration", 
+                file="settings\\config.json")
 
     # Collect project-specific settings to check in initialize
-    st.session_state["meta"] = arch.reader(set_file="meta.json")
+    meta = arch.reader(set_file="meta.json")
+
+    return meta, DATAPATH, DIRECTORIES, SETTINGS, TERMS
 
 
 @st.dialog("Edit options")
@@ -85,9 +120,7 @@ def edit_options(options: dict):
     st.session_state["dialog_active"] = True
     logger.info("Edit options dialog opened")
 
-    DATAPATH = st.session_state["DATAPATH"]
-    SETTINGS = st.session_state["SETTINGS"]
-    TERMS = st.session_state["TERMS"]
+    from app.initialize import DATAPATH, DIRECTORIES, SETTINGS, TERMS
 
     col_main, col_p = st.columns([1, 0.01])
     col_1, col_2, col_3, col_4, col_5 = st.columns([2, 3, 3, 3, 2])
@@ -99,7 +132,7 @@ def edit_options(options: dict):
             if st.session_state["reset_edits"] and st.session_state["changed_options"]:
                 st.session_state["reset_edits"] = False
                 _reset_changes()
-            edit_named_option, selection = _initiate_option_edit(TERMS)
+            edit_named_option, selection, source_options = _initiate_option_edit(TERMS)
             if edit_named_option:
                 # Select to add new or remove option if available
                 col_a, col_b = st.columns(2)
@@ -117,11 +150,11 @@ def edit_options(options: dict):
                     # - Limit of progress/attempts
                     # - If fail/success states are relevant
                     elif selection == "edit_source":
-                        _edit_source(col_b, col_2, TERMS)
+                        _edit_source(col_b, col_2, TERMS, source_options)
 
             # Selected: change limit of existing source
             elif selection == "change_limits":
-                _edit_value_settings(col_2, TERMS)
+                _edit_value_settings(col_2, TERMS, source_options)
         
         # Reset button - restores changed_options and changed_progress databases
         no_changes = not st.session_state["edit_options_complete"]
@@ -158,19 +191,21 @@ def _initiate_option_edit(TERMS: dict) -> tuple:
         st.session_state["changed_progress"] = copy.deepcopy(load_progress_data())
     elif not st.session_state["changed_progress"]:
         st.session_state["changed_progress"] = copy.deepcopy(load_progress_data())
+    source_options = list(st.session_state["changed_progress"].keys())
 
     # Text-based options and project reference
     named_option_ref = {
-        "utility": TERMS["utility"],
-        "attribute": TERMS["attribute"],
-        "origin": TERMS["origin"],
-        "edit_source": TERMS["source"],
-        "change_limits": f"{TERMS["attempt"]} settings"
+        "utility": f"Label: {TERMS["utility"]}",
+        "attribute": f"Label: {TERMS["attribute"]}",
+        "origin": f"Label: {TERMS["origin"]}",
+        "edit_source": f"Source: {TERMS["source"]}",
+        "change_limits": f"{TERMS["source"]} and {TERMS["attempt"]} settings"
     }
 
     # User selection: what to edit
+    named_options = list(named_option_ref.keys())
     selection = st.selectbox(
-        "Select option to edit", options=list(named_option_ref.keys()), 
+        "Select option to edit", options=named_options, 
         format_func=lambda x:named_option_ref[x],
         key="options_to_edit", on_change=_reset_changes)
     st.space()
@@ -178,7 +213,6 @@ def _initiate_option_edit(TERMS: dict) -> tuple:
     # Initial states
     edit_named_option = False
     remove_options = list()
-    named_options = list(named_option_ref.keys())
     named_options.remove("change_limits")
     object_options = named_options.copy()
     object_options.remove("edit_source")
@@ -192,10 +226,10 @@ def _initiate_option_edit(TERMS: dict) -> tuple:
             remove_options = options[TERMS["main"]][TERMS[selection]]
         # Source edits
         elif selection == "edit_source":
-            remove_options = st.session_state["active_trackers"]
+            remove_options = st.session_state["active_trackers"].keys()
     st.session_state["remove_options"] = remove_options
 
-    return edit_named_option, selection
+    return edit_named_option, selection, source_options
 
 
 def _reset_changes():
@@ -308,7 +342,7 @@ def _edit_label(col_2, TERMS: dict, selection: str) -> bool:
         st.session_state["edit_options_complete"] = True
 
 
-def _edit_source(col_b, col_2, TERMS: dict) -> bool:
+def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
     """
     Adding a new source or re-activating an inactive
 
@@ -324,41 +358,47 @@ def _edit_source(col_b, col_2, TERMS: dict) -> bool:
     """
     st.session_state["progress_is_changed"] = True
     reactivate = False
+    col_left, col_right = st.columns(2)
     # Source name
     if not col_b.checkbox(f"Re-activate an inactive", value=False):
-        st.text_input(f"Enter name", key="new_option", on_change=_changed)
+        new_option = col_left.text_input(f"Enter name", key="new_option", on_change=_changed)
     else:
         reactivate = True
-        options = [x for x in st.session_state["changed_progress"].keys() if x not in st.session_state["active_trackers"]]
+        options = [x for x in source_options if x not in st.session_state["active_trackers"]]
         to_reactivate = st.selectbox(f"Select among inactive {TERMS["source"]}", options=options)
-    col_left, col_right = st.columns(2)
+        new_option = None
+    # col_left, col_right = st.columns(2)
 
     # Source attempt limit
-    progress_is_selected = col_left.checkbox(
+    col_L, col_R = st.columns(2)
+    col_right.space(30)
+
+    progress_is_selected = col_L.checkbox(
         f"Track {TERMS["attempt"]}?", value=True, disabled=reactivate)
     if progress_is_selected:
-        new_limit = col_left.number_input(
+        new_limit = col_L.number_input(
             f"Enter new max value.", min_value=1, value=100, disabled=reactivate)
     else:
-        col_left.number_input(
+        col_L.number_input(
             f"Enter new max value.", min_value=1, value=100, disabled=True)
         new_limit = None
 
-    # Source states or not
-    state_is_selected = col_right.checkbox(
+    not_valid = True
+    if new_option and st.session_state["field_changed"]:
+        not_valid, msg = _validity_check(
+            name=new_option, number=new_limit, existing_options=source_options)
+        if msg: col_right.markdown(f":red[{msg}]")
+    elif reactivate and to_reactivate:
+        not_valid = False
+    
+    # Source states or not 
+    col_left.space()
+    state_is_selected = col_R.checkbox(
         "Selectable outcomes?", value=True, disabled=reactivate)
     if state_is_selected:
         new_state = f"{TERMS["state_rand"]}" 
     else:
         new_state = None 
-    
-    not_valid = True
-    if st.session_state["new_option"] and st.session_state["field_changed"]:
-        not_valid, msg = _validity_check(
-            name=st.session_state["new_option"], number=new_limit)
-        if msg: st.markdown(f":red[{msg}]")
-    elif reactivate and to_reactivate:
-        not_valid = False
     
     st.markdown("""***Note:** sets for calculation can be 
                 defined in 'Calculate' feature.*""")
@@ -391,7 +431,7 @@ def _edit_source(col_b, col_2, TERMS: dict) -> bool:
         st.session_state["edit_options_complete"] = True
 
 
-def _edit_value_settings(col_2, TERMS: dict):
+def _edit_value_settings(col_2, TERMS: dict, source_options):
     """
     Changing source limits, highlights enabling and triggers
 
@@ -439,8 +479,8 @@ def _edit_value_settings(col_2, TERMS: dict):
     # Source limit settings
     else:
         all_options = st.session_state["changed_options"]["source_limit"]
-        limit_options = [x for x in st.session_state["changed_progress"].keys() if all([
-            x in st.session_state["active_trackers"], 
+        limit_options = [x for x in source_options if all([
+            x in st.session_state["active_trackers"].keys(), 
             st.session_state["changed_progress"][x][TERMS["attempt"]] is not None])]
         st.space()
         col1, col2 = st.columns(2)
@@ -493,8 +533,7 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
     """
     # Message values for all potential errors
     msg, msg_len, msg_sym, msg_ini, msg_val, msg_ext = [str()]*6
-    
-    # Text requirements checks:
+    # Text requirements checks: 
     # - length
     # - extra whitespaces
     # - invalid symbols
@@ -530,7 +569,7 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
 
     # Number requirement checks: min and max values
     if number:
-        exist_check = True
+        if not name: exist_check = True
         symbol_check = True
         length_check = True
         max_value = None
@@ -543,7 +582,6 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
             if number > max_value:
                 num_check = False
                 msg_val = "Too high. "
-
     # Construct message of all errors, if any
     msg += f"{msg_ext}{msg_len}{msg_sym}{msg_ini}{msg_val}"
     if all([exist_check, length_check, symbol_check, num_check]):

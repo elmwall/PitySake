@@ -9,7 +9,7 @@ Manages
 
 import streamlit as st
 
-from config import PAGES
+from utils.init import PAGES
 
 
 def navigate(col_prev = None, col_next = None):
