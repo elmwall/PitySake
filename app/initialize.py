@@ -20,16 +20,16 @@ from app.project_configuration import initialize_constants
 logger = logging.getLogger(__name__)
 logger.info("Loading initialize")
 project_info = initialize_constants(st.session_state["project"])
-meta = project_info[0]
-DATAPATH = project_info[1]
-DIRECTORIES = project_info[2]
-SETTINGS = project_info[3]
-TERMS = project_info[4]
+DATAPATH = project_info[0]
+DIRECTORIES = project_info[1]
+SETTINGS = project_info[2]
+TERMS = project_info[3]
 arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 import app.data_access as hold
 import app.error_handler as error
 
 
+meta = st.session_state["meta"] = arciv.reader("meta.json")
 # Keys requiring initial values or simply existing
 INIT_STATE = {
     # Main
@@ -338,6 +338,11 @@ def set_orientation():
     meta = st.session_state["meta"]
     meta["vertical_view"] = st.session_state["vertical_view"]
     arciv.writer(meta, set_file="meta.json")
+
+
+# def correct_orientation():
+#     initialize_constants.clear()
+#     st.rerun()
 
 
 def _load_placeholder_theme(active_theme):

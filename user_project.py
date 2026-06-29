@@ -26,7 +26,6 @@ from app.project_configuration import initialize_constants
 # File name of project main is key to project folder --> configuration and data
 project = os.path.splitext(os.path.basename(__file__))[0]
 project_info = initialize_constants(project)
-st.session_state["meta"] = project_info[0]
 st.session_state["project"] = project
 import app.logger
 logger = logging.getLogger(__name__)
