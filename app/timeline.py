@@ -12,10 +12,14 @@ import logging
 import streamlit as st
 import plotly.graph_objects as go
 
+from app.initialize import TERMS
 import app.data_access as hold
 
 
-TERMS = st.session_state["TERMS"]
+main_ref = TERMS["main"]
+secondary_ref = TERMS["secondary"]
+attempt_ref = TERMS["attempt"]
+unit_ref = TERMS["unit"]
 logger = logging.getLogger(__name__)
 
 
@@ -29,10 +33,10 @@ def timeline(component_key: str, set_height: int):
     if st.session_state["header_switch"]:
         with st.container(key=f"{component_key}_head", width="stretch", height="content"):
             help_text = f"""Timeline of events  
-                - {TERMS["main"]}s with (○) or without (Δ) {TERMS["attempt"]}   
-                - {TERMS["secondary"]}s with (□) or without (∇) {TERMS["attempt"]}    
+                - {main_ref}s with (○) or without (Δ) {attempt_ref}   
+                - {secondary_ref}s with (□) or without (∇) {attempt_ref}    
                 - Fill color highlights outcomes {TERMS["state_win"]} or {TERMS["state_loss"]}  
-                - Line color highlights rare {TERMS["attempt"]} values"""
+                - Line color highlights rare {attempt_ref} values"""
             st.markdown(f"##### *Timeline*", help=help_text, text_alignment="left")
     fheight = 300
     if set_height:
@@ -50,45 +54,29 @@ def timeline(component_key: str, set_height: int):
             data[x] = main_data[x] + secondary_data[x]
         
         # Settings: adapted theme; values for date, name, progress, and state
-        if not st.session_state["theme_missing"]:
-            theme = {
-                "positive": st.session_state["positive_color"],
-                "neutral": st.session_state["neutral_color"],
-                "negative": st.session_state["negative_color"],
-                "text": st.session_state["text_color"],
-                "background": st.session_state["background"],
-                "subarea": st.session_state["sub_container"],
-                "lines": st.session_state["input_field"],
-                "highlights": st.session_state["highlights"]
-            }
-        else:
-            theme = {
-                "positive": "#ffffff",
-                "neutral": "#ffffff",
-                "negative": "#ffffff",
-                "text": "#ffffff",
-                "background": "#ffffff",
-                "subarea": "#ffffff",
-                "lines": "#ffffff",
-                "highlights": "#ffffff"
-            }
+        positive_color = st.session_state["positive_color"]
+        neutral_color = st.session_state["neutral_color"]
+        negative_color = st.session_state["negative_color"]
+        text_color = st.session_state["text_color"]
+        background = st.session_state["background"]
+        lines = st.session_state["input_field"]
+        highlight = data["highlight"]
 
         options = hold.load_options()
         dates = data["date"]
         names = data["name"]
         value = data["attempt"]
-        highlight = data["highlight"]
 
         fig = go.Figure()
         # Set highlights for high/low depending on project settings
-        if len(options) > 0:
+        if options:
             use_highlights = options["user_indicators"]["use_highlights"]
             if options["user_indicators"]["reverse_positive"]:
-                high_color = theme["negative"]
-                low_color = theme["positive"]
+                high_color = negative_color
+                low_color = positive_color
             else:
-                high_color = theme["positive"]
-                low_color = theme["negative"]
+                high_color = positive_color
+                low_color = negative_color
         else:
             use_highlights = True
             high_color, low_color = None, None
@@ -101,16 +89,16 @@ def timeline(component_key: str, set_height: int):
                     elif highlight[i] is False:
                         hightlight_col = low_color
                     elif highlight[i] is None:
-                        hightlight_col = theme["neutral"]
+                        hightlight_col = neutral_color
                 else:
-                    hightlight_col = theme["neutral"]
+                    hightlight_col = neutral_color
                 
                 if data["state"][i] is True:
-                    dot_col = theme["positive"]
+                    dot_col = positive_color
                 elif data["state"][i] is False:
-                    dot_col = theme["negative"]
+                    dot_col = negative_color
                 else:
-                    dot_col = theme["neutral"]
+                    dot_col = neutral_color
 
                 # Draw line
                 fig.add_trace(
@@ -143,23 +131,23 @@ def timeline(component_key: str, set_height: int):
                         hovertemplate=f"<b>{names[i]}: {display_value}</b><br>{dates[i]}<extra></extra>",
                         marker=dict(
                             color=dot_col, size=symbol_size, symbol=symbol_shape, angle=symbol_angle,
-                            line=dict(color=theme["background"], width=1.7)),
+                            line=dict(color=background, width=1.7)),
                         hoverlabel=dict(bgcolor="rgba(0, 0, 0, 0)"),
                         name=names[i], showlegend=False))
 
         # Axes
         fig.update_xaxes(
-            tickfont_color=theme["text"], gridcolor='white',
+            tickfont_color=text_color, gridcolor='white',
             tickformatstops = [
                 dict(dtickrange=[None, 86400000], value="%b %d, %Y")
             ])
         fig.update_yaxes(
-            zeroline=False, tickfont_color=theme["text"],
-            gridcolor=theme["lines"], range=[-5, None])
-        if TERMS["unit"]:
+            zeroline=False, tickfont_color=text_color,
+            gridcolor=lines, range=[-5, None])
+        if unit_ref:
             fig.update_yaxes(
-                title=f"{TERMS["unit"]} {TERMS["attempt"]}", 
-                title_font_color=theme["text"])
+                title=f"{unit_ref} {attempt_ref}", 
+                title_font_color=text_color)
 
         # Layout
         fig.update_layout(

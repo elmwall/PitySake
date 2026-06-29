@@ -16,11 +16,9 @@ import streamlit as st
 
 import app.data_access as hold
 import app.error_handler as error
-from app.initialize import arciv
+from app.initialize import arciv, DATAPATH, TERMS
 
 
-DATAPATH = st.session_state["DATAPATH"]
-TERMS = st.session_state["TERMS"]
 attempt_ref = TERMS["attempt"]
 logger = logging.getLogger(__name__)
 
@@ -38,8 +36,6 @@ def calculator(component_key: str, feature_width: int | str,
         component_key (str): 
             session state key for feature
     """
-    logger.info("Running")
-
     if feature_width is None: feature_width = "stretch"
     if feature_height is None: feature_height = "stretch"
     # Feature header 
@@ -56,44 +52,47 @@ def calculator(component_key: str, feature_width: int | str,
             border=True, key=f"{component_key}_main", 
             width=feature_width, height=feature_height):
         progress_data = hold.load_progress_data()
+        value_trackers = list(st.session_state["value_trackers"].keys())
         for x in ["section_range", "position_range"]:
-            if x not in st.session_state: _update_sections(progress_data)
+            if x not in st.session_state: _update_sections(progress_data, value_trackers)
         with st.container(horizontal_alignment="center"):
-            # Select sections setts for calculation
-            # Each progress tracking source has defined sets
             col_select, col_define = st.columns([3, 2.5])
-
+            
+            # Mode 
             if st.session_state["calc_mode"]:
-                set_options = [" ", ]
                 mode_text = "Mode: values"
             else:
-                prog_categories = progress_data.keys()
-                set_options = [x for x in prog_categories if progress_data[x][attempt_ref]]
                 mode_text = "Mode: sets"
             help = """☐ calculate distance across sets  
                 🗹 calculate: % + ×"""
             percent_mode = col_select.checkbox(mode_text, key="calc_mode", help=help)
+            # Calculator value start value setting
             col_define.checkbox(
                 "Start from 1", value=False, key="start_at_1", disabled=percent_mode,
                 help="""When enabled, begins count from 1 instead of 0  
                 for the first position after the start event.""")
+            
+            # Select sections sets for calculation
+            # Each progress tracking source has defined sets
+            # Dropdown selection
             selected_set = col_select.selectbox(
-                f"Select {TERMS["source"]}", options=set_options, key="selected_set", 
-                on_change=_update_sections, args=(progress_data,), 
+                f"Select {TERMS["source"]}", options=value_trackers, key="selected_set", 
+                on_change=_update_sections, args=(progress_data, value_trackers), 
                 disabled=percent_mode, label_visibility="collapsed")
-            # Empty field placeholder
+            # Edit sets button
             set_help = """Create custom sets by defining the  
                 number of sections, and number of positions per section."""
             if col_define.button(
                 "Define sets", help=set_help, disabled=percent_mode, type="secondary", width="stretch"):
-                _define_sets(progress_data)
+                _define_sets(progress_data, value_trackers)
             st.space(1)
+
             col_left, col_right, col_label = st.columns([5, 5, 7])
             if not percent_mode:
                 no_limit = True
                 if selected_set:
                     options = hold.load_options()
-                    if len(options) > 0:
+                    if options:
                         limit = options["source_limit"][selected_set]
                     else:
                         limit = 0
@@ -104,10 +103,8 @@ def calculator(component_key: str, feature_width: int | str,
                 msg, appearance = "Lacking sets", "secondary"
                 usertip_start, usertip_stop = "", ""
                 _value_selector(col_left, col_right, col_label, no_limit)
-                # Field for submit and result
                 if not no_limit:
                     is_start_valid, is_stop_valid, msg, usertip_start, usertip_stop = _validation(limit)
-
                     # View settings depending on data validity
                     if is_start_valid and is_stop_valid:
                         st.html(highlight_html.replace("KEY_REF", "calc_button"))
@@ -117,6 +114,7 @@ def calculator(component_key: str, feature_width: int | str,
                         st.session_state["calculation"] = None
                 else:
                     is_invalid = True
+                # Field for submit and result
                 # Submit button
                 if col_label.button(
                         f"{msg}", key="calc_button", type=appearance, 
@@ -135,33 +133,29 @@ def calculator(component_key: str, feature_width: int | str,
                 _value_input(col_left, col_right, col_label)
 
 
-def _update_sections(progress_data):
+def _update_sections(progress_data, value_trackers):
     """
     Update sections and positions, and define ranges depending on case.
     - Uniform section/positions sets are defined by a dict with corresponding keys.  
     - Sections with varying positions are defined by a list. 
         The length defines number of sections while value at indices sets number of positions.
     """
-    set_options = [x for x in progress_data.keys() if progress_data[x][attempt_ref]]
-    st.session_state["sets"] = None
-    if len(set_options) > 0:
-        if "selected_set" not in st.session_state:
-            selected_set = selected_set = set_options[0]
-        else:
-            selected_set = st.session_state["selected_set"]
-
-        if selected_set:
-            if selected_set in progress_data:
-                sets = st.session_state["sets"] = progress_data[selected_set]["sets"]
-                # Uniform sections/positions
-                if type(sets) is dict:
-                    st.session_state["section_range"] = range(sets["sections"] + 1)[1:]
-                    st.session_state["position_range"] = sets["positions"]
-                # Varying sections/positions
-                # The list of sections is corrected to show list starting from 1
-                # since lists starts with index 0
-                elif type(sets) is list:
-                    st.session_state["section_range"] = range(len(sets) + 1)[1:]
+    if value_trackers:
+        selected_set = st.session_state.get("selected_set", value_trackers[0])
+        if selected_set in progress_data:
+            # The list of sections is corrected to show list starting from 1
+            # since lists starts with index 0
+            sets = st.session_state["sets"] = progress_data[selected_set]["sets"]
+            # Uniform sections/positions
+            if type(sets) is dict:
+                st.session_state["section_range"] = list(range(sets["sections"] + 1))[1:]
+                # Generates a list that can used directly for options
+                st.session_state["position_range"] = list(range(sets["positions"] + 1))[1:]
+            # Varying sections/positions
+            elif type(sets) is list:
+                st.session_state["section_range"] = list(range(len(sets) + 1))[1:]
+                # Here the sets provide a list of positions for each section 
+                # -> needs to be collected and adjusted for start and stop respectively
 
 
 def _value_selector(col_left, col_right, col_label, disable: bool):
@@ -186,12 +180,12 @@ Bottom: position within section
 - Select a section and a position for both start and end events.  
 The calculation traverses all intermediate sections and returns the total value."""
     col_label.markdown(" ", help=calculator_help)
-    if st.session_state["sets"]:
-        # Input section (set) for start and stop event
-        section_range = st.session_state["section_range"]
-        position_range = st.session_state["position_range"]
-    else:
-        section_range, position_range = 0, 0
+    sets = st.session_state["sets"]
+    # Input section for start and stop event
+    section_range = st.session_state.get("section_range", [])
+    if not section_range: 
+        section_range = []
+        disable = True
 
     start_section = col_left.selectbox(
         "Start", options=section_range, index=0,
@@ -200,21 +194,29 @@ The calculation traverses all intermediate sections and returns the total value.
         "Stop", options=section_range, index=0, 
         key="stop_section", disabled=disable, label_visibility="collapsed")
             
-    # Input data position for start and event
-    if type(position_range) is int and start_section:
-        position_range += 1
-        stop_opt = range(position_range)[1:]
-        start_opt = range(position_range) if int(start_section) == 1 else range(position_range)[1:]
-    elif type(position_range) is list and start_section and stop_section:
-        stop_opt = range(position_range[stop_section - 1] + 1)[1:]
+    # Input position for start and stop event
+    # View options should show alternatives 1 and up 
+    # and not the list default starting from 0
+    position_range = st.session_state.get("position_range", [])
+    if type(sets) is dict and start_section:
+        if not position_range: 
+            position_range = []
+            disable = True
+        start_opt = position_range.copy()
+        # Except for 1st page, keep the 0th
+        if int(start_section) == 1: start_opt = [0,] + start_opt
+        stop_opt = position_range
+    elif type(sets) is list and start_section and stop_section:
+        # Sections in order from 0: correct index to start from 1
+        start_index = start_section -1
+        stop_index = stop_section - 1
+        # Add 1 and drop the 0th
+        stop_opt = list(range(sets[stop_index] + 1)[1:])
         if int(start_section) == 1:
-            start_opt = range(position_range[start_section - 1] + 1)
+            # For 1st page, keep the 0th
+            start_opt = list(range(sets[stop_index] + 1))
         else:
-            start_opt = range(position_range[start_section - 1] + 1)[1:]
-    else:
-        start_opt = stop_opt = list()
-        disable = True
-
+            start_opt = list(range(sets[start_index] + 1)[1:])
     with col_left:
         st.selectbox(
             "Start event position", options=start_opt, index=0,
@@ -246,56 +248,61 @@ def _validation(limit: int) -> tuple:
     usertip_start = None
     usertip_stop = None
     is_start_valid = False
-    if not st.session_state["theme_missing"]:
-        negative_color = st.session_state["negative_color"]
+    negative_color = st.session_state.get("negative_color", "#FF0000")
 
     sets = st.session_state["sets"]
     start_value = 1 if st.session_state["start_at_1"] else 0
 
-    start_section = st.session_state["start_section"]
-    stop_section = st.session_state["stop_section"]
-    start_position = st.session_state["start_position"]
-    stop_position = st.session_state["stop_position"]
+    start_section = st.session_state.get("start_section", 1)
+    stop_section = st.session_state.get("stop_section", 1)
+    start_position = st.session_state.get("start_position", 1)
+    stop_position = st.session_state.get("stop_position", 2)
+    if any([not start_section, not stop_section, not start_position, not stop_position]):
+        return False, False, msg, "", ""
 
     # Conditions for start data
-    if type(sets) is list:
-        position_range = st.session_state["position_range"][start_position]
-    elif type(sets) is dict:
-        position_range = st.session_state["position_range"]
-    else:
-        position_range = None
+    if type(sets) is dict:
+        start_pos_range = stop_pos_range = len(st.session_state["position_range"])
+    elif type(sets) is list:
+        start_index = start_section - 1
+        stop_index = stop_section - 1
+        start_pos_range = sets[start_index]
+        stop_pos_range = sets[stop_index]
 
-    if start_position == position_range: 
+    if start_position == start_pos_range: 
         stop_section_min = start_position + 1
     else: 
-        stop_section_min = start_position
+        stop_section_min = start_section
+
     # Comparing start data against stop data and conditions 
     # formats style highlights if needed
     if stop_section < stop_section_min: 
-        st.html(
-            "<style> .st-key-start_section * {color: COLOR_REF} </style>"
-            .replace("COLOR_REF", negative_color))
         msg = "Out of range"
         if start_section == stop_section:
+            st.html(
+                "<style> .st-key-stop_section * {color: COLOR_REF} </style>"
+                .replace("COLOR_REF", negative_color))
             st.html(
                 "<style> .st-key-start_position * {color: COLOR_REF} </style>"
                 .replace("COLOR_REF", negative_color))
             usertip_start = "Invalid selections. Start is at the last position, stop section must then be greater."
         else:
+            st.html(
+                "<style> .st-key-start_section * {color: COLOR_REF} </style>"
+                .replace("COLOR_REF", negative_color))
             usertip_start = "Invalid sections. Start section number cannot be higher than stop section."
     elif start_section == stop_section:
         if stop_position <= start_position:
             st.html(
                 "<style> .st-key-stop_position * {color: COLOR_REF} </style>"
                 .replace("COLOR_REF", negative_color))
-            msg, usertip_start = "Out of range", "Invalid positions. Within the same section, start position must be less than stop position."
+            msg, usertip_start = "Out of range", "Invalid positions. Within the same section, stop position must be higher than start position."
         else:
             is_start_valid = True
             usertip_start = None
     else:
         is_start_valid = True
         usertip_start = None
-
     max_section, max_position = None, None
     # Conditions for stop data
     if type(sets) is list:
@@ -324,7 +331,7 @@ def _validation(limit: int) -> tuple:
         #   positions - start_position: the value from the start section start position
         #   - 1: the counter starts from 0, i.e. the first position is 0, then each position gives +1
         max_position = limit - positions * int(int(limit / positions) - 1) - int(positions - start_position - 1) - start_value
-        if max_position > position_range:
+        if max_position > stop_pos_range:
             section_increase = 1
             max_position = 1
         else: 
@@ -416,7 +423,6 @@ def _submit(start_section: int, stop_section: int,
             + Σ[section total until max limit exceeded]
             + [last section up to max]`
     """
-
     if not is_invalid: 
         sets = st.session_state["sets"]
         init_value = 1 if st.session_state["start_at_1"] else 0
@@ -493,22 +499,29 @@ def _result_viewer(col_label, output: int | None,
     
 
 @st.dialog("Define sets of sections and sizes")
-def _define_sets(progress_data):
+def _define_sets(progress_data: dict, value_trackers: list):
     """
     User form for creating new sets of sections and positions for a specific source.
+
+    Args:
+        progress_data (dict):
+            database of sources and tracking
+        value_trackers (list):
+            active trackers with value
     """
     st.session_state["dialog_active"] = True
-    active_trackers = st.session_state["active_trackers"]
-    value = progress_data[x][attempt_ref]
-    set_options = [x for x in active_trackers if value is not None]
-    sets = progress_data[selection]["sets"]
+    active_trackers = st.session_state.get("active_trackers", {})
+    if not active_trackers: logger.warning("Cannot define sets without active trackers.")
 
     col1, col2 = st.columns(2)
-    if not len(progress_data) > 0:
+    if not progress_data:
+        logger.warning("No tracking data found.")
         st.info("No tracking data found.")
         return
+    
     with st.container(border=False, height=330):
-        selection = col1.selectbox(f"Select {TERMS["source"]} to edit", options=set_options)
+        selection = col1.selectbox(f"Select {TERMS["source"]} to edit", options=value_trackers)
+        sets = progress_data[selection]["sets"]
         col2.space(32)
         st.space()
         is_invalid = True
@@ -539,7 +552,6 @@ def _define_sets(progress_data):
             section_preset, position_preset = None, None
 
         if col2.checkbox("Same size for all sections", value=True):
-            
             col1, col2 = st.columns(2)
             sections = col1.number_input(
                 "Section", min_value=1, value=section_preset, disabled=disable)

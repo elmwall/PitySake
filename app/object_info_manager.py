@@ -12,16 +12,11 @@ import logging
 
 import streamlit as st
 
-# from .file_manager import Archivist
+from app.initialize import arciv, DATAPATH, TERMS
 import app.data_access as hold
 import app.error_handler as error
-from app.initialize import arciv
 
 
-DATAPATH = st.session_state["DATAPATH"]
-DIRECTORIES = st.session_state["DIRECTORIES"]
-SETTINGS = st.session_state["SETTINGS"]
-TERMS = st.session_state["TERMS"]
 DIAGNOSTICS = False
 logger = logging.getLogger(__name__)
 
@@ -70,14 +65,15 @@ class Secretary:
             options_object = list(st.session_state["current_database"].keys())
         except:
             options_object = list(hold.load_main_database().keys())
-        if len(self.options) > 0:
+            
+        if self.options:
             preset_options = {
                 "options_utility": self.options[self.main_ref][self.utility_ref],
                 "options_object": options_object,
                 "options_attribute": self.options[self.main_ref][self.attribute_ref],
                 "options_origin": self.options[self.main_ref][self.origin_ref],
                 "options_type": [self.main_ref, self.secondary_ref],
-                "options_source": st.session_state["active_trackers"],
+                "options_source": list(st.session_state["active_trackers"].keys()),
                 "options_states": self.options["results"]}
         else:
             preset_options = {
@@ -188,7 +184,8 @@ class Secretary:
         # Adjust validity check and "save"-button message for clarity
         # Collect state translated_values
         for x in preset_keys:
-            st.session_state["translated_values"][x] = st.session_state[x]
+            st.session_state["translated_values"][x] = st.session_state.get(x, None)
+
         if type(st.session_state["reg_date"]) is str:
             st.session_state["translated_values"]["reg_date"] = st.session_state["reg_date"]
         elif not st.session_state["translated_values"]["reg_date"]:
@@ -198,14 +195,15 @@ class Secretary:
             st.session_state["translated_values"]["reg_date"] = adjusted_date
 
         reg_source = st.session_state["reg_source"]
-        if len(self.options) > 0:
+        if self.options:
+            # If value or state disabled, set None
             if not self.options["states"][reg_source]: 
                 st.session_state["translated_values"]["reg_state"] = None
             if not self.options["source_limit"][reg_source]: 
                 st.session_state["translated_values"]["reg_attempt"] = None
         else:
-                st.session_state["translated_values"]["reg_state"] = None
-                st.session_state["translated_values"]["reg_attempt"] = None
+            st.session_state["translated_values"]["reg_state"] = None
+            st.session_state["translated_values"]["reg_attempt"] = None
 
         # "Already in library" 
         # - to avoid losing data, prevent adding same object more than once
@@ -255,20 +253,20 @@ class Secretary:
             data_checks[x] = False
         if data_is_valid:
             # Secondary object has attribute and origin labels disabled
-            disable_extras = translated_values["reg_object_type"] == self.secondary_ref
+            disable_extras = translated_values.get("reg_object_type", None) == self.secondary_ref
             
             # Completion checks
             # Name
-            if translated_values["reg_name"]: 
+            if translated_values.get("reg_name", None): 
                 data_checks["name_done"] = True
             
             # Labels: all for main, only utility for secondary
-            if translated_values["reg_utility"]: 
+            if translated_values.get("reg_utility", None): 
                 data_checks["utility_done"] = True
             if not disable_extras:
-                if translated_values["reg_attribute"]: 
+                if translated_values.get("reg_attribute", None): 
                     data_checks["attribute_done"] = True
-                if translated_values["reg_origin"]: 
+                if translated_values.get("reg_origin", None): 
                     data_checks["origin_done"] = True
             else:
                 data_checks["attribute_done"], data_checks["origin_done"] = True, True
@@ -278,17 +276,20 @@ class Secretary:
                     data_checks[x] = True
             
             # Source
-            if not translated_values["reg_source"]:
+            reg_source = translated_values.get("reg_source", None)
+            reg_state = translated_values.get("reg_state", None)
+            if not reg_source:
                 if not st.session_state["include_event"]: 
                     data_checks["source_done"] = True
             else:
                 data_checks["source_done"] = True
             data_checks["state_done"] = False
             data_checks["attempt_done"] = False
-            if len(self.options) > 0:
-                reg_source = translated_values["reg_source"]
+            # State and limit can be excluded if states or values, respectively, are disabled for source
+            # of if include event is not enabled by user
+            if self.options and reg_source:
                 # State
-                if not translated_values["reg_state"]:
+                if not reg_state:
                     if any([not self.options["states"][reg_source], 
                             not st.session_state["include_event"]]): 
                         data_checks["state_done"] = True
@@ -346,6 +347,7 @@ class Secretary:
         """
         active_theme = st.session_state["themes"]["active"]
         highlight_textstyle = st.session_state["themes"][active_theme]["highlight_text"]
+        text_color = st.session_state["themes"][active_theme]["highlight_text"]
 
         # User selection - edit name or not
         st.write(f"You are editing {name}")
@@ -357,15 +359,20 @@ class Secretary:
             "Rename", placeholder="Enter name", 
             disabled=keep_name, label_visibility="collapsed")
         
-        if not name_update and not keep_name:
-            not_updated, appearance, new_name = True, "secondary", None
-        elif keep_name:
+        # Checks and user indication depending on whether to keep name
+        # or if name should be replaced and new name is entered
+        not_updated = not any([name_update and not keep_name, keep_name])
+        if not_updated:
+            st.html(highlight_html.replace("KEY_REF", "rename")
+                    .replace("COLOR_REF", text_color))
+            appearance = "secondary" 
+        else: 
             st.html(highlight_html.replace("KEY_REF", "rename")
                     .replace("COLOR_REF", highlight_textstyle))
-            not_updated, appearance, new_name = False, "primary", name
-        else:
-            st.html(highlight_html.replace("COLOR_REF", highlight_textstyle))
-            not_updated, appearance, new_name = False, "primary", name_update
+            appearance = "primary"
+        new_name = name if keep_name else None
+
+        st.space()
         if st.button(
                 "Confirm", key="rename", type=appearance, disabled=not_updated):
             self.update_object(

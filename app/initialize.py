@@ -14,16 +14,21 @@ import logging
 import streamlit as st
 
 from app.file_manager import Archivist
+from app.project_configuration import initialize_constants
+# To avoid circular dependencies, arciv and constants must be defined before other processes.
+# file_manager and project_configuration: only import from initialize when needed.
+logger = logging.getLogger(__name__)
+logger.info("Loading initialize")
+project_info = initialize_constants(st.session_state["project"])
+meta = project_info[0]
+DATAPATH = project_info[1]
+DIRECTORIES = project_info[2]
+SETTINGS = project_info[3]
+TERMS = project_info[4]
+arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 import app.data_access as hold
 import app.error_handler as error
 
-
-logger = logging.getLogger(__name__)
-logger.info("Loading initialize")
-DIRECTORIES = st.session_state["DIRECTORIES"]
-DATAPATH = st.session_state["DATAPATH"]
-TERMS = st.session_state["TERMS"]
-arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
 # Keys requiring initial values or simply existing
 INIT_STATE = {
@@ -36,13 +41,16 @@ INIT_STATE = {
     "theme_edited": 0,
     "theme_missing": False,
     # Calculate progress
+    "sets": None,
     "start_section": 1, 
     "start_position": 1,
     "stop_section": 1, 
     "stop_position": 2, 
+    "start_at_1": False,
     "message": "",
     "calculation": None,
     "calc_mode": False,
+    "position_range": None,
     # Database
     "current_database": "state_import",
     # Object info manager - main
@@ -64,6 +72,7 @@ INIT_STATE = {
     "selection_limit": "state_import",
     "limit_disabled": "state_import",
     "state_disabled": "state_import",
+    "date_helptext": "",
     # Object info manager - edit options
     "changed_options": None,
     "changed_progress": None,
@@ -80,13 +89,15 @@ INIT_STATE = {
     "active_theme_temp": "state_import",
     "leave_theme_open": False,
     "theme_edited": 0,
+    "theme_missing": False,
     # Progress tracker
-    "initiated": False,
     "active_trackers": "state_import",
+    "value_trackers": "state_import",
     # Data viewer tables
     "main_data_select_view": "main_history",
     "secondary_data_select_view": "secondary_history",
     # General
+    "initiated": False,
     "valid_symbols": (
         "-", " ", "_", "–", "—", "'", '"', "&", ".", "*", "!", "?", "%", "§", 
         "(", ")", "[", "]", "{", "}", "/", "+", "<", ">", "@", "#", "=")
@@ -119,12 +130,17 @@ def initialize():
         themes = st.session_state["themes"] = hold.load_themes()
     else:
         themes = st.session_state["themes"]
+    active_theme = themes["active"]
 
     # Special case: define values from external sources 
     # For source and progress values, import value for first source in list
     attempt = 0
-    active_trackers = list()
-    if options:
+    active_trackers = dict()
+    value_trackers = dict()
+    states, limit = [False]*2
+    limit_disabled, state_disabled = [True]*2
+    source = None
+    if options and progress_data:
         source_limit = options["source_limit"]
         source_options = list(source_limit.keys())
         states = options["results"][0]
@@ -132,19 +148,15 @@ def initialize():
         limit_disabled = source_limit[source_options[0]] is False
         state_disabled = options["states"][source_options[0]] is False
         limit = source_limit[source_options[0]]
-        if progress_data:
-            attempt = progress_data[source_options[0]][TERMS["attempt"]]
-            for x in progress_data.keys():
-                if progress_data[x]["active"]: active_trackers.append(x)
-    else:
-        states, limit = [False]*2
-        limit_disabled, state_disabled = [True]*2
-        source = None
+        attempt = progress_data[source_options[0]][TERMS["attempt"]]
+        n = 0
+        for x in progress_data.keys():
+            if progress_data[x]["active"]: 
+                active_trackers[x] = n
+                if progress_data[x][TERMS["attempt"]] is not None:
+                    value_trackers[x] = n
+                n += 1
 
-    if themes:
-        active = themes["active"]
-    else:
-        active = None
     state_import = {
         # Database
         "current_database": copy.deepcopy(main_database),
@@ -159,10 +171,11 @@ def initialize():
         "reg_attempt": attempt,
         "selection_limit": limit,
         # Style
-        "active_theme": active,
-        "active_theme_temp": active,
+        "active_theme": active_theme,
+        "active_theme_temp": active_theme,
         # Progress tracker
-        "active_trackers": active_trackers}
+        "active_trackers": active_trackers,
+        "value_trackers": value_trackers}
     
     # Initiate all keys
     init_state = copy.deepcopy(INIT_STATE)
@@ -185,17 +198,16 @@ def initialize():
                 logger.exception(f"\ninitialize could not initialize key: {key}")
     
     # Initialize theme setting keys
-    active_theme = st.session_state["active_theme"]
-    if active_theme:
+    if active_theme != "placeholder":
         for key in themes[active_theme].keys():
             if key not in st.session_state:
                 st.session_state[key] = themes[active_theme][key]
                 st.session_state[f"{key}_temp"] = themes[active_theme][key]
-
+    else:
+        _load_placeholder_theme(active_theme)
     
     # Correct view settings dependent on last project active
     # Settings in .strealit/config.toml (currently only themes) requires this check
-    meta = st.session_state["meta"]
     logger.info(f"""
 Last session project: {meta["project"]}
 Current session project: {st.session_state["project"]}
@@ -206,10 +218,12 @@ Current session theme: {active_theme}""")
     project_nomatch = meta["project"] != st.session_state["project"]
     theme_nomatch = meta["theme"] != active_theme
     if project_nomatch or theme_nomatch:
-        if len(themes) > 0: 
+        if themes and active_theme and not st.session_state["theme_missing"]: 
             _settings_correction(themes[active_theme], meta)
         else: 
-            st.session_state["theme_missing"] = True
+            _settings_correction(themes[active_theme], meta, missing=True)
+    else:
+        _settings_correction(themes[active_theme], meta, missing=True)
     st.session_state["vertical_view"] = meta["vertical_view"]
         
     # Follow up backups from prior activity
@@ -225,20 +239,18 @@ def fetch_databases():
     """
     logger.info("Fetching")
     n = 0
-    database_list = ["load_options", "load_themes", 
-                    "load_main_database", "load_secondary_database", 
-                    "load_progress_data"]
+    database_list = ["load_options", "load_themes", "load_progress_data",
+                    "load_main_database", "load_secondary_database"]
     try:
         done = True
         problematic = set()
         # Call data_acces for all databases
         for database in [
-            hold.load_options(),
-            hold.load_themes(),
-            hold.load_main_database(),
-            hold.load_secondary_database(),
-            hold.load_progress_data()
-        ]:
+                hold.load_options(),
+                hold.load_themes(),
+                hold.load_main_database(),
+                hold.load_secondary_database(),
+                hold.load_progress_data()]:
             logger.info(f"Fetching database {n}: {database_list[n]}")
             if not database and type(database) is not dict:
                 done = False
@@ -287,7 +299,7 @@ def refresh():
     st.rerun()
 
 
-def _settings_correction(active_theme_settings, meta):
+def _settings_correction(active_theme_settings, meta, missing=False):
     "Adjusts config file settings to match project settings."
 
     config = f"""
@@ -314,8 +326,7 @@ font = 'sans serif'
             theme_updated = True
     except Exception as e:
         logger.exception(f"\nError: {e} \nOccurred while attempting to write to config.toml")
-    
-    if theme_updated:
+    if theme_updated and not missing:
         meta["project"] = st.session_state["project"]
         meta["theme"] = st.session_state["active_theme"]
         arciv.writer(meta, set_file="meta.json")
@@ -327,3 +338,30 @@ def set_orientation():
     meta = st.session_state["meta"]
     meta["vertical_view"] = st.session_state["vertical_view"]
     arciv.writer(meta, set_file="meta.json")
+
+
+def _load_placeholder_theme(active_theme):
+    "In case of missing theme file, these settings are used to create a functional theme."
+    for key in ["background", "highlight_text"]:
+        if key not in st.session_state:
+            st.session_state[key] = "#000000"
+            st.session_state["themes"][active_theme][key] = "#000000"
+            st.session_state[f"{key}_temp"] = "#000000"
+            st.session_state["themes"][active_theme][f"{key}_temp"] = "#000000"
+        if "highlights" not in st.session_state: 
+            _load_color("main_container", active_theme, "#333333")
+            _load_color("main_gradient", active_theme, "#1D1D1D")
+            _load_color("sub_container", active_theme, "#2B2B2B")
+            _load_color("small_widget", active_theme, "#313131")
+            _load_color("highlights", active_theme, "#ffa600")
+            _load_color("positive_color", active_theme, "#00ff00")
+            _load_color("negative_color", active_theme, "#ff0000")
+            _load_color("neutral_color", active_theme, "#adadad")
+            _load_color("input_field", active_theme, "#adadad")
+            _load_color("text_color", active_theme, "#ffffff")
+            _load_color("header_switch", active_theme, True)
+
+def _load_color(key, active_theme, color):
+    "Sync theme settings with session state."
+    st.session_state[key] = st.session_state[f"{key}_temp"] = color
+    st.session_state["themes"][active_theme][key] = color

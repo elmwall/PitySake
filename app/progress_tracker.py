@@ -6,19 +6,16 @@ Manages:
 - collect, view and edit current progress within source
 """
 
+import copy
 import logging
 
 import streamlit as st
 
+from app.initialize import arciv, DATAPATH, TERMS
 import app.data_access as hold
 import app.error_handler as error
-from app.initialize import arciv
 
 
-DATAPATH = st.session_state["DATAPATH"]
-DIRECTORIES = st.session_state["DIRECTORIES"]
-SETTINGS = st.session_state["SETTINGS"]
-TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
 attempt_ref = TERMS["attempt"]
 progress_ref = TERMS["progress"]
@@ -61,37 +58,27 @@ def progress_meter(component_key: list, sub_keys: list,
             border=True, key=f"{component_key}_main", 
             width=feature_size_left, height=340):
         themes = st.session_state["themes"]
-        theme_missing = st.session_state["theme_missing"]
-        if not theme_missing:
-            active_theme = themes["active"]
-            widget_color = themes[active_theme]["input_field"]
-        else:
-            widget_color = ""
+        active_theme = themes["active"]
+        active_theme_settings = themes[active_theme]
+        widget_color = active_theme_settings["input_field"]
 
         state_rand_symbol = TERMS["state_rand_symbol"]
         state_det_symbol = TERMS["state_det_symbol"]
-        if not theme_missing:
-            active_theme_settings = themes[active_theme]
-            highlight_color = active_theme_settings["highlights"]
-            text_color = active_theme_settings["text_color"]
-        else:
-            highlight_color, text_color = [""]*2
+        highlight_color = active_theme_settings["highlights"]
+        text_color = active_theme_settings["text_color"]
+
         progress_data = hold.load_progress_data()
         reset_key = f"reset_key"
         height, html_label, html_add10 = _feature_style(component_key, widget_color, reset_key)
         
+        value_trackers = st.session_state["value_trackers"]
+        tracker_ids = list(value_trackers.values())
+
         # Generate a subfeature for every source category in file
         # Each utilizes a unique key generated in style module
         init_values = dict()
-        accepted_trackers = list()
-        active_trackers = st.session_state["active_trackers"]
-        for i, category in enumerate(progress_data.keys()):
+        for category, i in value_trackers.items():
             # Per source:
-            if any([category not in active_trackers,
-                    progress_data[category][TERMS["attempt"]] is None]):
-                continue
-            else:
-                accepted_trackers.append(i)
             st.space("xxsmall")
             # Define a key for each subfeature and initiate their init value
             init_values, shared_init, keys = _initiate(progress_data, category, init_values, i)
@@ -105,10 +92,7 @@ def progress_meter(component_key: list, sub_keys: list,
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()
                 with col_state:
                     is_static = False
-                    if not theme_missing:
-                        color = text_color
-                    else:
-                        color = ""
+                    color = text_color
                     # Indicate prognisis state of source
                     if state:
                         if state == staterand_ref:
@@ -152,7 +136,7 @@ def progress_meter(component_key: list, sub_keys: list,
                 with col_number:
                     st.number_input(
                         "Number", min_value=0, max_value=limit, key=num_key, 
-                        on_change=_sync_from_num, args=(accepted_trackers,), label_visibility="collapsed")
+                        on_change=_sync_from_num, args=(tracker_ids,), label_visibility="collapsed")
                 
                 # Increase-by-10 button
                 # Syncs to slider and number input
@@ -163,14 +147,14 @@ def progress_meter(component_key: list, sub_keys: list,
                     disable = st.session_state[num_key] > limit - 10
                     st.button(
                         "**+ 10**", key=add10_key, disabled=disable, width="stretch", 
-                        on_click=_increment_counter, args=(init_values, accepted_trackers, i))
+                        on_click=_increment_counter, args=(init_values, tracker_ids, i))
                 
                 # Slider view/interface
                 # Syncs to number input
                 with col_slider:
                     st.slider(
                         "Slider", min_value=0, max_value=limit, key=keys["slider"], 
-                        on_change=_sync_from_slider, args=(accepted_trackers,), label_visibility="collapsed")
+                        on_change=_sync_from_slider, args=(tracker_ids,), label_visibility="collapsed")
                 # Apply and call save function
                 shared_key = keys["shared"]
                 shared_button_key = keys["button"]
@@ -178,11 +162,8 @@ def progress_meter(component_key: list, sub_keys: list,
                     if st.session_state[shared_key] != shared_init:
                         st.html(highlight_html.replace("KEY_REF", shared_button_key))
                         st.button(
-                            f"Save", key=shared_button_key, type="primary", 
-                            on_click=_update_progress, 
-                            args=(
-                                progress_data, category, 
-                                st.session_state[shared_key], attempt_ref), 
+                            f"Save", key=shared_button_key, type="primary", on_click=_update_progress, 
+                            args=(progress_data, category, st.session_state[shared_key], attempt_ref), 
                             width="stretch")
                     else:
                         st.button(f"Save", key=shared_button_key, type="secondary", width="stretch")
@@ -191,7 +172,7 @@ def progress_meter(component_key: list, sub_keys: list,
             st.markdown("")
             st.button(
                 "**Reset**", key=reset_key, type="tertiary", on_click=_reset, 
-                args=(init_values, accepted_trackers), width="stretch")
+                args=(init_values, tracker_ids), width="stretch")
         return height
     
     
@@ -268,39 +249,39 @@ def _initiate(progress_data: dict, category: str,
     return init_values, shared_init, keys
 
 
-def _sync_from_num(accepted_trackers: list):
+def _sync_from_num(tracker_ids: list):
     "Syncs values from number input to slider."
-    for idx in accepted_trackers:
+    for idx in tracker_ids:
         new_val = st.session_state[f"num_{idx}"]
         st.session_state[f"val_{idx}"] = new_val
         st.session_state[f"slider_{idx}"] = new_val
 
-def _sync_from_slider(accepted_trackers: list):
+def _sync_from_slider(tracker_ids: list):
     "Syncs values from slider to number input."
-    for idx in accepted_trackers:
+    for idx in tracker_ids:
         new_val = st.session_state[f"slider_{idx}"]
         st.session_state[f"val_{idx}"] = new_val
         st.session_state[f"num_{idx}"] = new_val
 
-def _increment_counter(init_values: dict, accepted_trackers: list, idx: int, increment_value: int = 10):
+def _increment_counter(init_values: dict, tracker_ids: list, idx: int, increment_value: int = 10):
     "Syncs values from increment button to number input and slider."
     st.session_state[f"val_{idx}"] += increment_value
     st.session_state[f"num_{idx}"] += increment_value 
     st.session_state[f"slider_{idx}"] += increment_value 
-    for i in accepted_trackers:
+    for i in tracker_ids:
         if i != idx:
             st.session_state[f"val_{i}"] = init_values[i]
             st.session_state[f"num_{i}"] = init_values[i]
             st.session_state[f"slider_{i}"] = init_values[i]
         
 
-def _reset(init_values: dict, accepted_trackers: list): 
+def _reset(init_values: dict, tracker_ids: list): 
     """Resets the values for all subfeatures to the current registered progress.
     
     Interates through indexes and updates session state 
     for shared value, number input, and slider
     """
-    for i in accepted_trackers:
+    for i in tracker_ids:
         st.session_state[f"val_{i}"] = init_values[i]
         st.session_state[f"num_{i}"] = init_values[i]
         st.session_state[f"slider_{i}"] = init_values[i]

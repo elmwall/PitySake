@@ -3,7 +3,8 @@ import json
 import streamlit as st
 
 
-
+PAGES = 5
+SET_WIDTH = 1200
 INIT = {
     "initialized": False,
     "checklists": {
@@ -106,6 +107,7 @@ INIT = {
     }
 }
 
+
 def initialize():
     init = copy.deepcopy(INIT)
     for key, value in init.items():
@@ -127,13 +129,7 @@ def initialize():
     # }
 
     st.session_state["initialized"] = True
-    get_config_template()
 
-
-@st.cache_data
-def get_config_template():
-    with open("config_template.json", "r", encoding="utf-8") as f:
-        return json.load(f)
 
 
 

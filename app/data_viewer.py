@@ -10,10 +10,10 @@ import logging
 
 import streamlit as st
 
+from app.initialize import TERMS
 import app.data_access as hold
 
 
-TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
 
 

@@ -18,69 +18,112 @@ import statistics
 import pandas as pd
 import streamlit as st
 
-from .file_manager import Archivist
+from app.initialize import arciv, DATAPATH, SETTINGS, TERMS
+import app.error_handler as error
 
 
-DATAPATH = st.session_state["DATAPATH"]
-DIRECTORIES = st.session_state["DIRECTORIES"]
-SETTINGS = st.session_state["SETTINGS"]
-TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
-arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
+def data_loader(target: str, join_path: str):
+    """
+    Collects file information from data or settings file:
+    - Retrieves file path from configuration dictionary 
+    - Retrieves information from reader
+    - Sends error message if either fails
 
-def data_loader(datafile, join_path):
+    Args:
+        target (str):
+            file to be read
+        join_path (str):
+            file directory
+    """
+    paths = DATAPATH if join_path == "data" else SETTINGS
+    datafile = paths.get(target, False)
+    if datafile is False:
+        msg = "Collecting file path failed."
+        paths_name = "DATAPATH" if join_path == "data" else "SETTINGS"
+        details = [f"File path for '{target}' in '{paths_name}' could not be retrieved.",
+                   f"{paths_name} content: {paths}"]
+        logger.error(details)
+        if not "error" in st.session_state:
+            error.message(
+                message=msg, stage="Project configuration", 
+                file=f"settings\\config.json", details=details)
+        return {}
+    
+    logger.info(f"Forwarding file request: {target} in {join_path}")
     database = arciv.reader(datafile, join_path)
     if database:
         return arciv.reader(datafile, join_path)
     else:
+        if type(database) is dict: 
+            logger.warning("Empty database returned from file_manager.Archivist.")
+        else:
+            logger.error("No database returned from file_manager.Archivist.")
         return {}
 
 
 @st.cache_data
 def load_main_database() -> dict:
     "Loads main database via file_manager, and caches data"
-    datafile = DATAPATH[TERMS["main"]]
-    return data_loader(datafile, join_path="data")
+    if not st.session_state.get("initated", False):
+        logger.info(f"Loading main object data cache.")
+    return data_loader(TERMS["main"], join_path="data")
 
 
 @st.cache_data
 def load_secondary_database() -> dict:
     "Loads secondary database via file_manager, and caches data"
-    datafile = DATAPATH[TERMS["secondary"]]
-    return data_loader(datafile, join_path="data")
+    if not st.session_state.get("initated", False):
+        logger.info(f"Loading secondary object data cache.")
+    return data_loader(TERMS["secondary"], join_path="data")
 
 
 @st.cache_data
 def load_progress_data() -> dict:
     "Loads progress data via file_manager, and caches it"
-    datafile = DATAPATH["progress"]
-    return data_loader(datafile, join_path="data")
+    if not st.session_state.get("initated", False):
+        logger.info(f"Loading progress data cache.")
+    return data_loader("progress", join_path="data")
 
 
 @st.cache_data
 def load_options() -> dict:
     "Loads project-unique data options, and caches data"
-    options_file = SETTINGS["Options"]
-    return data_loader(options_file, join_path="settings")
+    if not st.session_state.get("initated", False):
+        logger.info(f"Loading data options cache.")
+    return data_loader("Options", join_path="settings")
 
 
 # For best syncronization after editing theme, 
 # these settings are best kept in session state
 def load_themes() -> dict:
     "Loads theme settings, and stores in session state"
-    options_file = SETTINGS["Themes"]
-    return data_loader(options_file, join_path="settings")
+    if not st.session_state.get("initated", False):
+        logger.info(f"Loading theme info cache.")
+    themes = data_loader("Themes", join_path="settings")
+    if themes:
+        return themes
+    else:
+        st.session_state["theme_missing"] = True
+        return {
+            "active": "placeholder",
+            "placeholder": {}
+        }
 
 
 @st.cache_data
 def process_main_db(database):
     "Cache processed database for main type object."
+    if not st.session_state.get("initated", False):
+        logger.info(f"Loading processed main data cache.")
     return _process_collection_db(database, "main")
 
 @st.cache_data
 def process_secondary_db(database):
     "Cache processed database for secondary type object."
+    if not st.session_state.get("initated", False):
+        logger.info(f"Loading processed secondary data cache.")
     return _process_collection_db(database, "secondary")
 
 def _process_collection_db(database: dict, datatype: str):

@@ -55,8 +55,9 @@ class Archivist:
         self.diagnostics = False
 
         if initialized:
-            self.terms = st.session_state["TERMS"]
-
+            from app.initialize import TERMS
+            self.terms = TERMS
+            
         logger.info(f"""
 file_manager.Archivist instanced with:
 FILE: {self.file}, 
@@ -233,7 +234,7 @@ backup length: {backup_length}, backup location: {backup_file}""")
         # Compare contents of backup and current data
         if data == "postpone":
             backup_file = False
-        elif backup_length > file_length+2:
+        elif backup_length > file_length+5:
             logger.warning(f"\n{file} backup stopped - data too short.")
             error.catch_backup_data(
                 "tooshort", data, file, backup_file, object_type)

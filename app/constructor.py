@@ -10,10 +10,10 @@ import logging
 
 import streamlit as st
 
+from app.initialize import set_orientation, refresh, TERMS
 import app.progress_tracker as progress_tracker
 import app.object_recorder as object_recorder
 import app.calculate_progress as cal
-import app.initialize as init
 import app.data_analysis as data_analysis
 import app.data_viewer as data_viewer
 import app.timeline as timeline
@@ -30,7 +30,6 @@ WIDTH_RIGTH_1 = WIDTH_TOT_RIGHT - WIDTH_MID_1
 WIDTH_MID_2 = 350
 WIDTH_RIGTH_2 = WIDTH_TOT_RIGHT - WIDTH_MID_2
 
-TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
 
 
@@ -43,8 +42,9 @@ def header():
     - refresh: triggers refresh of cache and session state keys
     - theme: preset theme keys and control theme dialog activation
     """
+    if not st.session_state.get("initated", False):
+        logger.info(f"Building header.")
 
-    logger.info("Running")
     header_height = "content" if st.session_state["error"] else 40
     # Sets whole-page width area for header
     with st.container(
@@ -71,12 +71,12 @@ def header():
             type="tertiary", width="content")
         
         # View orientation selection - always horizontal at start
-        col_view.toggle("Vertical view", key="vertical_view", on_change=init.set_orientation)
+        col_view.toggle("Vertical view", key="vertical_view", on_change=set_orientation)
 
         if col_refr.button(
                 "Refresh page", key="reload_page", 
                 icon=":material/refresh:", type="tertiary", width="content"): 
-            init.refresh()
+            refresh()
 
         # Theme dialog is controlled via session state key "theme_edited" bool
         # "leave_theme_open" bool is set to prevent dialog closing prematurely during edits
@@ -94,10 +94,10 @@ def header():
                     # Set theme temp keys here for editing to have them available when dialog is opened
                     st.session_state["active_theme_temp"] = st.session_state["themes"]["active"]
                     page.theme()
-                    if "theme_edited" in st.session_state:
-                        if st.session_state["theme_edited"] and not leave_theme_open:
-                            st.session_state["show_theme_settings"] = True
-                            st.session_state["theme_edited"] = 0
+                    theme_edited = st.session_state.get("theme_edited", 0)
+                    if theme_edited and not leave_theme_open:
+                        st.session_state["show_theme_settings"] = True
+                        st.session_state["theme_edited"] = 0
 
 
 def horizontal_view(registration_keys: list, prog_meter_keys: list, 
@@ -123,8 +123,8 @@ def horizontal_view(registration_keys: list, prog_meter_keys: list,
         prog_meter_keys (list): 
             keys for object progress tracker settings
     """
-
-    logger.info("Running")
+    if not st.session_state.get("initated", False):
+        logger.info(f"Building horizontal view.")
 
     st.html("""
             <style> 
@@ -197,8 +197,8 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
         prog_meter_keys (list): 
             keys for object progress tracker settings
     """
-
-    logger.info("Running")
+    if not st.session_state.get("initated", False):
+        logger.info(f"Building vertical view.")
 
     st.html("""
         <style> 

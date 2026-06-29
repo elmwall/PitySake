@@ -11,10 +11,10 @@ import statistics
 
 import streamlit as st
 
+from app.initialize import TERMS
 import app.data_access as hold
 
 
-TERMS = st.session_state["TERMS"]
 logger = logging.getLogger(__name__)
 active_attempt_ref = TERMS["active_attempts"]
 attempt_ref = TERMS["attempt"]

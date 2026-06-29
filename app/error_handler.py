@@ -28,7 +28,7 @@ details: {details}""")
 
     st.session_state["error"] = {
         "message": message,
-        "stage": f"Archivist: {stage}",
+        "stage": stage,
         "name": name,
         "file": file,
         "info_list": details,
@@ -40,21 +40,25 @@ def notify():
     """
     User notification of error.
     """
-    error = st.session_state["error"]
+    error = st.session_state.get("error", None)
     info = str()
     if error:
-        if error["stage"]: info += f"Stage: {error["stage"]}:  \n"
-        if error["name"]: info += f"Name: {error["name"]}  \n"
-        if error["file"]: info += f"File: {error["file"]}  \n"
-        if error["info_list"]:
-            for x in error["info_list"]:
-                info += f"- {x}  "
+        if error.get("stage", None): info += f"Stage: {error["stage"]}:  \n"
+        if error.get("name", None): info += f"Name: {error["name"]}  \n"
+        if error.get("file", None): info += f"File: {error["file"]}  \n"
 
         col_1, col_2, col_4 = st.columns([3, 6, 1])
         # with col_1.container(border=False, width="stretch"):
         with col_2.expander(f"Details - Error ID {error["ID"]}"):
             st.markdown(info)
-        if col_1.button(f":red[{error["message"]}]", width="stretch"):
+            if error.get("info_list", None):
+                if type(error["info_list"]) is not list: 
+                    st.markdown(error["info_list"])
+                else:
+                    for x in error["info_list"]:
+                        st.markdown(f"- {x}")
+        message = error.get("message", "An unknown error occurred, check log.")
+        if col_1.button(f":red[{message}]", width="stretch"):
             file = os.path.abspath(__file__)
             directory = os.path.dirname(
                 os.path.dirname(file)
@@ -74,79 +78,124 @@ def pending_backup(arciv):
     - review and/or rescue data
     - continue backup and saving new data
     """
-    from app.file_manager import Archivist
+    from app.initialize import arciv, DIRECTORIES, TERMS
 
     logger.info("Opened dialog")
-    DATAPATH = st.session_state["DATAPATH"]
-    DIRECTORIES = st.session_state["DIRECTORIES"]
-    TERMS = st.session_state["TERMS"]
     backup_directory = DIRECTORIES["BackupFolder"]
-    arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
 
     updated_library = False
     catch = st.session_state["pending_backup"]
     confirm_backup = False
 
+    mode = catch.get("mode", None)
+    file = catch.get("file", None)
+    if not file:
+        msg = "Tried and failed to catch backup data."
+        details = [f"Backup interrupted for unknown file", 
+                   f"Backup interruption reason: {mode}"]
+        logger.error(details)
+        if not "error" in st.session_state:
+            notify.message(
+                message=msg, stage="Project configuration", 
+                file=f"settings\\config.json", details=details)
+        return
+            
+    datatype = catch.get("datatype", "unknown")
+    if not datatype:
+        msg = "Catch backup was requested without valid datatype."
+        details = [f"Backup interrupted but without datatype it can't be forwarded to writer", 
+                   f"Backup interruption reason: {mode}"]
+        logger.error(details)
+        if not "error" in st.session_state:
+            notify.message(
+                message=msg, stage="Project configuration", 
+                file=f"settings\\config.json", details=details)
+
+    backup_file = catch.get("backup_file", "unknown")
+    if not backup_file: logger.warning("Catch backup requested without backup file.")
+    
     # Preventing overwriting backup data in case of error
     # Case: no data in file
     # Not backing up an empty file 
-    if catch["mode"] == "nodata":
-        st.markdown(f"""Your data file: `{catch["file"]}` is empty, 
+    if mode == "nodata":
+        st.markdown(f"""Your data file: `{file}` is empty, 
                     no backup was performed.""")
         st.markdown("""**If this is not a fresh library:** 
                     please check your files!""")
     # Case: new data is shorter than backup
     # User must confirm
-    elif catch["mode"] == "tooshort":
+    elif mode == "tooshort":
         confirm_backup = True
         st.markdown("Backup file contains more objects than the data file.")
-        st.markdown("""**If you have not removed data entries:**: 
+        st.markdown("""**If you have not removed data entries:** 
                     please check your files!""")
+    else:
+        confirm_backup = True
+        st.markdown("An unexpected state occurred during backup.")
+        st.markdown("Check your files.")
+
     
     # User info
     with st.expander("How to check/rescue your data"):
-        filepath = os.path.realpath(catch["file"])
+        filepath = os.path.realpath(file)
         backup_path = os.path.realpath(backup_directory)
         st.markdown(f"Your data file: `{filepath}`")
         st.markdown(f"Your backups: `{backup_path}`")
         st.markdown(f"""Check the latest changed backup file, open in Notepad.  
-                    If data is missing in {catch["file"]}, 
+                    If data is missing in {file}, 
                     replace the file or its content with your backup.  
                     If readable, review your recent data below. 
                     """)
     # User review
+    data = catch.get("data", None)
     with st.expander("Review data"):
         try:
             with st.container(border=False, width="stretch", height=300):
-                st.json(catch["data"], width="stretch")
+                st.json(data, width="stretch")
         except:
             st.markdown("Data could not be reviewed.")
-            logger.exception(f"Backup data could not be reviewed for {catch["data"]}.")
+            logger.exception(f"Backup data could not be reviewed for: \n{data}.")
 
     # User action selection
     confirm = _confirm_action()
     if confirm:
         # If verified and there is data to backup -> backup
         data_details = st.session_state["pending_save"]
-        if catch["backup_file"] and confirm_backup:
-            shutil.copy(catch["file"], catch["backup_file"])
+        validated_details = dict()
+        if backup_file and confirm_backup:
+            shutil.copy(file, backup_file)
 
+        updated_library = False
         # Continue with joining/updating data for writing
-        if catch["datatype"] in [TERMS["main"], TERMS["secondary"]]:
-            updated_library = arciv.join_data(
-            data_details["new_data"], 
-            data_details["name"], 
-            data_details["for_deletion"], 
-            data_details["for_renaming"], 
-            data_details["save_file"], 
-            data_details["path"], 
-            data_details["need_sorting"], 
-            data_details["is_static"])
-        elif catch["datatype"] == TERMS["progress"]:
-            updated_library = data_details["new_data"]
-        elif catch["datatype"] == "options":
-            updated_library = data_details["new_data"]
+        if datatype in [TERMS["main"], TERMS["secondary"]]:
+            valid = True
+            for x in ["new_data", "name", "for_deletion", "for_renaming", 
+                      "save_file", "path", "need_sorting", "is_static"]:
+                info = data_details.get(x, "invalid")
+                if info == "invalid":
+                    updated_library = False
+                    valid = False
+                    break
+                validated_details[x] = info
+            # Verify data health
+            if valid:
+                updated_library = arciv.join_data(
+                    validated_details["new_data"], 
+                    validated_details["name"], 
+                    validated_details["for_deletion"], 
+                    validated_details["for_renaming"], 
+                    validated_details["save_file"], 
+                    validated_details["path"], 
+                    validated_details["need_sorting"], 
+                    validated_details["is_static"])
+        elif datatype in [TERMS["progress"], "options"]:
+            info = data_details.get("new_data", "invalid")
+            if info == "invalid":
+                updated_library = False
+            else:
+                updated_library = validated_details["new_data"]
 
+        
         # If library properly updated:
         # - Send data for writing
         # - Reset Backup values
@@ -259,7 +308,7 @@ def dump(stage: str, details: dict, prefix: str = "data"):
         prefix (str):
             file prefix
     """
-    DIRECTORIES = st.session_state["DIRECTORIES"]
+    from app.initialize import DIRECTORIES
     backup_directory = DIRECTORIES["BackupFolder"]
     content = f"{stage}\n\n"
     for x in details.keys():
