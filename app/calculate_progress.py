@@ -198,6 +198,7 @@ The calculation traverses all intermediate sections and returns the total value.
     # View options should show alternatives 1 and up 
     # and not the list default starting from 0
     position_range = st.session_state.get("position_range", [])
+    start_opt, stop_opt = [None]*2
     if type(sets) is dict and start_section:
         if not position_range: 
             position_range = []
@@ -217,6 +218,7 @@ The calculation traverses all intermediate sections and returns the total value.
             start_opt = list(range(sets[stop_index] + 1))
         else:
             start_opt = list(range(sets[start_index] + 1)[1:])
+    disable = not start_opt or not stop_opt
     with col_left:
         st.selectbox(
             "Start event position", options=start_opt, index=0,

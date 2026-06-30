@@ -354,7 +354,7 @@ def _save_data(secretary: Secretary, preset_keys: list,
     event_length, old_data = [None]*2
     current_database = st.session_state["current_database"]
     if st.session_state["reg_name"] is not None: 
-        reg_name = st.session_state["reg_name"]
+        reg_name = st.session_state["reg_name"].strip()
         object_in_library = reg_name in current_database
         if reg_name in current_database:
             event_length = len(current_database[reg_name]["event"])

@@ -186,16 +186,21 @@ class Secretary:
         for x in preset_keys:
             st.session_state["translated_values"][x] = st.session_state.get(x, None)
 
-        if type(st.session_state["reg_date"]) is str:
-            st.session_state["translated_values"]["reg_date"] = st.session_state["reg_date"]
+        # Remove leading/trailing whitespaces from name
+        reg_name = st.session_state["reg_name"]
+        if reg_name: st.session_state["translated_values"]["reg_name"] = reg_name.strip()
+
+        reg_date = st.session_state["reg_date"]
+        if type(reg_date) is str:
+            st.session_state["translated_values"]["reg_date"] = reg_date
         elif not st.session_state["translated_values"]["reg_date"]:
             pass
         else:
-            adjusted_date = st.session_state["reg_date"].strftime("%y%m%d")
+            adjusted_date = reg_date.strftime("%y%m%d")
             st.session_state["translated_values"]["reg_date"] = adjusted_date
 
         reg_source = st.session_state["reg_source"]
-        if self.options:
+        if self.options and reg_source:
             # If value or state disabled, set None
             if not self.options["states"][reg_source]: 
                 st.session_state["translated_values"]["reg_state"] = None
