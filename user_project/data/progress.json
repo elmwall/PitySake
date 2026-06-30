@@ -2,6 +2,7 @@
     "Primary source": {
         "Value": 0,
         "State": "Uncertain",
+        "active": true,
         "sets": {
             "sections": 250,
             "positions": 5

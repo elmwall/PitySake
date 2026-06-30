@@ -323,17 +323,18 @@ def _edit_label(col_2, TERMS: dict, selection: str) -> bool:
     if add_blank: new_option = "_Blank_"
     
     not_valid = True
+    field_changed = True if add_blank else st.session_state["field_changed"]
     existing_options = st.session_state["changed_options"][TERMS["main"]][TERMS[selection]]
-    if new_option and existing_options and st.session_state["field_changed"]:
+    if new_option and existing_options and field_changed:
         not_valid, msg = _validity_check(
-            name=new_option, existing_options=existing_options)
+            name=new_option.strip(), existing_options=existing_options)
         if msg: st.markdown(f":red[{msg}]")
 
     # Confirm input
     if col_2.button(
             "Confirm", on_click=_change_confirmed, disabled=not_valid, width="stretch"): 
         # Adjust format and add to editing database
-        st.session_state["changed_options"][TERMS["main"]][TERMS[selection]].append(new_option)
+        st.session_state["changed_options"][TERMS["main"]][TERMS[selection]].append(new_option.strip())
         st.session_state["edit_options_complete"] = True
 
 
@@ -381,7 +382,7 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
     not_valid = True
     if new_option and st.session_state["field_changed"]:
         not_valid, msg = _validity_check(
-            name=new_option, number=new_limit, existing_options=source_options)
+            name=new_option.strip(), number=new_limit, existing_options=source_options)
         if msg: col_right.markdown(f":red[{msg}]")
     elif reactivate and to_reactivate:
         not_valid = False
@@ -402,14 +403,14 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
     if col_2.button("Confirm", on_click=_change_confirmed, disabled=not_valid, width="stretch"):
         # Ajust format and add to editing database
         new_option = st.session_state["new_option"]
-        st.session_state["changed_options"]["source_limit"][new_option] = new_limit
-        st.session_state["changed_options"]["states"][new_option] = state_is_selected
+        st.session_state["changed_options"]["source_limit"][new_option.strip()] = new_limit
+        st.session_state["changed_options"]["states"][new_option.strip()] = state_is_selected
         # Compile and add to editing progress data
         if reactivate:
             st.session_state["changed_progress"][to_reactivate]["active"] = True
             st.session_state["options_are_edited"] = False
         elif progress_is_selected:
-            st.session_state["changed_progress"][new_option] = {
+            st.session_state["changed_progress"][new_option.strip()] = {
                 f"{TERMS["attempt"]}": 0,
                 "State": new_state,
                 "active": True,
@@ -417,7 +418,7 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
                     "sections": 200,
                     "positions": 5}}
         else:
-            st.session_state["changed_progress"][new_option] = {
+            st.session_state["changed_progress"][new_option.strip()] = {
                 f"{TERMS["attempt"]}": None,
                 "State": None,
                 "active": True,
@@ -532,6 +533,7 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
     # - length
     # - extra whitespaces
     # - invalid symbols
+    print(name)
     exist_check = False
     symbol_check = False
     length_check = False
@@ -545,7 +547,6 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
             msg_ext = "Already exists. "
         else:
             exist_check = True
-
         if length_check:
             symbol_check = True
             if not name.isalnum():
@@ -553,15 +554,17 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
                 for symbol in name:
                     if not symbol.isalnum() and symbol not in valid_symbols:
                         msg_sym = "Invalid characters. "
+                        symbol_check = False
+                        break
             if "  " in name:
-                
                 msg_sym = "Double whitespace. "
+                symbol_check = False
             if name[0] in (" ", ):
                 msg_ini = "Invalid first character. "
+                symbol_check = False
         else:
             symbol_check = None
             msg_len = "Too long. "
-
     # Number requirement checks: min and max values
     if number:
         if not name: exist_check = True

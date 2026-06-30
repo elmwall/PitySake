@@ -162,23 +162,23 @@ def register(key: str, disable: bool = False, use_template: bool = False):
             icon_path = root / "accessories/icon1.ico"
             root_shortcut = root
             # Windows shortcuts
-            os_name = platform.system()
-            if os_name == "Windows":
-                place = ""
-                try:
-                    pythoncom.CoInitialize()
-                    place = "On desktop"
-                    make_shortcut(
-                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
-                        icon=str(icon_path), desktop=True)
-                    place = "In folder"
-                    make_shortcut(
-                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
-                        icon=str(icon_path), folder=str(root_shortcut))
-                except Exception as e:
-                    error = True
-                    msg = "Shortcut could not be created."
-                    _errors(e, "creating shortcut", place, msg)
+            # os_name = platform.system()
+            # if os_name == "Windows":
+            place = ""
+            try:
+                pythoncom.CoInitialize()
+                place = "On desktop"
+                make_shortcut(
+                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                    icon=str(icon_path), desktop=True)
+                place = "In folder"
+                make_shortcut(
+                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                    icon=str(icon_path), folder=str(root_shortcut))
+            except Exception as e:
+                error = True
+                msg = "Shortcut could not be created."
+                _errors(e, "creating shortcut", place, msg)
             st.session_state["registration_complete"] = True
             st.rerun()
 

@@ -340,11 +340,6 @@ def set_orientation():
     arciv.writer(meta, set_file="meta.json")
 
 
-# def correct_orientation():
-#     initialize_constants.clear()
-#     st.rerun()
-
-
 def _load_placeholder_theme(active_theme):
     "In case of missing theme file, these settings are used to create a functional theme."
     for key in ["background", "highlight_text"]:
