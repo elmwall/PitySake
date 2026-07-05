@@ -63,29 +63,31 @@ def calculator(component_key: str, feature_width: int | str,
                 mode_text = "Mode: values"
             else:
                 mode_text = "Mode: sets"
-            help = """☐ calculate distance across sets  
-                🗹 calculate: % + ×"""
+            help = """☐ **Sets:** calculate distance across sets  
+                🗹 **Values:** calculate % + ×"""
             percent_mode = col_select.checkbox(mode_text, key="calc_mode", help=help)
-            # Calculator value start value setting
-            col_define.checkbox(
-                "Start from 1", value=False, key="start_at_1", disabled=percent_mode,
-                help="""When enabled, begins count from 1 instead of 0  
-                for the first position after the start event.""")
             
+            # Calculator value start value setting
             # Select sections sets for calculation
             # Each progress tracking source has defined sets
             # Dropdown selection
-            selected_set = col_select.selectbox(
-                f"Select {TERMS["source"]}", options=value_trackers, key="selected_set", 
-                on_change=_update_sections, args=(progress_data, value_trackers), 
-                disabled=percent_mode, label_visibility="collapsed")
-            # Edit sets button
-            set_help = """Create custom sets by defining the  
-                number of sections, and number of positions per section."""
-            if col_define.button(
-                "Define sets", help=set_help, disabled=percent_mode, type="secondary", width="stretch"):
-                _define_sets(progress_data, value_trackers)
-            st.space(1)
+            if not percent_mode:
+                col_define.checkbox(
+                    "Start from 1", value=False, key="start_at_1", disabled=percent_mode,
+                    help="""When enabled, begins count from 1 instead of 0  
+                    for the first position after the start event.""")
+                selected_set = col_select.selectbox(
+                    f"Select {TERMS["source"]}", options=value_trackers, key="selected_set", 
+                    on_change=_update_sections, args=(progress_data, value_trackers), 
+                    disabled=percent_mode, label_visibility="collapsed")
+                # Edit sets button
+                set_help = """Create custom sets by defining per set:  
+                    - number of sections  
+                    - number of positions per section."""
+                if col_define.button(
+                    "Define sets", help=set_help, disabled=percent_mode, type="secondary", width="stretch"):
+                    _define_sets(progress_data, value_trackers)
+                st.space(1)
 
             col_left, col_right, col_label = st.columns([5, 5, 7])
             if not percent_mode:
@@ -130,15 +132,21 @@ def calculator(component_key: str, feature_width: int | str,
                 _result_viewer(col_label, output, usertip_start, usertip_stop)
 
             else:
-                _value_input(col_left, col_right, col_label)
+                _value_input()
 
 
-def _update_sections(progress_data, value_trackers):
+def _update_sections(progress_data: dict, value_trackers: list):
     """
     Update sections and positions, and define ranges depending on case.
     - Uniform section/positions sets are defined by a dict with corresponding keys.  
     - Sections with varying positions are defined by a list. 
         The length defines number of sections while value at indices sets number of positions.
+
+    Args:
+        progress_data (dict):
+            data from all trackers
+        value_tracker (list):
+            active trackers with value
     """
     if value_trackers:
         selected_set = st.session_state.get("selected_set", value_trackers[0])
@@ -147,12 +155,12 @@ def _update_sections(progress_data, value_trackers):
             # since lists starts with index 0
             sets = st.session_state["sets"] = progress_data[selected_set]["sets"]
             # Uniform sections/positions
-            if type(sets) is dict:
+            if isinstance(sets, dict):
                 st.session_state["section_range"] = list(range(sets["sections"] + 1))[1:]
                 # Generates a list that can used directly for options
                 st.session_state["position_range"] = list(range(sets["positions"] + 1))[1:]
             # Varying sections/positions
-            elif type(sets) is list:
+            elif isinstance(sets, list):
                 st.session_state["section_range"] = list(range(len(sets) + 1))[1:]
                 # Here the sets provide a list of positions for each section 
                 # -> needs to be collected and adjusted for start and stop respectively
@@ -163,11 +171,7 @@ def _value_selector(col_left, col_right, col_label, disable: bool):
     Selectboxes selecting start and stop section and position.
 
     Args:
-        col_left (DeltaGenerator):
-            Streamlit column instance
-        col_right (DeltaGenerator):
-            Streamlit column instance
-        col_label (DeltaGenerator):
+        col_x (DeltaGenerator):
             Streamlit column instance
         disable (bool):
             control value to disable selection if no source is set
@@ -175,10 +179,10 @@ def _value_selector(col_left, col_right, col_label, disable: bool):
     # Group labels
     col_left.markdown("*Start*", text_alignment="center")
     col_right.markdown("*Stop*", text_alignment="center")
-    calculator_help = """- Top: section number   
-Bottom: position within section  
-- Select a section and a position for both start and end events.  
-The calculation traverses all intermediate sections and returns the total value."""
+    calculator_help = """Select a section and a position for both start and stop events.  
+        The calculation traverses all intermediate sections and returns the total value.  
+        - **Top:** section number   
+        - **Bottom:** position within section"""
     col_label.markdown(" ", help=calculator_help)
     sets = st.session_state["sets"]
     # Input section for start and stop event
@@ -199,7 +203,7 @@ The calculation traverses all intermediate sections and returns the total value.
     # and not the list default starting from 0
     position_range = st.session_state.get("position_range", [])
     start_opt, stop_opt = [None]*2
-    if type(sets) is dict and start_section:
+    if isinstance(sets, dict) and start_section:
         if not position_range: 
             position_range = []
             disable = True
@@ -207,7 +211,7 @@ The calculation traverses all intermediate sections and returns the total value.
         # Except for 1st page, keep the 0th
         if int(start_section) == 1: start_opt = [0,] + start_opt
         stop_opt = position_range
-    elif type(sets) is list and start_section and stop_section:
+    elif isinstance(sets, list) and start_section and stop_section:
         # Sections in order from 0: correct index to start from 1
         start_index = start_section -1
         stop_index = stop_section - 1
@@ -263,9 +267,9 @@ def _validation(limit: int) -> tuple:
         return False, False, msg, "", ""
 
     # Conditions for start data
-    if type(sets) is dict:
+    if isinstance(sets, dict):
         start_pos_range = stop_pos_range = len(st.session_state["position_range"])
-    elif type(sets) is list:
+    elif isinstance(sets, list):
         start_index = start_section - 1
         stop_index = stop_section - 1
         start_pos_range = sets[start_index]
@@ -307,7 +311,7 @@ def _validation(limit: int) -> tuple:
         usertip_start = None
     max_section, max_position = None, None
     # Conditions for stop data
-    if type(sets) is list:
+    if isinstance(sets, list):
         sections = len(sets)
         idx = start_section - 1
         val = start_value + sets[idx] - start_position
@@ -326,7 +330,7 @@ def _validation(limit: int) -> tuple:
             # Within limits, add value of whole sections
             else:
                 val += sets[idx]
-    elif type(sets) is dict:
+    elif isinstance(sets, dict):
         positions = sets["positions"]
         # Max position is set from:
         #   positions * int(int(limit / positions) - 1): the value corresponding to all whole sections
@@ -365,49 +369,63 @@ def _validation(limit: int) -> tuple:
     return is_start_valid, is_stop_valid, msg, usertip_start, usertip_stop
 
 
-def _value_input(col_left, col_right, col_label):
+def _value_input():
     """
-    Number input fields for calculating percent, addition, multiplication.
+    Number input fields for calculating percent, addition, multiplication, and division.
+    """
+    st.space()
+    size = [5, 1.5, 5, 6]
+    col_1, col_sym, col_2, col_res = st.columns(size)
+    _calculate(col_1, col_sym, col_2, col_res, "percent", "of", 100)
+    col_1, col_sym, col_2, col_res = st.columns(size)
+    _calculate(col_1, col_sym, col_2, col_res, "add", "+")
+    col_1, col_sym, col_2, col_res = st.columns(size)
+    _calculate(col_1, col_sym, col_2, col_res, "multiply", "×")
+    col_1, col_sym, col_2, col_res = st.columns(size)
+    _calculate(col_1, col_sym, col_2, col_res, "divide", "÷", 160)
+
+def _calculate(col_1, col_sym, col_2, col_res, 
+               action: str, symbol: str, value: int|bool = 0):
+    """
+    Generate a field row for specified action.
 
     Args:
-        col_left (DeltaGenerator):
+        col_x (DeltaGenerator):
             Streamlit column instance
-        col_right (DeltaGenerator):
-            Streamlit column instance
-        col_label (DeltaGenerator):
-            Streamlit column instance
+        action (str):
+            specify action
+        symbol (str):
+            word or operator shown
+        value (int|bool):
+            specifies preset value in number field
     """
-    col_label.space(23)
-    # Calculate percent
-    output = None
-    part = col_left.number_input("Part", value=0, key="per1")
-    total = col_right.number_input("Total", value=100, key="per2")
-    if part is not None and total != 0: 
-        output = part / total * 100
-    result_output = f"—"
-    if output is not None:
-        result_output = (f"{int(output)} %")
-    col_label.button(result_output, key="per3", width="stretch")
-    st.space(5)
+    st.html("<style>.st-key-REF p {font-size: 18px}</style>".replace("REF", f"{action}_symbol"))
+    input_1 = col_1.number_input(
+        f"{action} input", value=0, key=f"{action}_1", 
+        label_visibility="collapsed", width="stretch")
+    col_sym.button(symbol, key=f"{action}_symbol", type="tertiary")
+    input_2 = col_2.number_input(
+        f"{action} input", value=value, key=f"{action}_2", 
+        label_visibility="collapsed", width="stretch")
+    
+    result = "-"
+    if input_1 is not None and input_2 is not None:
+        suffix = ""
+        precision = ".1f"
+        if action == "percent" and input_2 != 0:
+            result = 100 * input_1 / input_2
+            suffix = " %"
+        elif action == "add":
+            result = input_1 + input_2
+        elif action == "multiply":
+            result = input_1 * input_2
+        elif action == "divide" and input_2 != 0:
+            result = input_1 / input_2
+            precision = ".2f"
+        output = f"{int(result)}{suffix}" if float(result).is_integer() else f"{result:{precision}}{suffix}"
 
-    col_1, col_sym, col_2, col_res = st.columns([4.3, 1.4, 4.3, 7])
-    # Calculate addition
-    add_1 = col_1.number_input("Add1", value=0, key="add1", label_visibility="collapsed", width="stretch")
-    col_sym.button("+", type="tertiary")
-    add_2 = col_2.number_input("Add2", value=0, key="add2", label_visibility="collapsed", width="stretch")
-    addition = "-"
-    if add_1 is not None and add_2 is not None:
-        addition = add_1 + add_2
-    col_res.button(str(addition), key="add3", width="stretch")
+    col_res.button(str(output), key=f"{action}_result", width="stretch")
 
-    # Calculate multiplication
-    factor_1 = col_1.number_input("Mult1", value=0, key="mult1", label_visibility="collapsed", width="stretch")
-    col_sym.button("×", type="tertiary")
-    factor_2 = col_2.number_input("Mult2", value=0, key="mult2", label_visibility="collapsed", width="stretch")
-    multiplied = "-"
-    if factor_1 is not None and factor_2 is not None:
-        multiplied = factor_1 * factor_2
-    col_res.button(str(multiplied), key="mult3", width="stretch")
 
 
 def _submit(start_section: int, stop_section: int, 
@@ -429,10 +447,10 @@ def _submit(start_section: int, stop_section: int,
         sets = st.session_state["sets"]
         init_value = 1 if st.session_state["start_at_1"] else 0
         # Uniform size sections
-        if type(sets) is dict:
+        if isinstance(sets, dict):
             value = init_value + sets["positions"]*(stop_section - start_section) + stop_position - start_position
         # Varying size sections
-        elif type(sets) is list:
+        elif isinstance(sets, list):
             if not stop_position: stop_position = 0
             if not start_position: start_position = 0
             # List index counts from zero; subtract 1 from section selection value
@@ -531,12 +549,12 @@ def _define_sets(progress_data: dict, value_trackers: list):
         disable = False
         if not selection:
             disable = True
-        elif type(sets) is dict:
+        elif isinstance(sets, dict):
             section_preset = sets["sections"]
             position_preset = sets["positions"]
             preset = ""
             placeholder = "Enter list of section sizes"
-        elif type(sets) is list:
+        elif isinstance(sets, list):
             section_preset = 10
             position_preset = 10
             preset = str()

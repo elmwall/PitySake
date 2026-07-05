@@ -382,7 +382,8 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
     not_valid = True
     if new_option and st.session_state["field_changed"]:
         not_valid, msg = _validity_check(
-            name=new_option.strip(), number=new_limit, existing_options=source_options)
+            name=new_option.strip(), number=new_limit, 
+            existing_options=source_options, ignore_exist=True)
         if msg: col_right.markdown(f":red[{msg}]")
     elif reactivate and to_reactivate:
         not_valid = False
@@ -403,14 +404,15 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
     if col_2.button("Confirm", on_click=_change_confirmed, disabled=not_valid, width="stretch"):
         # Ajust format and add to editing database
         new_option = st.session_state["new_option"]
-        st.session_state["changed_options"]["source_limit"][new_option.strip()] = new_limit
-        st.session_state["changed_options"]["states"][new_option.strip()] = state_is_selected
+        if new_option: new_option = new_option.strip()
+        st.session_state["changed_options"]["source_limit"][new_option] = new_limit
+        st.session_state["changed_options"]["states"][new_option] = state_is_selected
         # Compile and add to editing progress data
         if reactivate:
             st.session_state["changed_progress"][to_reactivate]["active"] = True
             st.session_state["options_are_edited"] = False
         elif progress_is_selected:
-            st.session_state["changed_progress"][new_option.strip()] = {
+            st.session_state["changed_progress"][new_option] = {
                 f"{TERMS["attempt"]}": 0,
                 "State": new_state,
                 "active": True,
@@ -418,7 +420,7 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
                     "sections": 200,
                     "positions": 5}}
         else:
-            st.session_state["changed_progress"][new_option.strip()] = {
+            st.session_state["changed_progress"][new_option] = {
                 f"{TERMS["attempt"]}": None,
                 "State": None,
                 "active": True,
@@ -511,7 +513,7 @@ def _change_confirmed():
 
 
 def _validity_check(name: str | bool = False, number: int | bool = False, 
-                    existing_options: list | None = None) -> tuple:
+                    existing_options: list | None = None, ignore_exist: bool = False) -> tuple:
     """Checks if input meets requirement in format
 
     Args:
@@ -521,6 +523,8 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
             number input
         existing_options (list):
             options not available for new names
+        ignore_exist (bool):
+            True allows overwriting existing option
     
     Returns:
         Tuple (bool, str | None):
@@ -533,8 +537,7 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
     # - length
     # - extra whitespaces
     # - invalid symbols
-    print(name)
-    exist_check = False
+    exist_check = ignore_exist
     symbol_check = False
     length_check = False
     num_check = True
@@ -583,7 +586,7 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
     # Construct message of all errors, if any
     msg += f"{msg_ext}{msg_len}{msg_sym}{msg_ini}{msg_val}"
     if all([exist_check, length_check, symbol_check, num_check]):
-        return False, None
+        return False, msg
     else:
         return True, msg
 

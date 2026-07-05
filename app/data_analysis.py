@@ -80,9 +80,9 @@ def small_stats(component_key: str, sub_keys: list,
                         else:
                             delta_color = "off"
                         compare_to_median = int(last - att_median)
-                        sign = "+" if compare_to_median > 0 else "-"
                         unit = TERMS["unit"] if TERMS["unit"] else ""
-                        help = f"For {main_ref}s. {sign} {compare_to_median} compared to median"
+                        help = f"""For {main_ref}s.  
+                            {compare_to_median} compared to median"""
                         with col_left:
                             _adjusted_metric(
                                 f"Last {event_ref}", metric_key="last_metric", 
@@ -90,7 +90,7 @@ def small_stats(component_key: str, sub_keys: list,
                                 base_limit=5, help_text=help, 
                                 delta={"text": f"{compare_to_median}", "color": delta_color})
                         # Median value for all main and secondary events (with value)
-                        help = f"""From {main_ref} {event_ref}s. 
+                        help = f"""From {main_ref} {event_ref}s.  
                             Median: mid-value, half above/half below."""
                         with col_right:
                             _adjusted_metric(
@@ -106,7 +106,7 @@ def small_stats(component_key: str, sub_keys: list,
                         # from main and secondary
                         rate_help_text = f"""Rate of {positive_ref} compared to {negative_ref}.  
                             Bottom: Rate of {positive_ref} among all events.  
-                            From {main_ref} and {secondary_ref} {event_ref}s"""
+                            From {main_ref} and {secondary_ref} {event_ref}s."""
                         col_left.metric(
                             f"{TERMS["state_win"]}", value=f"{success_rate}%", 
                             help=rate_help_text, 
@@ -115,8 +115,8 @@ def small_stats(component_key: str, sub_keys: list,
                             delta_description=f"{total_rate}% of all")
                         # Total recorded values from main and secondary 
                         # from events and progress tracker
-                        help=f"""All-time total sum of {attempt_ref}  
-                            from {main_ref} and {secondary_ref} history and tracker"""
+                        help=f"""All-time total sum of {attempt_ref}.  
+                            From {main_ref} and {secondary_ref} history and tracker data."""
                         with col_right:
                             _adjusted_metric(
                                 "Total", metric_key="tot_metric", 

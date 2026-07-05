@@ -99,7 +99,7 @@ def table_view(component_key: str, object_type: str,
             key=f"{component_key}_table_overview", placeholder="")
 
 
-def _tab(key, object_type):
+def _tab(key: str, object_type: str):
     "Generates tab view control via Streamlit segmented control element."
     st.html("""
     <style>

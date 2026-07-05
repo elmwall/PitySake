@@ -173,7 +173,6 @@ def style(feature_keys, keylist_prog_calc):
             style_subcontainer = html_widget.replace("REF", key)
             st.html(style_subcontainer)
 
-
     # Highlights and inicators
     highlight_html = """
         <style> 
@@ -219,6 +218,7 @@ def theme():
     logger.info("Opened theme dialog")
 
     themes = st.session_state["themes"]
+    _reset_colors(themes)
     active_theme = themes["active"]
 
     st.write(f"Select theme")
@@ -243,10 +243,10 @@ def theme():
             "Edit theme", key="change_colors", 
             on_change=_reset_colors, args=(themes,))
     # Render color selector field
-    if select_colors:
-        with st.container(horizontal_alignment="center"):
-            if "background_temp" in st.session_state.keys():
-                _color_selector(themes, active_theme)
+    # if select_colors:
+    with st.container(horizontal_alignment="center"):
+        if "background_temp" in st.session_state.keys():
+            _color_selector(themes, active_theme, disable=not select_colors)
 
     st.space()
     col_1, col_2, col_3, col_4 = st.columns([1, 1, 1, 1])
@@ -327,17 +327,18 @@ def _reset_colors(themes):
     "Sets temp color for theme up for consideration or editing"
     for cat, col in themes[st.session_state["active_theme_temp"]].items():
         st.session_state[f"{cat}_temp"] = col
+    return True
 
 
-def _color_selector(themes, active_theme):
+def _color_selector(themes, active_theme, disable):
     """
     Color selector
     - button visualize current setting and its role
     - color selector or HEX code to select new color
     """
-    for x in themes[active_theme].keys():
-        if f"{x}_temp" not in st.session_state:
-            st.session_state[f"{x}_temp"] = themes[st.session_state["active_theme_temp"]][x]
+    # for x in themes[active_theme].keys():
+    #     if f"{x}_temp" not in st.session_state:
+    #         st.session_state[f"{x}_temp"] = themes[st.session_state["active_theme_temp"]][x]
 
     st.space("small")
     col_1, col_2, col_3, col_4 = st.columns([0.6, 0.4, 0.6, 0.4])
@@ -355,8 +356,8 @@ def _color_selector(themes, active_theme):
                 border-color: transparent;
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["background"]))
-    col_1.button("Background", key="bgr_col", width="stretch")
-    col_2.color_picker("Background", key="background_temp", label_visibility="collapsed")
+    col_1.button("Background", key="bgr_col", disabled=disable, width="stretch")
+    col_2.color_picker("Background", key="background_temp", disabled=disable, label_visibility="collapsed")
     
     # Main feature container inner / page header - in json
     st.html("""
@@ -366,8 +367,8 @@ def _color_selector(themes, active_theme):
                 border-color: transparent;
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["main_container"]))
-    col_1.button("Feature", key="ft_col", width="stretch")
-    col_2.color_picker("Feature", key="main_container_temp", label_visibility="collapsed")
+    col_1.button("Feature", key="ft_col", disabled=disable, width="stretch")
+    col_2.color_picker("Feature", key="main_container_temp", disabled=disable, label_visibility="collapsed")
 
     # Main feature container outer - in json
     st.html("""
@@ -377,8 +378,8 @@ def _color_selector(themes, active_theme):
                 border-color: VIS_REF;
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["main_gradient"]))
-    col_1.button("Header", key="fhd_col", width="stretch")
-    col_2.color_picker("Headers", key="main_gradient_temp", label_visibility="collapsed")
+    col_1.button("Feature inner", key="fhd_col", disabled=disable, width="stretch")
+    col_2.color_picker("Feature inner", key="main_gradient_temp", disabled=disable, label_visibility="collapsed")
     
     # Feature sub-container - in json
     st.html("""
@@ -388,8 +389,8 @@ def _color_selector(themes, active_theme):
                 border-color: transparent;
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["sub_container"]))
-    col_1.button("Group", key="gr_col", width="stretch")
-    col_2.color_picker("Group", key="sub_container_temp", label_visibility="collapsed")
+    col_1.button("Group", key="gr_col", disabled=disable, width="stretch")
+    col_2.color_picker("Group", key="sub_container_temp", disabled=disable, label_visibility="collapsed")
     
     # Feature sub-widget - in json
     st.html("""
@@ -399,8 +400,8 @@ def _color_selector(themes, active_theme):
                 border-color: transparent;
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["small_widget"]))
-    col_1.button("Widget", key="sw_col", width="stretch")
-    col_2.color_picker("Widget", key="small_widget_temp", label_visibility="collapsed")
+    col_1.button("Tracker", key="sw_col", disabled=disable, width="stretch")
+    col_2.color_picker("Tracker", key="small_widget_temp", disabled=disable, label_visibility="collapsed")
 
     # Input field - in config
     st.html("""
@@ -410,8 +411,8 @@ def _color_selector(themes, active_theme):
                 border-color: transparent;
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["input_field"]))
-    col_1.button("Input field", key="ip_col", width="stretch")
-    col_2.color_picker("Input field", key="input_field_temp", label_visibility="collapsed")
+    col_1.button("Input field", key="ip_col", disabled=disable, width="stretch")
+    col_2.color_picker("Input field", key="input_field_temp", disabled=disable, label_visibility="collapsed")
     
     # Highlights - in config
     st.html("""
@@ -423,8 +424,8 @@ def _color_selector(themes, active_theme):
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["highlights"])
         .replace("VIS_REF", themes[active_theme]["main_container"]))
-    col_3.button("Highlights", key="hl_col", width="stretch")
-    col_4.color_picker("Highlights", key="highlights_temp", label_visibility="collapsed")
+    col_3.button("Highlights", key="hl_col", disabled=disable, width="stretch")
+    col_4.color_picker("Highlights", key="highlights_temp", disabled=disable, label_visibility="collapsed")
     
     # Highligh text - in json
     st.html("""
@@ -441,8 +442,8 @@ def _color_selector(themes, active_theme):
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["highlight_text"])
         .replace("VIS_REF", themes[active_theme]["highlights"]))
-    col_3.button("Highlight text", key="hl_txt", width="stretch")
-    col_4.color_picker("Highlight text", key="highlight_text_temp", label_visibility="collapsed")
+    col_3.button("Highlight text", key="hl_txt", disabled=disable, width="stretch")
+    col_4.color_picker("Highlight text", key="highlight_text_temp", disabled=disable, label_visibility="collapsed")
 
     # Positive indicators - in json
     st.html("""
@@ -455,8 +456,8 @@ def _color_selector(themes, active_theme):
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["positive_color"])
         .replace("VIS_REF", themes[active_theme]["main_container"]))
-    col_3.button("Positive", key="pos_col", width="stretch")
-    col_4.color_picker("Positive", key="positive_color_temp", label_visibility="collapsed")
+    col_3.button("Positive", key="pos_col", disabled=disable, width="stretch")
+    col_4.color_picker("Positive", key="positive_color_temp", disabled=disable, label_visibility="collapsed")
     
     # Neutral indicators - in json
     st.html("""
@@ -468,8 +469,8 @@ def _color_selector(themes, active_theme):
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["neutral_color"])
         .replace("VIS_REF", themes[active_theme]["main_container"]))
-    col_3.button("Neutral", key="neu_col", width="stretch")
-    col_4.color_picker("Neutral", key="neutral_color_temp", label_visibility="collapsed")
+    col_3.button("Neutral", key="neu_col", disabled=disable, width="stretch")
+    col_4.color_picker("Neutral", key="neutral_color_temp", disabled=disable, label_visibility="collapsed")
     
     # Negative indicators - n json
     st.html("""
@@ -481,8 +482,8 @@ def _color_selector(themes, active_theme):
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["negative_color"])
         .replace("VIS_REF", themes[active_theme]["main_container"]))
-    col_3.button("Negative", key="neg_col", width="stretch")
-    col_4.color_picker("Negative", key="negative_color_temp", label_visibility="collapsed")
+    col_3.button("Negative", key="neg_col", disabled=disable, width="stretch")
+    col_4.color_picker("Negative", key="negative_color_temp", disabled=disable, label_visibility="collapsed")
     
     # General text - in config
     st.html("""
@@ -491,9 +492,9 @@ def _color_selector(themes, active_theme):
                 color: COLOR_REF; 
             } 
         </style>""".replace("COLOR_REF", themes[active_theme]["text_color"]))
-    col_3.button("Text/border", key="tx_col", width="stretch")
-    col_4.color_picker("Text", key="text_color_temp", label_visibility="collapsed")
+    col_3.button("Text/border", key="tx_col", disabled=disable, width="stretch")
+    col_4.color_picker("Text", key="text_color_temp", disabled=disable, label_visibility="collapsed")
 
     col_l, col_r = st.columns(2)
     col_l.space()
-    col_l.checkbox("Feature header", key="header_switch_temp")
+    col_l.checkbox("Feature header", key="header_switch_temp", disabled=disable)

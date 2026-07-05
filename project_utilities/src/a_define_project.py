@@ -138,14 +138,15 @@ def _name_objects(button_format_key: str, is_changed_key: str) -> dict:
             objects which you still want to record,  
             or things you want tracked separately.
         """
-        st.text_input(
+        main = st.text_input(
             "Main object", 
             key="main", 
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             help=help_primary, 
             placeholder="e.g. Course / Workout / Collectible")
-        st.text_input(
+        tools.sync_used_terms({"main": main})
+        secondary = st.text_input(
             "Secondary object", 
             key="secondary", 
             on_change=tools.need_update, 
@@ -154,30 +155,47 @@ def _name_objects(button_format_key: str, is_changed_key: str) -> dict:
             placeholder="e.g. Tutorial / Walk / Accessory")
         st.checkbox("Start object collection count at 0", value=True, key="start_from_0")
 
+        no_repeats = True
+        if secondary: 
+            no_repeats = tools.check_used_terms({"secondary": secondary})
+            if no_repeats: tools.sync_used_terms({"secondary": secondary})
+
     # - Label categories
     # The keys "utilit", "attribute", "origin" are placeholder names 
     # "utility" represents shared label, otherwise no functional difference between them
     with col_3.container(border=True, height="stretch"):
         st.markdown("##### Object label categories", text_alignment="center")
-        st.text_input(
+        utility = st.text_input(
             "1. Label for main and secondary objects", 
             key="utility", 
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             help="Use a broad label which can apply to both object types",
             placeholder="e.g. Topic / Effort / Series")
-        st.text_input(
+        tools.sync_used_terms({"utility": utility})
+        attribute = st.text_input(
             "2. Label for main object", 
             key="attribute", 
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             placeholder="e.g. Platform / Activity type / Manufacturer")
-        st.text_input(
+        tools.sync_used_terms({"attribute": attribute})
+        origin = st.text_input(
             "3. Label for main object", 
             key="origin", 
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             placeholder="e.g. Examination / Muscle group / Scale")
+        tools.sync_used_terms({"origin": origin})
+
+        if utility and attribute and origin: 
+            labels = {
+                "utility": utility, 
+                "attribute": attribute, 
+                "origin": origin
+            }
+            no_repeats = tools.check_used_terms(labels)
+            if no_repeats: tools.sync_used_terms(labels)
 
     # Word validation
     validated = dict()
@@ -205,6 +223,7 @@ def _name_objects(button_format_key: str, is_changed_key: str) -> dict:
         validated["utility"],
         validated["attribute"],
         validated["origin"],
+        no_repeats
     ]
     # Send preliminary submission from current info
     return {

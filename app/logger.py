@@ -16,6 +16,7 @@ project = st.session_state["project"]
 logger = logging.getLogger(project)
 # Set level of logging - silence irrelevant messages 
 logging.getLogger("PIL").setLevel(logging.WARNING)
+logging.getLogger("watchdog").setLevel(logging.WARNING)
 logging.getLogger("streamlit").setLevel(logging.WARNING)
 
 logging_config = {

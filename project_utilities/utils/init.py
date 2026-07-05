@@ -7,6 +7,7 @@ PAGES = 5
 SET_WIDTH = 1200
 INIT = {
     "initialized": False,
+    "in_use": {},
     "checklists": {
         "project_save": None,
         "objects_save": None,

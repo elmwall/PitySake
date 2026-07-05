@@ -13,6 +13,7 @@ Actions
 - creates shortcuts and .bat files for start without terminal
 """
 
+
 import copy
 import json
 from pathlib import Path
@@ -20,8 +21,11 @@ import platform
 import shutil
 
 import streamlit as st
-import pythoncom
-from pyshortcuts import make_shortcut
+
+os_name = platform.system()
+if os_name == "Windows":
+    import pythoncom
+    from pyshortcuts import make_shortcut
 
 
 def register(key: str, disable: bool = False, use_template: bool = False):
@@ -81,6 +85,7 @@ def register(key: str, disable: bool = False, use_template: bool = False):
             else:
                 st.rerun()
         title = submitted["project_details"]["ui_title"]
+        if use_template: config["TERMS"]["ui_title"] = title
         file_name = submitted["project_details"]["file_name"]
         streamlit_config = _streamlit_config()
         bat_content = _bat(file_name)
@@ -136,13 +141,14 @@ def register(key: str, disable: bool = False, use_template: bool = False):
         if project_is_vacant:
             # Create template
             if not use_template:
+                template_config = copy.deepcopy(config)
+                template_config["TERMS"]["ui_title"] = None
                 new_template = {
                     "config": copy.deepcopy(config),
                     "data_options": data_options,
                     "progress": progress,
                     "themes": themes
                 }
-                new_template["config"]["TERMS"][title] = None
                 _write(new_template, templates_folder, f"{file_name}.json", check_existing=True)
             # Streamlit config file
             _write(streamlit_config, streamlit_config_folder, "config.toml", file_type="toml")
@@ -161,24 +167,26 @@ def register(key: str, disable: bool = False, use_template: bool = False):
             _write(bat_content, root, project_bat, file_type="bat")
             icon_path = root / "accessories/icon1.ico"
             root_shortcut = root
-            # Windows shortcuts
-            # os_name = platform.system()
-            # if os_name == "Windows":
-            place = ""
-            try:
-                pythoncom.CoInitialize()
-                place = "On desktop"
-                make_shortcut(
-                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
-                    icon=str(icon_path), desktop=True)
-                place = "In folder"
-                make_shortcut(
-                    str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
-                    icon=str(icon_path), folder=str(root_shortcut))
-            except Exception as e:
-                error = True
-                msg = "Shortcut could not be created."
-                _errors(e, "creating shortcut", place, msg)
+            # Windows hortcuts
+            os_name = platform.system()
+            if os_name == "Windows":
+                place = ""
+                try:
+                    # Required for creating shortcut on Windows while using Path
+                    # without it, it may cause "CoInitialize has not been called"
+                    pythoncom.CoInitialize()
+                    place = "on desktop"
+                    make_shortcut(
+                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                        icon=str(icon_path), desktop=True)
+                    place = "in folder"
+                    make_shortcut(
+                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                        icon=str(icon_path), folder=str(root_shortcut))
+                except Exception as e:
+                    error = True
+                    msg = "Shortcut could not be created."
+                    _errors(e, "creating shortcut", f"creating shortcut {place}", msg)
             st.session_state["registration_complete"] = True
             st.rerun()
 

@@ -191,7 +191,7 @@ class Secretary:
         if reg_name: st.session_state["translated_values"]["reg_name"] = reg_name.strip()
 
         reg_date = st.session_state["reg_date"]
-        if type(reg_date) is str:
+        if isinstance(reg_date, str):
             st.session_state["translated_values"]["reg_date"] = reg_date
         elif not st.session_state["translated_values"]["reg_date"]:
             pass
@@ -233,7 +233,7 @@ class Secretary:
         return data_is_valid, save_button_msg, is_secondary
 
 
-    def checklist(self, data_is_valid) -> list:
+    def checklist(self, data_is_valid: bool) -> list:
         """
         Checks whether all data which must be included in a save is complete.
         - name: object name,
@@ -328,7 +328,8 @@ class Secretary:
             st.markdown(f"Remove from library?")
             st.markdown(f"### {TERMS["event"]} of {name}")
             st.markdown(f"""at 20{removal_date[:2]}-
-                        {removal_date[2:4]}-{removal_date[4:6]}?""")
+                        {removal_date[2:4]}-{removal_date[4:6]}, 
+                        {removal_date[7:9]}:{removal_date[9:11]}:{removal_date[11:13]}?""")
         
         # Confirm/Cancel user interaction
         st.space("xsmall")
@@ -421,7 +422,7 @@ class Secretary:
         edits_successful = False
         if updated_library: 
             edits_successful = True
-        elif type(updated_library) is dict and for_deletion:
+        elif isinstance(updated_library, dict) and for_deletion:
             edits_successful = True
         # Save to file
         if DIAGNOSTICS: updated_library = False

@@ -48,11 +48,14 @@ if not exist requirements.txt (
 )
 
 echo.
+echo Creating virtual environment for modules...
+python -m venv .venv
+
 echo Upgrading pip...
-python -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install --upgrade pip
 
 echo Checking modules...
-python -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -r requirements.txt
 
 if %errorlevel% equ 0 (
     echo.

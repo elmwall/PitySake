@@ -104,8 +104,9 @@ FULL_PATH: {read_file}""")
                     return None
                 else:
                     logger.exception(f"\nFailed to read file {read_file}.")
-                    error.message("Failed to read file.", "Archivist: Reading", 
-                                  name=None, file=read_file, details=None)
+                    error.message("Failed to read file.", "Reading JSON file", 
+                                  name=None, file=read_file, details=[
+                                      f"File to read not found: {read_file}"])
                     return False
             except json.JSONDecodeError:
                 if allow_empty:
@@ -113,13 +114,15 @@ FULL_PATH: {read_file}""")
                     return None
                 else:
                     logger.exception(f"\nFile {read_file} could not be decoded as JSON.")
-                    error.message("File content not be interpreted.", "Archivist: Reading", 
-                                  name=None, file=read_file, details=None)
+                    error.message("Failed to read file.", "Reading JSON file", 
+                                  name=None, file=read_file, details=[
+                                      f"Invalid JSON format of file to read: {read_file}"])
                     return False
             except Exception:
                 logger.exception(f"\nArchivist.reader failed to read json: {read_file}.")
-                error.message("Failed to read file.", f"Archivist: Reading", 
-                              name=None, file=read_file, details=None)
+                error.message("Failed to read file.", f"Reading JSON file", 
+                              name=None, file=read_file, details=[
+                                  f"Unknown error of file to read: {read_file}"])
                 return False
         else:
             try:
@@ -129,18 +132,21 @@ FULL_PATH: {read_file}""")
             except FileNotFoundError:
                 if allow_missing:
                     logger.warning(f"No file to read: {read_file}. Exception allowed.")
-                    error.message("No file to read.", f"Archivist: Reading", 
-                                  name=None, file=read_file, details=None)
+                    error.message("No file to read.", f"Reading file", 
+                                  name=None, file=read_file, details=[
+                                      f"File to read not found: {read_file}"])
                     return None
             except Exception:
                 logger.exception(f"\nFailed to read file {read_file}.")
-                error.message("Failed to read file.", f"Archivist: Reading", 
-                                name=None, file=read_file, details=None)
+                error.message("Failed to read file.", f"Reading file", 
+                                name=None, file=read_file, details=[
+                                    f"Unknown error of file to read: {read_file}"])
                 return False
 
 
-    def backup(self, backup_frequency: list[int], object_type: str, join_path: str | None = None,
-               set_file: str | None = None, empty_allowed: bool = False) -> bool:
+    def backup(self, backup_frequency: list[int], object_type: str, 
+               join_path: str | None = None, set_file: str | None = None, 
+               empty_allowed: bool = False, len_sensitivity: int = 5) -> bool:
         """
         Automated backup in multiple files.
         - performes backup at listed intervals
@@ -153,6 +159,10 @@ FULL_PATH: {read_file}""")
                 in order [seldom, mid, often]
             set_file (str):
                 path/filename for non-self.file backup
+            empty_allowed (bool):
+                regulates response to empty files
+            len_sensitivity (int):
+                regulates trigger threshold for shortened data file warning
 
         Returns:
             (bool):
@@ -177,7 +187,10 @@ FULL_PATH: {read_file}""")
         # Call file containing edit count info for all files
         meta_file = os.path.join(self.data_directory, self.backup_meta)
         edit_meta = self.reader(meta_file)
-        if file in edit_meta.keys():
+        if not edit_meta:
+            edit_meta = dict()
+            file_edit_count = 0
+        elif file in edit_meta.keys():
             file_edit_count = edit_meta[file]
         else:
             file_edit_count = 0 
@@ -234,7 +247,7 @@ backup length: {backup_length}, backup location: {backup_file}""")
         # Compare contents of backup and current data
         if data == "postpone":
             backup_file = False
-        elif backup_length > file_length+5:
+        elif backup_length > file_length + len_sensitivity:
             logger.warning(f"\n{file} backup stopped - data too short.")
             error.catch_backup_data(
                 "tooshort", data, file, backup_file, object_type)
@@ -245,6 +258,7 @@ backup length: {backup_length}, backup location: {backup_file}""")
         if not backup_file:
             return True
         elif confirm_backup:
+            os.makedirs(self.backup_directory, exist_ok=True)
             shutil.copy(file, backup_file)
             logger.info(f"Archivist.backup of {file} in in {backup_file} done.")
             return True
@@ -294,7 +308,7 @@ SETTING: for deletion {for_deletion}, editing-only {for_editing},
 static {is_static}           sorting {need_sorting}""")
 
         data = self.reader(set_file=read_file)
-        if type(data) is dict: 
+        if isinstance(data, dict):
             original_length = len(data) 
         else: 
             original_length = 0
@@ -307,30 +321,36 @@ static {is_static}           sorting {need_sorting}""")
                 new_data = edited_data
                 is_static = for_deletion = True
                 logger.info(f"Pre-save editing of {name} performed")
-            except:
-                logger.exception(f"""\nReplacing '{name}' in {read_file} could not be performed.""")
+            except Exception:
+                msg = f"Replacing '{name}' in {read_file} could not be performed."
+                logger.exception(f"""\n{msg}""")
                 error.message(f"Updating {name} could not be performed.", 
-                              "Archivist: Joining", name=name, file=read_file, details=None)
+                              "Joining edited data before re-writing file: replacing entry.", 
+                              name=name, file=read_file, details=[msg])
 
         if for_deletion:
             try:
                 data.pop(name)
                 logger.info(f"""Archivist.join_data pre-save removal of {name} performed.""")
             except KeyError:
-                logger.exception(f"""\nKey '{name}' not removed, already absent from {read_file}.""")
+                msg = f"Key '{name}' not removed, already absent from {read_file}."
+                logger.exception(f"""\n{msg}""")
                 error.message(f"{name} could not be removed, is already absent.", 
-                              "Archivist: Joining", name=name, file=read_file, details=None)
+                              "Joining edited data before re-writing file: deleting entry.", 
+                              name=name, file=read_file, details=msg)
                 return False
             except TypeError:
                 error.message(
-                    f"Unable to remove {name}.", "Archivist: Joining", 
-                    name=name, file=read_file, details=None)
+                    f"Unable to remove {name}.", "Joining edited data before re-writing file: deleting entry.", 
+                    name=name, file=read_file, details=f"Unable to remove {name}.")
                 return False
             
             if len(data) != original_length-1 and not for_editing: 
-                logger.exception(f"""\nExpected a data length decrease after removing {name}.""")
+                msg = f"Expected a data length decrease after removing {name}."
+                logger.exception(f"""\n{msg}""")
                 error.message(f"Expected a data length decrease in {read_file} not detected.", 
-                              "Archivist: Joining", name=name, file=read_file, details=None)
+                              "Joining edited data before re-writing file: verifying length.", 
+                              name=name, file=read_file, details=msg)
                 return False
             
             if not for_editing:
@@ -348,31 +368,42 @@ static {is_static}           sorting {need_sorting}""")
         # without a deletion registered
         elif len(data) != original_length and is_static and not for_deletion: 
             logger.exception(f"\nData length altered unexpectedly. Update aborted.")
-            error.message(f"Unexpected difference in {read_file} data length, not saved.", 
-                          "Archivist: Joining", name=name, file=read_file, details=None)
+            error.message(f"Save not performed.", 
+                          "Joining edited data before re-writing file: verifying length", 
+                          name=name, file=read_file, details=[
+                              f"Unexpected difference in {read_file} data length",
+                              "While editing existing entry the length should remain the same",
+                              "Check file content"])
             return False
         # Case: add data to a growing library
         else:
             try:
                 data.update(new_data)
             except ValueError:
-                logger.exception(f"\nUnable to update {read_file} with {name}.")
+                logger.exception(f"\nUnable to update with {name}.")
                 error.message(f"Unable to update file with {name}.", 
-                              "Archivist: Joining", name=name, file=read_file, details=None)
+                              "Joining edited data before re-writing file: dictionary update.", 
+                              name=name, file=read_file, details=[
+                                  "Received invalid value", "Check log and file"])
                 return False
             logger.info(f"{name} was added in data for saving in {read_file}")
         if need_sorting: data = dict(sorted(data.items(), key=lambda item:str(item[0])))
 
         # Checking data validity depending on previous action. 
         if name not in data.keys():
-            logger.exception(f"\nFailed to add new data in {read_file} with {name}.")
-            error.message("Failed to add new data.", "Archivist: Joining", 
-                          name=name, file=read_file, details=None)
+            logger.exception(f"\nFailed to add {name}.")
+            error.message("Failed to add new data.", 
+                          "Joining edited data before re-writing file: verifying edit.", 
+                          name=name, file=read_file, details=[
+                              "Tried to add data to file data but failed", "Unknown error"])
             return False
         elif len(data) != original_length+1 and not is_static:
             logger.exception(f"\nExpected data length increase didn't happen in {read_file} with {name}.")
-            error.message("Expected data length increase didn't happen.", 
-                          "Archivist: Joining", name=name, file=read_file, details=None)
+            error.message("Save not performed", 
+                          "Joining edited data before re-writing file: verifying edit.", 
+                          name=name, file=read_file, details=[
+                              "Expected data length increase didn't happen."
+                              "Does the entry already exist?"])
             return False
         else:
             logger.info(f"{name} data joined to {read_file}.")
@@ -401,10 +432,11 @@ static {is_static}           sorting {need_sorting}""")
         save_file = self._resolve_path(join_path, set_file, stage="Writing")[0]
         try:
             length = len(data)
-        except:
+        except Exception:
             logger.exception(f"\nSave in {save_file} with invalid format aborted.")
-            error.message("Save with invalid format aborted.", "Archivist.writer", 
-                          name=None, file=save_file, details=None)
+            error.message("File not saved", "Writing to file", 
+                          name=None, file=save_file, details=[
+                              "Data for writing file could not be read as an iterable"])
 
         try:
             with open(save_file, "w", encoding="utf-8") as f:
@@ -419,13 +451,15 @@ FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
                     "data": data, "object_type": object_type,
                     "self-file": self.file, "set_file": set_file, "join_path": join_path})
             logger.exception(f"\nCould not decode data to save in {save_file}.")
-            error.message("Could not interpret new data for JSON.", "Archivist.writer", 
-                          name=None, file=save_file, details=None)
+            error.message("File not saved", "Writing to file", 
+                          name=None, file=save_file, details=[
+                              "Could not interpret new data as JSON for writing file."])
             return False
-        except Exception as e:
+        except Exception:
             logger.exception(f"\nCould not save to {save_file}.")
             error.message("Could not save data.", "Archivist.writer", 
-                          name=None, file=save_file, details=None)
+                          name=None, file=save_file, details=[
+                              "Could not save data, unknown error."])
             return False
 
 
@@ -450,6 +484,7 @@ FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
         path_is_resolved = True
         if join_path == "data":
             logger.info(f"Path resolve requested with directory {join_path} for {target_file}.")
+            os.makedirs(self.data_directory, exist_ok=True)
             target_file = os.path.join(self.data_directory, target_file)
         elif join_path == "settings":
             logger.info(f"Path resolve requested with directory {join_path} for {target_file}.")
@@ -457,8 +492,9 @@ FILE: {save_file}, DATATYPE: {object_type}, DATA_LENGTH: {length}""")
         elif join_path is not None:
             path_is_resolved = False
             logger.info(f"Invalid value of path indicator 'join_path' for {target_file}.")
-            error.message("Invalid file path for datafile.", f"Archivist: {stage}", 
-                          name=None, file=target_file, details=None)
+            error.message("Invalid path specification for datafile.", f"Archivist: {stage}", 
+                          name=None, file=target_file, details=[
+                              "File paths are indicated as either 'data' or 'settings"])
         elif not join_path:
             logger.info(f"Path resolve requested without directory for {target_file}.")
             path_is_resolved = True

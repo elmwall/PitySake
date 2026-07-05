@@ -16,16 +16,43 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 
-def message(message=None, stage=None, name=None, 
-            file=None, details=None, id=None):
+def message(message: str|None = None, stage: str|None = None, name: str|None = None, 
+            file: str|None = None, details: list|str|None = None, id: str|None = None):
+    """
+    Called upon detected error or exception, 
+    sends information to session state to trigger notification.
+
+    Args:
+        message (str|None):
+            short error message title
+        stage (str|None):
+            when did the error occur
+        name (str|None):
+            name of object the error relates to
+        file (str|None):
+            file for processing related to the error
+        details (list|str|None):
+            additional and more detailed information 
+            which accumulates in case of multiple errors
+        id (str|None):
+            for location of error in log file
+    """
     
-    id = f"{datetime.datetime.now().strftime("%H%M")}-{secrets.token_hex(2)}"
+    if not id:
+        id = f"{datetime.datetime.now().strftime("%H%M")}-{secrets.token_hex(2)}"
     logger.warning(f"""Error {id}: {message}
 stage: {stage}
 file: {file}
 object name: {name}
 details: {details}""")
-
+    
+    error = st.session_state.get("error", {})
+    if error: 
+        info = error.get("info_list", [])
+        if isinstance(info, list) and info: 
+            for x in info:
+                if x not in details: details.append(x)
+            
     st.session_state["error"] = {
         "message": message,
         "stage": stage,
@@ -38,12 +65,13 @@ details: {details}""")
 
 def notify():
     """
-    User notification of error.
+    User notification of error. 
+    Generates a field at dedicated place in UI with details and expandable field.
     """
     error = st.session_state.get("error", None)
     info = str()
     if error:
-        if error.get("stage", None): info += f"Stage: {error["stage"]}:  \n"
+        if error.get("stage", None): info += f"Stage: {error["stage"]}  \n"
         if error.get("name", None): info += f"Name: {error["name"]}  \n"
         if error.get("file", None): info += f"File: {error["file"]}  \n"
 
@@ -52,9 +80,11 @@ def notify():
         with col_2.expander(f"Details - Error ID {error["ID"]}"):
             st.markdown(info)
             if error.get("info_list", None):
-                if type(error["info_list"]) is not list: 
+                if not isinstance(error["info_list"], list): 
                     st.markdown(error["info_list"])
                 else:
+                    st.divider()
+                    st.markdown("All detected issues:")
                     for x in error["info_list"]:
                         st.markdown(f"- {x}")
         message = error.get("message", "An unknown error occurred, check log.")
@@ -70,6 +100,67 @@ def notify():
             st.rerun()
 
 
+def data_check(name_1: str, collection_1: list|dict, file_1: str, 
+               name_2: str, collection_2: list|dict, file_2: str, stage: str|None = None):
+    """
+    Checks 
+    - that data content returns value 
+    - compares lists that they contain same values, for data stored in different files
+    - triggers error notification if conditions not fulfilled
+
+    Args:
+        name_x (str):
+            name of data
+        collection_x (list|dict):
+            data
+        file_x (str): 
+            name of file origin for data
+        stage (str|None):
+            when the check was performed
+    """
+    error = False
+    msg = ""
+    file = None
+    if not collection_1:
+        error = True
+        msg = f"Empty {name_1} data"
+        file = file_1
+    elif not collection_2:
+        error = True
+        msg = f"Empty {name_2} data"
+        file = file_2
+    else:
+        error, msg, file, details = _loop_collections(
+           name_checked=name_2, collection_origin=collection_1, 
+           collection_checked=collection_2, file_checked=file_2)
+        if not error:
+            error, msg, file, details = _loop_collections(
+                name_checked=name_1, collection_origin=collection_2, 
+                collection_checked=collection_1, file_checked=file_1)
+        if error:
+            details.append("Re-add missing options in *Edit options*")
+
+    if error and not st.session_state["error"]:
+        message(message=msg, stage=stage, file=file, details=details)
+    return False if error else True
+
+def _loop_collections(name_checked: str, collection_origin: list, 
+                      collection_checked: list, file_checked: str):
+    "Compares content of one list against another, stores missing values in list."
+    error = False
+    msg = ""
+    file = None
+    if isinstance(collection_origin, list):
+        details = list()
+        for x in collection_origin:
+            if x not in collection_checked:
+                error = True
+                msg = f"Missing {name_checked} data."
+                file = file_checked
+                details.append(f"Missing option: {x}")
+    return error, msg, file, details
+
+
 @st.dialog("Automatic backup: data deviation")
 def pending_backup(arciv):
     """
@@ -77,6 +168,10 @@ def pending_backup(arciv):
     - user notified of potential problems
     - review and/or rescue data
     - continue backup and saving new data
+
+    Args:
+        arciv (Archivist):
+            instance of file manager class
     """
     from app.initialize import arciv, DIRECTORIES, TERMS
 

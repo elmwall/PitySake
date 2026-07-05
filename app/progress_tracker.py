@@ -86,7 +86,15 @@ def progress_meter(component_key: list, sub_keys: list,
             if not len(options) > 0:
                 st.error("Critical option data missing.")
                 return
-            limit = options["source_limit"][category]
+            limit = options["source_limit"].get(category, None)
+            if limit is None:
+                limit = 100
+                if not st.session_state["error"]:
+                    error.message(
+                        message="Options missing data.", stage="Data processing for timeline",
+                        file="settings\\data_options.json", details=[
+                            f"Source limit data needed for highlight generation: {category}",
+                            f"Solution: re-add source '{category}' in *Edit options*"])
             state = progress_data[category]["State"]
             with st.container(key=sub_keys[i]):
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()

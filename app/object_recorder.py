@@ -523,7 +523,7 @@ def _date_input(data_options: dict):
     if regset == "del_event" and options_dates:
         disable_dates = False if reg_name else True
         st.session_state["date_helptext"] = """To delete an event, select from the above dropdown list.  
-            Events are with reference as Date-Time: YYMMDD-HHMMSS"""
+            Events referenced as Date-Time: YYMMDD-HHMMSS"""
         st.selectbox(
             f"Select date", options_dates, key="reg_date", 
             disabled=disable_dates, label_visibility="collapsed")
@@ -583,7 +583,7 @@ def _event_details(preset_options: dict, event_disabled: bool,
     
 
 # _event_details -> 
-def _update_source_progress(data_type: str, data_options, progress_data):
+def _update_source_progress(data_type: str, data_options: dict, progress_data: dict):
     """
     Adjust progress/attempt field
 
@@ -594,6 +594,8 @@ def _update_source_progress(data_type: str, data_options, progress_data):
     Args:
         progress_data (dict):
             data from progress database
+        data_options (dict):
+            project options
         data_type (str):
             identifier for object data type
     """
@@ -619,6 +621,8 @@ def _update_source_progress(data_type: str, data_options, progress_data):
         st.session_state["state_disabled"] = True
 
 
-def _call_edit(data_options):
+def _call_edit(data_options: dict):
+    """Triggers Edit options dialog box, 
+    feature for editing labels, sources, and value settings."""
     st.session_state["reset_edits"] = True
     config.edit_options(data_options)

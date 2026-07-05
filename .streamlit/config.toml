@@ -6,8 +6,8 @@ address = "127.0.0.1"
 gatherUsageStats = false
 
 [theme]
-backgroundColor = '#161616'
-secondaryBackgroundColor = '#3e4646'
-primaryColor = '#2fda1b'
-textColor = '#baffd2'
+backgroundColor = '#000000'
+secondaryBackgroundColor = '#620d5b'
+primaryColor = '#ff00a8'
+textColor = '#00e8ff'
 font = 'sans serif'

@@ -102,6 +102,22 @@ def check_duplicates(value_list, message=True):
         return True
     else:
         return False
+    
+
+def sync_used_terms(collection: dict):
+    for x, y in collection.items():
+        st.session_state["in_use"][x] = y
+
+def check_used_terms(control_values: list):
+    for x, y in control_values.items():
+        if y in st.session_state["in_use"].values():
+            for a, b in st.session_state["in_use"].items():
+                if a == x: 
+                    continue
+                elif b == y:
+                    st.warning(f"You have used the term '{y}' elsewhere.")
+                    return False
+    return True
 
 
 def need_update(changed_page_format: str, is_changed_key: str, 

@@ -49,6 +49,11 @@ def data_loader(target: str, join_path: str):
             error.message(
                 message=msg, stage="Project configuration", 
                 file=f"settings\\config.json", details=details)
+        else:
+            error = st.session_state.get("error", {})
+            details = error.get("info_list", []) + details
+            st.session_state["error"]["info_list"] = details
+        # TODO: test error
         return {}
     
     logger.info(f"Forwarding file request: {target} in {join_path}")
@@ -56,7 +61,7 @@ def data_loader(target: str, join_path: str):
     if database:
         return arciv.reader(datafile, join_path)
     else:
-        if type(database) is dict: 
+        if isinstance(database, dict): 
             logger.warning("Empty database returned from file_manager.Archivist.")
         else:
             logger.error("No database returned from file_manager.Archivist.")
@@ -113,14 +118,14 @@ def load_themes() -> dict:
 
 
 @st.cache_data
-def process_main_db(database):
+def process_main_db(database: dict):
     "Cache processed database for main type object."
     if not st.session_state.get("initated", False):
         logger.info(f"Loading processed main data cache.")
     return _process_collection_db(database, "main")
 
 @st.cache_data
-def process_secondary_db(database):
+def process_secondary_db(database: dict):
     "Cache processed database for secondary type object."
     if not st.session_state.get("initated", False):
         logger.info(f"Loading processed secondary data cache.")
@@ -271,7 +276,15 @@ def _process_collection_db(database: dict, datatype: str):
 
                 high_threshold = high_highlight / 100
                 low_threshold = low_highlight / 100
-                limit = source_limit[source]
+                limit = source_limit.get(source, None)
+                if limit is None:
+                    limit = 100
+                    if not st.session_state["error"]:
+                        error.message(
+                            message="Missing options data.", stage="Data processing for timeline",
+                            file="settings\\data_options.json", details=[
+                                f"Missing source limit data needed for highlight generation: {source}",
+                                f"Solution: re-add source '{source}' in *Edit options*"])
                 relative = attempt_value / limit
                 if relative > high_threshold:
                     graph_data["highlight"].append(True)

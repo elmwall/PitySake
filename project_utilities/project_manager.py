@@ -71,6 +71,7 @@ def welcome(set_width: int):
         button_format_key = "project_need_save"
         is_changed_key = "project_is_changed"
         submission = _define_project(col_2, button_format_key, is_changed_key)
+        tools.sync_used_terms(submission)
         # Apply & reset buttons
         with col_apply:
             if not submission["template"]:

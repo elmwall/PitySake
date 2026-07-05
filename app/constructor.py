@@ -32,7 +32,6 @@ WIDTH_RIGTH_2 = WIDTH_TOT_RIGHT - WIDTH_MID_2
 
 logger = logging.getLogger(__name__)
 
-
 def header():
     """
     Header builder 
@@ -85,7 +84,6 @@ def header():
                 leave_theme_open = st.session_state["leave_theme_open"]
                 if not leave_theme_open:
                     st.session_state["show_theme_settings"] = False
-
                 # Theme button
                 if st.button("Theme", type="secondary", disabled=st.session_state["theme_missing"]):
                     st.session_state["show_theme_settings"] = True

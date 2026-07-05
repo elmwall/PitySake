@@ -118,7 +118,7 @@ def _name_events(button_format_key: str, is_changed_key: str) -> dict:
     with col_2.container(border=True, height="stretch"):
         st.markdown("##### Value and event terms", text_alignment="center")
         st.markdown("")
-        st.text_input(
+        value = st.text_input(
             "Value", 
             key= "attempt", 
             help="""A name for the value you track for objects,  
@@ -126,7 +126,7 @@ def _name_events(button_format_key: str, is_changed_key: str) -> dict:
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             placeholder="Exercises / Length / Value")
-        st.text_input(
+        source = st.text_input(
             """Event source, as in  
             'I achieved this in a ...'  
             'I received this from a ...'  
@@ -138,6 +138,15 @@ def _name_events(button_format_key: str, is_changed_key: str) -> dict:
             args=(button_format_key, is_changed_key), 
             placeholder="Learning track / Workout program / Collection")
         
+        no_repeats = False
+        if value and source: 
+            terms = {
+                "value": value, 
+                "source": source
+            }
+            no_repeats = tools.check_used_terms(terms)
+            if no_repeats: tools.sync_used_terms(terms)
+        
     # - Outcome terms
     with col_3.container(border=True, height="stretch"):
         st.markdown("##### Outcome evaluations terms", text_alignment="center")
@@ -146,7 +155,7 @@ def _name_events(button_format_key: str, is_changed_key: str) -> dict:
             A result neither positive or negative, or that is already determined.  
             This will not give any highlighted indication in your timeline.
         """
-        st.text_input(
+        neutral = st.text_input(
             "Neutral outcome", 
             key="state_det", 
             help=neu_help,
@@ -157,7 +166,7 @@ def _name_events(button_format_key: str, is_changed_key: str) -> dict:
         pos_help = """
             A positive result, will have a positive highlight in your timeline.
         """
-        st.text_input(
+        positive = st.text_input(
             "Positive outcome", 
             key="state_win", 
             help=pos_help, 
@@ -168,14 +177,23 @@ def _name_events(button_format_key: str, is_changed_key: str) -> dict:
         neg_help = """
             A negative result, will have a negative highlight in your timeline.
         """
-        st.text_input(
+        negative = st.text_input(
             "Negative outcome", 
             key="state_loss", 
             help=neg_help, 
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             placeholder="Hard / Fail / Low value")
-    
+        
+        if neutral and positive and negative: 
+            outcomes = {
+                "neutral": neutral, 
+                "positive": positive, 
+                "negative": negative
+            }
+            no_repeats = tools.check_used_terms(outcomes)
+            if no_repeats: tools.sync_used_terms(outcomes)
+
     # Word validation
     validated = dict()
     ref = {
@@ -202,6 +220,7 @@ def _name_events(button_format_key: str, is_changed_key: str) -> dict:
         validated["state_det"],
         validated["state_win"],
         validated["state_loss"],
+        no_repeats
     ]
 
     return  {

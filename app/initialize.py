@@ -29,11 +29,11 @@ import app.data_access as hold
 import app.error_handler as error
 
 
-meta = st.session_state["meta"] = arciv.reader("meta.json")
+# meta = st.session_state["meta"] = arciv.reader("meta.json")
 # Keys requiring initial values or simply existing
 INIT_STATE = {
     # Main
-    "error": False,
+    # "error": False,
     "pending_backup": False,
     "pending_save": False,
     # Constructor
@@ -120,6 +120,13 @@ def initialize():
         st.session_state["cleared_cache"] = False
     if "rerun" not in st.session_state: 
         st.session_state["rerun"] = 0
+    if "error" not in st.session_state:
+        st.session_state["error"] = False
+    if "meta" not in st.session_state:
+        meta = st.session_state["meta"] = arciv.reader("meta.json")
+    else:
+        meta = st.session_state["meta"]
+    st.session_state["vertical_view"] = meta["vertical_view"]
 
     # Cache databases and collect the needed 
     options = hold.load_options()
@@ -141,16 +148,24 @@ def initialize():
     limit_disabled, state_disabled = [True]*2
     source = None
     if options and progress_data:
-        source_limit = options["source_limit"]
+        source_limit = options.get("source_limit", {})
         source_options = list(source_limit.keys())
+        progress_options = list(progress_data.keys())
+        files_match = error.data_check(
+            name_1="options", collection_1=source_options, 
+            file_1=f"{DIRECTORIES["SettingsFolder"]}\\{SETTINGS["Options"]}",
+            name_2="progress", collection_2=progress_options,
+            file_2=f"{DIRECTORIES["DataFolder"]}\\{DATAPATH["progress"]}",
+            stage="Initialize: data check")
         states = options["results"][0]
-        source = source_options[0]
-        limit_disabled = source_limit[source_options[0]] is False
-        state_disabled = options["states"][source_options[0]] is False
-        limit = source_limit[source_options[0]]
-        attempt = progress_data[source_options[0]][TERMS["attempt"]]
+        if files_match:
+            source = source_options[0]
+            limit_disabled = source_limit[source_options[0]] is False
+            state_disabled = options["states"][source_options[0]] is False
+            limit = source_limit[source_options[0]]
+            attempt = progress_data[source_options[0]][TERMS["attempt"]]
         n = 0
-        for x in progress_data.keys():
+        for x in progress_options:
             if progress_data[x]["active"]: 
                 active_trackers[x] = n
                 if progress_data[x][TERMS["attempt"]] is not None:
@@ -193,8 +208,9 @@ def initialize():
                 elif state is not None:
                     st.session_state[key] = state
             except Exception as e:
-                error.message("Could not initialize key.", "Initialize: initialize", 
-                                name=key, file=None, details=None)
+                error.message("Could not initialize key.", "Initialize session states", 
+                                name=key, file=None, details=[
+                                    f"Imported: {state == "state_import"}"])
                 logger.exception(f"\ninitialize could not initialize key: {key}")
     
     # Initialize theme setting keys
@@ -224,10 +240,10 @@ Current session theme: {active_theme}""")
             _settings_correction(themes[active_theme], meta, missing=True)
     else:
         _settings_correction(themes[active_theme], meta, missing=True)
-    st.session_state["vertical_view"] = meta["vertical_view"]
         
     # Follow up backups from prior activity
     if st.session_state["pending_backup"]: error.pending_backup(arciv)
+    
     
 
 def fetch_databases():
@@ -252,7 +268,7 @@ def fetch_databases():
                 hold.load_secondary_database(),
                 hold.load_progress_data()]:
             logger.info(f"Fetching database {n}: {database_list[n]}")
-            if not database and type(database) is not dict:
+            if not database and not isinstance(database, dict):
                 done = False
                 problematic.add(database_list[n])
                 logger.warning(f"\nFailed to read database {n}: {database_list[n]}")
@@ -266,11 +282,11 @@ def fetch_databases():
             st.rerun()
         else:
             logger.exception(f"\nFailed to read database(s): {problematic}")
-            error.message("Failed to read database(s).", "Initialize: fetch", 
+            error.message("Failed to read database(s).", "Fetching databases", 
                             name=None, file=None, details=problematic)
     except Exception:
         logger.exception(f"\nFailed to collect database at stage: {database_list[n]}")
-        error.message("Failed to collect database.", "Initialize: fetch", 
+        error.message("Failed to collect database.", "Fetching databases", 
                         name=database_list[n], file=None, details=None)
 
 
@@ -299,8 +315,18 @@ def refresh():
     st.rerun()
 
 
-def _settings_correction(active_theme_settings, meta, missing=False):
-    "Adjusts config file settings to match project settings."
+def _settings_correction(active_theme_settings: dict, meta: dict, missing: bool = False):
+    """
+    Adjusts config file settings to match project settings.
+
+    Args:
+        active_theme_settings (dict)
+            contains color codes and settings for active theme
+        meta (dict)
+            information about last session, for update
+        missing (bool)
+            regulator for missing theme settings
+    """
 
     config = f"""
 [server]
@@ -340,7 +366,7 @@ def set_orientation():
     arciv.writer(meta, set_file="meta.json")
 
 
-def _load_placeholder_theme(active_theme):
+def _load_placeholder_theme(active_theme: str):
     "In case of missing theme file, these settings are used to create a functional theme."
     for key in ["background", "highlight_text"]:
         if key not in st.session_state:
@@ -361,7 +387,7 @@ def _load_placeholder_theme(active_theme):
             _load_color("text_color", active_theme, "#ffffff")
             _load_color("header_switch", active_theme, True)
 
-def _load_color(key, active_theme, color):
+def _load_color(key: str, active_theme: str, color: str):
     "Sync theme settings with session state."
     st.session_state[key] = st.session_state[f"{key}_temp"] = color
     st.session_state["themes"][active_theme][key] = color
