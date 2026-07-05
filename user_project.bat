@@ -1,3 +1,3 @@
 @echo off
-streamlit run user_project.py
+.venv\Scripts\python.exe -m streamlit run user_project.py
 pause

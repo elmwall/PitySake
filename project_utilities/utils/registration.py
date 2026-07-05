@@ -16,6 +16,7 @@ Actions
 
 import copy
 import json
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -172,16 +173,19 @@ def register(key: str, disable: bool = False, use_template: bool = False):
             if os_name == "Windows":
                 place = ""
                 try:
+                    target_terminal = os.environ.get("COMSPEC", "cmd.exe")
+                    terminal_path = Path(target_terminal)
+                    project_args = f'{terminal_path} /k "{project_bat}"'
                     # Required for creating shortcut on Windows while using Path
                     # without it, it may cause "CoInitialize has not been called"
                     pythoncom.CoInitialize()
                     place = "on desktop"
                     make_shortcut(
-                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                        str(project_args), name=f"{title}.lnk", working_dir=str(root), 
                         icon=str(icon_path), desktop=True)
                     place = "in folder"
                     make_shortcut(
-                        str(project_bat), name=f"{title}.lnk", working_dir=str(root), 
+                        str(project_args), name=f"{title}.lnk", working_dir=str(root), 
                         icon=str(icon_path), folder=str(root_shortcut))
                 except Exception as e:
                     error = True
@@ -432,7 +436,7 @@ textColor = '#00e8ff'
 font = 'sans serif'"""
 
 
-def _bat(name: str):
+def _bat(name: str, dev: bool = False):
     """
     Compiles shortcut script batch file.
 
@@ -444,10 +448,16 @@ def _bat(name: str):
         (str):
             text ready for save as {name}.bat
     """
+    if dev:
+        prefix = ""
+    else:
+        prefix = ".venv\Scripts\python.exe -m "
+    
     return f"""@echo off
-streamlit run {name}.py
+{prefix}streamlit run {name}.py
 pause
 """
+
 
 
 def _collect_template(template: str) -> dict|bool:

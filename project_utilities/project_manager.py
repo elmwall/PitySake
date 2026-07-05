@@ -150,8 +150,10 @@ def _define_project(col, button_format_key: str, is_changed_key: str) -> dict:
     col.markdown("""Select template setup from previously installed projects   
                  – skips further customization steps.""")
     template_path = root / "templates"
-    template_files = [x.name for x in Path(template_path).iterdir() if x.is_file()]
-    templates = [None,] + template_files
+    templates = [None,] 
+    if template_path.is_dir():
+        template_files = [x.name for x in Path(template_path).iterdir() if x.is_file()]
+        templates += template_files
     # Selecting template sends info directly to submission
     # Clearing template clears submission - Save button then required to submit title
     selected_template = col.selectbox(
