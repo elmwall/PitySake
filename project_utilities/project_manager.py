@@ -270,7 +270,7 @@ if st.session_state["initialized"]:
             define_event_limits(init.SET_WIDTH)
         elif st.session_state["page"] == 5:
             finalize(init.SET_WIDTH)
-    tools.dev_tools(True)
+    # tools.dev_tools(True)
 
 
 

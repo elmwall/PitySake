@@ -2,7 +2,7 @@
 App initialization
 
 Manages:
-- Ordered system startup session state initialization
+- Ordered system startup session state initialization  
 - Directs database and settings cache
 - System resets
 """
@@ -10,6 +10,7 @@ Manages:
 import copy
 import datetime
 import logging
+import os
 
 import streamlit as st
 
@@ -24,7 +25,13 @@ DATAPATH = project_info[0]
 DIRECTORIES = project_info[1]
 SETTINGS = project_info[2]
 TERMS = project_info[3]
+
 arciv = Archivist(DIRECTORIES, DATAPATH, "nofile")
+toml_path = os.path.join(".streamlit", "config.toml")
+toml_arciv = Archivist(
+    DIRECTORIES={"DataFolder": None, "SettingsFolder": None, "BackupFolder": None}, 
+    DATAPATH={"backup_meta": None}, 
+    file= toml_path)
 import app.data_access as hold
 import app.error_handler as error
 
@@ -85,8 +92,8 @@ INIT_STATE = {
     "reset_edits": False,
     "field_changed": False,
     # Style
-    "active_theme": "state_import",
-    "active_theme_temp": "state_import",
+    # "active_theme": "state_import",
+    # "active_theme_temp": "state_import",
     "leave_theme_open": False,
     "theme_edited": 0,
     "theme_missing": False,
@@ -126,7 +133,8 @@ def initialize():
         meta = st.session_state["meta"] = arciv.reader("meta.json")
     else:
         meta = st.session_state["meta"]
-    st.session_state["vertical_view"] = meta["vertical_view"]
+    if "vertical_view" not in st.session_state:
+        st.session_state["vertical_view"] = meta["vertical_view"]
 
     # Cache databases and collect the needed 
     options = hold.load_options()
@@ -137,7 +145,7 @@ def initialize():
         themes = st.session_state["themes"] = hold.load_themes()
     else:
         themes = st.session_state["themes"]
-    active_theme = themes["active"]
+    active_theme = st.session_state["active_theme"] = themes["active"]
 
     # Special case: define values from external sources 
     # For source and progress values, import value for first source in list
@@ -156,7 +164,7 @@ def initialize():
             file_1=f"{DIRECTORIES["SettingsFolder"]}\\{SETTINGS["Options"]}",
             name_2="progress", collection_2=progress_options,
             file_2=f"{DIRECTORIES["DataFolder"]}\\{DATAPATH["progress"]}",
-            stage="Initialize: data check")
+            stage="Initialize, data check")
         states = options["results"][0]
         if files_match:
             source = source_options[0]
@@ -185,9 +193,6 @@ def initialize():
         "reg_type": TERMS["main"],
         "reg_attempt": attempt,
         "selection_limit": limit,
-        # Style
-        "active_theme": active_theme,
-        "active_theme_temp": active_theme,
         # Progress tracker
         "active_trackers": active_trackers,
         "value_trackers": value_trackers}
@@ -208,10 +213,9 @@ def initialize():
                 elif state is not None:
                     st.session_state[key] = state
             except Exception as e:
-                error.message("Could not initialize key.", "Initialize session states", 
-                                name=key, file=None, details=[
-                                    f"Imported: {state == "state_import"}"])
-                logger.exception(f"\ninitialize could not initialize key: {key}")
+                error.message("Could not initialize key.", "Initialize session states", name=key, 
+                              file=None, details=[f"Imported: {state == "state_import"}"])
+                logger.exception(f"Initialization error:\n    Initialize could not initialize key: {key}")
     
     # Initialize theme setting keys
     if active_theme != "placeholder":
@@ -220,26 +224,29 @@ def initialize():
                 st.session_state[key] = themes[active_theme][key]
                 st.session_state[f"{key}_temp"] = themes[active_theme][key]
     else:
-        _load_placeholder_theme(active_theme)
+        try:
+            themes = st.session_state["themes"] = hold.load_themes()
+            active_theme = themes["active"]
+            _load_theme(active_theme, themes[active_theme])
+        except Exception:
+            logger.exception("Could not load theme")
+            _load_theme("placeholder")
     
-    # Correct view settings dependent on last project active
+    # Correct view settings dependent on last project active 
     # Settings in .strealit/config.toml (currently only themes) requires this check
-    logger.info(f"""
-Last session project: {meta["project"]}
-Current session project: {st.session_state["project"]}
-Last session theme: {meta["theme"]}
-Current session theme: {active_theme}""")
+    _log_session(meta, active_theme)
+
     # Themes are stored as Theme 1, Theme 2 etc, which themselves may differ
     # between projects, therefore check both project and set theme.
     project_nomatch = meta["project"] != st.session_state["project"]
     theme_nomatch = meta["theme"] != active_theme
     if project_nomatch or theme_nomatch:
         if themes and active_theme and not st.session_state["theme_missing"]: 
-            _settings_correction(themes[active_theme], meta)
+            _settings_correction(themes, active_theme, meta)
         else: 
-            _settings_correction(themes[active_theme], meta, missing=True)
+            _settings_correction(themes, active_theme, meta, missing=True)
     else:
-        _settings_correction(themes[active_theme], meta, missing=True)
+        _settings_correction(themes, active_theme, meta, missing=True)
         
     # Follow up backups from prior activity
     if st.session_state["pending_backup"]: error.pending_backup(arciv)
@@ -285,9 +292,16 @@ def fetch_databases():
             error.message("Failed to read database(s).", "Fetching databases", 
                             name=None, file=None, details=problematic)
     except Exception:
-        logger.exception(f"\nFailed to collect database at stage: {database_list[n]}")
+        logger.exception(f"Fetching error:\n    Failed to collect database at stage: {database_list[n]}")
         error.message("Failed to collect database.", "Fetching databases", 
                         name=database_list[n], file=None, details=None)
+        
+def _log_session(meta, active_theme):
+    logger.info(f"""Checking project/theme:
+    Last session project: {meta.get("project", "Unavailable")}
+    Current session project: {st.session_state.get("project", "Unavailable")}
+    Last session theme: {meta.get("theme", "Unavailable")}
+    Current session theme: {active_theme}""")
 
 
 def refresh():
@@ -315,7 +329,7 @@ def refresh():
     st.rerun()
 
 
-def _settings_correction(active_theme_settings: dict, meta: dict, missing: bool = False):
+def _settings_correction(themes: dict, active_theme: str, meta: dict, missing: bool = False):
     """
     Adjusts config file settings to match project settings.
 
@@ -327,7 +341,7 @@ def _settings_correction(active_theme_settings: dict, meta: dict, missing: bool 
         missing (bool)
             regulator for missing theme settings
     """
-
+    active_theme_settings = themes[active_theme]
     config = f"""
 [server]
 runOnSave = true
@@ -343,19 +357,14 @@ primaryColor = '{active_theme_settings["highlights"]}'
 textColor = '{active_theme_settings["text_color"]}'
 font = 'sans serif'
 """
-    
-    theme_updated = False
-    # Write new toml
-    try:
-        with open(".streamlit/config.toml", "w") as f:
-            f.write(config.strip())
-            theme_updated = True
-    except Exception as e:
-        logger.exception(f"\nError: {e} \nOccurred while attempting to write to config.toml")
-    if theme_updated and not missing:
+    if not missing:
         meta["project"] = st.session_state["project"]
         meta["theme"] = st.session_state["active_theme"]
-        arciv.writer(meta, set_file="meta.json")
+        if arciv.backup(
+                [101, 47, 19, 7, 3], "theme", join_path="settings",
+                set_file=SETTINGS["Themes"], empty_allowed=False):
+            arciv.writer(meta, set_file="meta.json")
+        toml_arciv.writer(config.strip(), not_json=True, format="TOML")
         logger.info("Theme corrected")
 
 
@@ -366,26 +375,30 @@ def set_orientation():
     arciv.writer(meta, set_file="meta.json")
 
 
-def _load_placeholder_theme(active_theme: str):
+def _load_theme(active_theme: str, theme: dict|None = None):
     "In case of missing theme file, these settings are used to create a functional theme."
-    for key in ["background", "highlight_text"]:
-        if key not in st.session_state:
-            st.session_state[key] = "#000000"
-            st.session_state["themes"][active_theme][key] = "#000000"
-            st.session_state[f"{key}_temp"] = "#000000"
-            st.session_state["themes"][active_theme][f"{key}_temp"] = "#000000"
-        if "highlights" not in st.session_state: 
-            _load_color("main_container", active_theme, "#333333")
-            _load_color("main_gradient", active_theme, "#1D1D1D")
-            _load_color("sub_container", active_theme, "#2B2B2B")
-            _load_color("small_widget", active_theme, "#313131")
-            _load_color("highlights", active_theme, "#ffa600")
-            _load_color("positive_color", active_theme, "#00ff00")
-            _load_color("negative_color", active_theme, "#ff0000")
-            _load_color("neutral_color", active_theme, "#adadad")
-            _load_color("input_field", active_theme, "#adadad")
-            _load_color("text_color", active_theme, "#ffffff")
-            _load_color("header_switch", active_theme, True)
+    if theme:
+        for key in theme:
+            _load_color(key, active_theme, theme[key])
+    else:
+        for key in ["background", "highlight_text"]:
+            if key not in st.session_state:
+                st.session_state[key] = "#000000"
+                st.session_state["themes"][active_theme][key] = "#000000"
+                st.session_state[f"{key}_temp"] = "#000000"
+                st.session_state["themes"][active_theme][f"{key}_temp"] = "#000000"
+            if "highlights" not in st.session_state: 
+                _load_color("main_container", active_theme, "#333333")
+                _load_color("main_gradient", active_theme, "#1D1D1D")
+                _load_color("sub_container", active_theme, "#2B2B2B")
+                _load_color("small_widget", active_theme, "#313131")
+                _load_color("highlights", active_theme, "#ffa600")
+                _load_color("positive_color", active_theme, "#00ff00")
+                _load_color("negative_color", active_theme, "#ff0000")
+                _load_color("neutral_color", active_theme, "#adadad")
+                _load_color("input_field", active_theme, "#adadad")
+                _load_color("text_color", active_theme, "#ffffff")
+                _load_color("header_switch", active_theme, True)
 
 def _load_color(key: str, active_theme: str, color: str):
     "Sync theme settings with session state."

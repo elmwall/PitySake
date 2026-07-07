@@ -37,23 +37,24 @@ def data_loader(target: str, join_path: str):
         join_path (str):
             file directory
     """
+    logger.info(f"Running for {target}")
     paths = DATAPATH if join_path == "data" else SETTINGS
     datafile = paths.get(target, False)
     if datafile is False:
         msg = "Collecting file path failed."
         paths_name = "DATAPATH" if join_path == "data" else "SETTINGS"
         details = [f"File path for '{target}' in '{paths_name}' could not be retrieved.",
-                   f"{paths_name} content: {paths}"]
-        logger.error(details)
+                   f"Info, {paths_name} content: {paths}"]
+        logger.error(f"Data loading error:\n    {details[0]}\n    {details[1]}")
         if not "error" in st.session_state:
             error.message(
                 message=msg, stage="Project configuration", 
-                file=f"settings\\config.json", details=details)
+                file=f"settings\\config.json", details=details,
+                advice="Check project main file and configuration file.")
         else:
             error = st.session_state.get("error", {})
             details = error.get("info_list", []) + details
             st.session_state["error"]["info_list"] = details
-        # TODO: test error
         return {}
     
     logger.info(f"Forwarding file request: {target} in {join_path}")
@@ -64,7 +65,7 @@ def data_loader(target: str, join_path: str):
         if isinstance(database, dict): 
             logger.warning("Empty database returned from file_manager.Archivist.")
         else:
-            logger.error("No database returned from file_manager.Archivist.")
+            logger.error("Data loading warning:\n    No database returned from file_manager.Archivist.")
         return {}
 
 
@@ -155,6 +156,7 @@ def _process_collection_db(database: dict, datatype: str):
             graph_data (dict): data for timeline  
             attempt_title: term for attempt (value) for view  
     """
+    logger.info(f"Running for {datatype}")
     data_options = load_options()
     graph_data = {
         "name": [],
@@ -281,10 +283,11 @@ def _process_collection_db(database: dict, datatype: str):
                     limit = 100
                     if not st.session_state["error"]:
                         error.message(
-                            message="Missing options data.", stage="Data processing for timeline",
-                            file="settings\\data_options.json", details=[
-                                f"Missing source limit data needed for highlight generation: {source}",
-                                f"Solution: re-add source '{source}' in *Edit options*"])
+                            message="Missing options data.", 
+                            stage="Data processing for timeline",
+                            file="settings\\data_options.json", 
+                            details=[f"Missing source limit data needed for highlight generation: {source}"],
+                            advice="Missing source data: re-add listed sources in *Edit options*.")
                 relative = attempt_value / limit
                 if relative > high_threshold:
                     graph_data["highlight"].append(True)

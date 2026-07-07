@@ -195,8 +195,6 @@ def _update_event_choice():
     "Syncs control value for adding event to session state."
     if st.session_state["regset"] not in ["add_new", "add_event"]:
         st.session_state["include_event"] = False
-    else:
-        st.session_state["include_event"] = True
 
 
 def _naming_object(secretary: Secretary, reg_selection: str):
@@ -346,7 +344,7 @@ def _save_data(secretary: Secretary, preset_keys: list,
             session state keys for all required values
         reg_setting (str):
             settings for saving
-        reg_selection (str):
+        reg_selection (str): 
             action to be performed
     """
     # 1. Check data 
@@ -373,7 +371,8 @@ def _save_data(secretary: Secretary, preset_keys: list,
     if new_data and object_type: 
         if regset == "edit_entry":
             secretary.rename(
-                name, object_type, new_data, reg_setting, highlight_html)
+                name, object_type, new_data, reg_setting, 
+                current_database, highlight_html)
         else:
             # Update (with confirmation required for deletion)
             if regset in ["del_entry", "del_event"]:
@@ -449,7 +448,6 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
                 state_ref: translated_values["reg_state"]
             }
         st.html(highlight_html.replace("KEY_REF", "save"))
-
         # Save button
         data_is_collected = st.button(
             f"{save_button_msg}", 
@@ -520,8 +518,11 @@ def _date_input(data_options: dict):
     date_max = datetime.date.today()
     disable_dates = False
     # Option "Delete event" sets the list options as previous event dates
-    if regset == "del_event" and options_dates:
-        disable_dates = False if reg_name else True
+    if regset == "del_event":
+        if reg_name and options_dates:
+            disable_dates = False 
+        else:
+            disable_dates = True
         st.session_state["date_helptext"] = """To delete an event, select from the above dropdown list.  
             Events referenced as Date-Time: YYMMDD-HHMMSS"""
         st.selectbox(
@@ -555,7 +556,7 @@ def _event_details(preset_options: dict, event_disabled: bool,
         options_dates (list):
             previous events for object
     """
-    # Source selector 
+    # Source selector
     st.selectbox(
         f"{source_ref}", options=preset_options["options_source"], 
         index=0, key="reg_source", help=st.session_state["date_helptext"], 

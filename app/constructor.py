@@ -121,6 +121,7 @@ def horizontal_view(registration_keys: list, prog_meter_keys: list,
         prog_meter_keys (list): 
             keys for object progress tracker settings
     """
+    logger.info("Running")
     if not st.session_state.get("initated", False):
         logger.info(f"Building horizontal view.")
 
@@ -195,6 +196,7 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
         prog_meter_keys (list): 
             keys for object progress tracker settings
     """
+    logger.info("Running")
     if not st.session_state.get("initated", False):
         logger.info(f"Building vertical view.")
 

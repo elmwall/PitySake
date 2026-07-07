@@ -213,7 +213,7 @@ def theme():
     - session state temp keys are copied from original keys in contructor for editing
     - edited temp session state values are written to original keys when applied
     """
-    from app.initialize import arciv
+    from app.initialize import arciv, toml_arciv
     st.session_state["dialog_active"] = True
     logger.info("Opened theme dialog")
 
@@ -304,11 +304,7 @@ font = 'sans serif'
             for x in themes[selected_theme].keys():
                 st.session_state[x] = st.session_state[f"{x}_temp"]
             st.session_state["theme_edited"] = time.perf_counter()
-            try:
-                with open(".streamlit/config.toml", "w") as f:
-                    f.write(config.strip())
-            except Exception as e:
-                logger.exception(f"\nError: {e}\nOccurred while attempting to write to config.toml")
+            toml_arciv.writer(config.strip(), not_json=True, format="TOML")
             logger.info(f"Update called for ui_themes.json")
             if arciv.backup(
                     [47, 19, 7, 5, 3], "theme", join_path="settings", 

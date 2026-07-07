@@ -2,7 +2,7 @@
 Assistant functionality for object registration
 
 Secretary (class):
-- Collect database and retrieve info about object
+- Collect database and retrieve info about object 
 - User input
 - Direct backup and save of data to file
 """
@@ -60,12 +60,12 @@ class Secretary:
                 selectable_options (dict): lists of options for all widgets
                 registration_options (dict): sets keys and bools for add/delete/edit info
                 required_keys (list): required data for compiling
-        """
+        """ 
         try:
             options_object = list(st.session_state["current_database"].keys())
         except:
             options_object = list(hold.load_main_database().keys())
-            
+
         if self.options:
             preset_options = {
                 "options_utility": self.options[self.main_ref][self.utility_ref],
@@ -110,7 +110,7 @@ class Secretary:
             },
             "edit_entry": {
                 "reg_key": "Edit details",
-                "is_static": False,
+                "is_static": True,
                 "for_deletion": False,
                 "for_renaming": True
             },
@@ -188,7 +188,10 @@ class Secretary:
 
         # Remove leading/trailing whitespaces from name
         reg_name = st.session_state["reg_name"]
-        if reg_name: st.session_state["translated_values"]["reg_name"] = reg_name.strip()
+        name_invalid = False
+        if reg_name: 
+            st.session_state["translated_values"]["reg_name"] = reg_name.strip()
+            name_invalid = self.symbol_validation(reg_name.strip())
 
         reg_date = st.session_state["reg_date"]
         if isinstance(reg_date, str):
@@ -209,11 +212,14 @@ class Secretary:
         else:
             st.session_state["translated_values"]["reg_state"] = None
             st.session_state["translated_values"]["reg_attempt"] = None
-
+        
         # "Already in library" 
         # - to avoid losing data, prevent adding same object more than once
         if reg_selection == "add_new" and object_in_library:
             data_is_valid, save_button_msg = False, "Already exists"
+            print(data_is_valid)
+        elif name_invalid:
+            data_is_valid, save_button_msg = False, name_invalid
         # "Delete object"
         elif reg_selection == "del_entry":
             data_is_valid, save_button_msg = True, f"Delete object"
@@ -229,7 +235,6 @@ class Secretary:
             data_is_valid, save_button_msg = True, "Save"
         # Main type of object or utilitarian object
         is_secondary = st.session_state["translated_values"]["reg_object_type"] == self.secondary_ref
-
         return data_is_valid, save_button_msg, is_secondary
 
 
@@ -259,7 +264,7 @@ class Secretary:
         if data_is_valid:
             # Secondary object has attribute and origin labels disabled
             disable_extras = translated_values.get("reg_object_type", None) == self.secondary_ref
-            
+            include_event = st.session_state["include_event"]
             # Completion checks
             # Name
             if translated_values.get("reg_name", None): 
@@ -284,19 +289,24 @@ class Secretary:
             reg_source = translated_values.get("reg_source", None)
             reg_state = translated_values.get("reg_state", None)
             if not reg_source:
-                if not st.session_state["include_event"]: 
+                if not include_event: 
                     data_checks["source_done"] = True
             else:
                 data_checks["source_done"] = True
-            data_checks["state_done"] = False
-            data_checks["attempt_done"] = False
+            
+            if include_event:
+                data_checks["state_done"] = False
+                data_checks["attempt_done"] = False
+            else:
+                data_checks["state_done"] = True
+                data_checks["attempt_done"] = True
             # State and limit can be excluded if states or values, respectively, are disabled for source
             # of if include event is not enabled by user
             if self.options and reg_source:
                 # State
                 if not reg_state:
                     if any([not self.options["states"][reg_source], 
-                            not st.session_state["include_event"]]): 
+                            not include_event]): 
                         data_checks["state_done"] = True
                 else:
                     data_checks["state_done"] = True
@@ -304,12 +314,55 @@ class Secretary:
                 # Limit
                 if translated_values["reg_attempt"] is None:
                     if any([not self.options["source_limit"][reg_source],
-                            not st.session_state["include_event"]]): 
+                            not include_event]): 
                         data_checks["attempt_done"] = True
                 else:
                     data_checks["attempt_done"] = True
 
         return list(data_checks.values())
+    
+
+    def symbol_validation(self, word: str, strict: bool = False) -> str|bool:
+        """
+        Validation of format of input text
+
+        Args:
+            word (str):
+                value collected from text input field
+            strict (bool):
+                True for sensitive values (file names)
+
+        Returns:
+            (tuple):
+                msg (str|bool):
+                    tool tip message and regulator for save button
+        """
+        msg = False
+        if word:
+            if not strict:
+                valid_symbols = (
+                    "-", " ", "_", "–", "—", "'", '"', "&", ".", "*", "!", "?", "%", "§",
+                    "(", ")", "[", "]", "{", "}", "/", "+", "<", ">", "@", "#", "=")
+                invalid_first = (" ")
+            else:
+                valid_symbols = ("-", " ")
+                invalid_first = ("-", " ")
+            max_length = 40
+            min_length = 0
+            length_check = len(word) > min_length and len(word) < max_length
+
+            if length_check:
+                if "  " in word:
+                    msg = "2× space in name"
+                if word[0] in invalid_first:
+                    msg = "Invalid first character"
+                if not word.isalnum():
+                    for symbol in word:
+                        if not symbol.isalnum() and symbol not in valid_symbols:
+                            msg = "Invalid name"
+            else:
+                msg = "Too long. "
+        return msg
 
 
     @st.dialog(f"Removing object data")
@@ -346,15 +399,11 @@ class Secretary:
 
     @st.dialog(f"Editing library entry")
     def rename(self, name: str, object_type: str, new_data: dict, 
-               reg_setting: dict, highlight_html: str):
+               reg_setting: dict, current_database: dict, highlight_html: str):
         """
         If edit object info selected, object name can be changed here.  
         Copies all previously defined options as-is.
         """
-        active_theme = st.session_state["themes"]["active"]
-        highlight_textstyle = st.session_state["themes"][active_theme]["highlight_text"]
-        text_color = st.session_state["themes"][active_theme]["highlight_text"]
-
         # User selection - edit name or not
         st.write(f"You are editing {name}")
         new_name = name
@@ -367,24 +416,29 @@ class Secretary:
         
         # Checks and user indication depending on whether to keep name
         # or if name should be replaced and new name is entered
-        not_updated = not any([name_update and not keep_name, keep_name])
-        if not_updated:
-            st.html(highlight_html.replace("KEY_REF", "rename")
-                    .replace("COLOR_REF", text_color))
-            appearance = "secondary" 
-        else: 
-            st.html(highlight_html.replace("KEY_REF", "rename")
-                    .replace("COLOR_REF", highlight_textstyle))
-            appearance = "primary"
-        new_name = name if keep_name else None
+        disable = not any([name_update and not keep_name, keep_name])
+        new_name = name if keep_name else name_update
+        name_invalid = self.symbol_validation(new_name.strip())
+        object_in_library = new_name.strip() in current_database
+        msg = "Confirm"
+        if name_invalid:
+            disable = True
+            msg = name_invalid
+        elif object_in_library and not keep_name:
+            disable = True
+            msg = "Already exists"
 
         st.space()
-        if st.button(
-                "Confirm", key="rename", type=appearance, disabled=not_updated):
-            self.update_object(
-                name, object_type, new_data, reg_setting, new_name)
-            # Reload the update the list of objects and auto-close dialog box
-            st.rerun()
+        if disable:
+            st.button(msg, type="secondary" , disabled=True)
+        else: 
+            st.html(highlight_html.replace("KEY_REF", "rename"))
+            if st.button(
+                    msg, key="rename", type="primary", disabled=False):
+                self.update_object(
+                    name, object_type, new_data, reg_setting, new_name.strip())
+                # Reload the update the list of objects and auto-close dialog box
+                st.rerun()
 
 
     def update_object(self, name: str, object_type: str, 
@@ -424,6 +478,8 @@ class Secretary:
             edits_successful = True
         elif isinstance(updated_library, dict) and for_deletion:
             edits_successful = True
+        else:
+            st.rerun()
         # Save to file
         if DIAGNOSTICS: updated_library = False
         if edits_successful:

@@ -59,12 +59,12 @@ def initialize_constants(project_name: str) -> tuple:
     config = arch.reader(join_path="settings")
     if not config:
         config_location = os.path.abspath(settings_path)
+        address = "https://github.com/elmwall/PitySake/blob/main/user_project/settings/config.json"
         st.error("PROJECT CONFIGURATION FILE MISSING OR CORRUPT")
         with st.container(border=True):
             st.markdown(f"""Could not find config.json in:  \n{config_location}""")
-            st.markdown("""A generic version can be found 
-                        [here](https://github.com/elmwall/PitySake/blob/main/user_project/settings/config.json). 
-                        Place it in the folder above.""")
+            st.markdown(f"""A generic version can be found 
+                        [here]({address}). Place it in the folder above.""")
         quit()
 
     # Store config dictionaries in session state
@@ -83,11 +83,12 @@ def initialize_constants(project_name: str) -> tuple:
             # st.session_state["DIRECTORIES"][key] = os.path.join(project_name, path)
     else:
         msg = "Collecting directories failed."
-        logger.error("File directories could not be retrieved from config.json.")
+        details = "File directories could not be retrieved from config.json."
+        logger.error(f"Configuration error:\n    {details}")
         if not "error" in st.session_state:
             error.message(
                 message=msg, stage="Project configuration", 
-                file="settings\\config.json")
+                file="settings\\config.json", details=details)
 
     return DATAPATH, DIRECTORIES, SETTINGS, TERMS
 

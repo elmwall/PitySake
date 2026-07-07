@@ -20,21 +20,22 @@ import os
 import datetime
 
 import streamlit as st
-
-# Project initiation
+# Initiate logger here makes configurations available accross modules
+logger = logging.getLogger(__name__)
+import app.logger as log
+# Project initiation 
+# File name of project main is key to project folder --> configuration and data 
 from app.project_configuration import initialize_constants
-# File name of project main is key to project folder --> configuration and data
 project = os.path.splitext(os.path.basename(__file__))[0]
 project_info = initialize_constants(project)
 st.session_state["project"] = project
-import app.logger
-logger = logging.getLogger(__name__)
+format_line = f"{"DATE":24}{"LEVEL":8}{"LINE "}{"MODULE":21}{"FUNCTION":22}ACTION"
 if "initated" not in st.session_state:
-    logger.info(f"\n\n{":"*90}\n{"PITYSAKE":^90}\n{":"*90}\n")
+    logger.info(f"\n\n{":"*100}\n{f"PITYSAKE: {project}":^100}\n{":"*100}\n{format_line}")
     now = datetime.datetime.now()
     logger.info(f"New session: {now}")
 else:
-    logger.info(f"\n{"."*90}\n{"RERUN":^90}\n{"."*90}")
+    logger.info(f"\n{"."*100}\n{f"RERUN {project}":^100}\n{"."*100}\n{format_line}")
 import app.initialize as init
 import app.style as page
 import app.constructor as construct
@@ -65,4 +66,4 @@ elif st.session_state["vertical_view"]:
 
 logger.info(f"System complete.")
 st.session_state["initated"] = True
-# st.json(st.session_state)
+st.json(st.session_state)

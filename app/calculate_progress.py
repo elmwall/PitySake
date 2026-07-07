@@ -36,6 +36,7 @@ def calculator(component_key: str, feature_width: int | str,
         component_key (str): 
             session state key for feature
     """
+    logger.info("Running")
     if feature_width is None: feature_width = "stretch"
     if feature_height is None: feature_height = "stretch"
     # Feature header 

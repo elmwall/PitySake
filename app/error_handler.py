@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def message(message: str|None = None, stage: str|None = None, name: str|None = None, 
-            file: str|None = None, details: list|str|None = None, id: str|None = None):
+            file: str|None = None, details: list|str|None = None, id: str|None = None,
+            advice: str|None = None):
     """
     Called upon detected error or exception, 
     sends information to session state to trigger notification.
@@ -36,30 +37,59 @@ def message(message: str|None = None, stage: str|None = None, name: str|None = N
             which accumulates in case of multiple errors
         id (str|None):
             for location of error in log file
+        advice (str|None):
+            initial error message text with suggestions
     """
-    
+    logger.info("Running")
     if not id:
         id = f"{datetime.datetime.now().strftime("%H%M")}-{secrets.token_hex(2)}"
-    logger.warning(f"""Error {id}: {message}
-stage: {stage}
-file: {file}
-object name: {name}
-details: {details}""")
     
+    print_details = ""
+    if details:
+        if not isinstance(details, list): details = [details, ]
+        for x in details:
+            print_details += f"\n{"":8}{x}"
+    else:
+        details = [message, ]
+    logger.warning(f"""Error registered  \nError {id}: {message}
+    stage: {stage}
+    file: {file}
+    object name: {name}
+    details: {print_details}""")
+
+    if stage:
+        id_stage = f"  \nStage: {stage}; ID: {id}"
+    else:
+        id_stage = f"  \nID: {id}"
+
+    id_detail = list()
+    for x in details:
+        id_detail.append(f"{x}{id_stage}")
+
     error = st.session_state.get("error", {})
+    extra = None
+    advice = f"- {advice}"
     if error: 
         info = error.get("info_list", [])
-        if isinstance(info, list) and info: 
-            for x in info:
-                if x not in details: details.append(x)
-            
+        if not isinstance(info, list) and info: info = [info, ]
+        if info: id_detail += info
+
+        prev_id = error.get("ID", None)
+        if prev_id: extra = " - Multiple issues found"
+
+        prev_advice = error.get("advice", None)
+        if prev_advice and advice not in prev_advice: 
+            advice = prev_advice + f"  \n{advice}"
+
     st.session_state["error"] = {
         "message": message,
         "stage": stage,
         "name": name,
         "file": file,
-        "info_list": details,
-        "ID": id
+        "info_list": id_detail,
+        "ID": id,
+        "extra": extra,
+        "advice": advice
     }
 
 
@@ -71,21 +101,22 @@ def notify():
     error = st.session_state.get("error", None)
     info = str()
     if error:
-        if error.get("stage", None): info += f"Stage: {error["stage"]}  \n"
-        if error.get("name", None): info += f"Name: {error["name"]}  \n"
-        if error.get("file", None): info += f"File: {error["file"]}  \n"
-
+        id = error.get("ID", "no ID")
+        extra = error.get("extra", None)
+        if not extra: extra = ""
+        advice = error.get("advice", None)
+        info_list = error.get("info_list", None)
         col_1, col_2, col_4 = st.columns([3, 6, 1])
-        # with col_1.container(border=False, width="stretch"):
-        with col_2.expander(f"Details - Error ID {error["ID"]}"):
-            st.markdown(info)
-            if error.get("info_list", None):
-                if not isinstance(error["info_list"], list): 
-                    st.markdown(error["info_list"])
+        with col_2.expander(f"Details - Error ID {id}{extra}"):
+            if advice:
+                st.markdown(advice)
+                st.divider()
+            if info_list:
+                if not isinstance(info_list, list): 
+                    st.markdown(info_list)
                 else:
-                    st.divider()
-                    st.markdown("All detected issues:")
-                    for x in error["info_list"]:
+                    st.markdown("Detected issues:")
+                    for x in info_list:
                         st.markdown(f"- {x}")
         message = error.get("message", "An unknown error occurred, check log.")
         if col_1.button(f":red[{message}]", width="stretch"):
@@ -95,7 +126,7 @@ def notify():
             )
             col_2.markdown(f"Location: {directory}", text_alignment="center")
 
-        if col_4.button("Ok", width="stretch"): 
+        if col_4.button("OK", width="stretch"): 
             st.session_state["error"] = False
             st.rerun()
 
@@ -138,10 +169,10 @@ def data_check(name_1: str, collection_1: list|dict, file_1: str,
                 name_checked=name_1, collection_origin=collection_2, 
                 collection_checked=collection_1, file_checked=file_1)
         if error:
-            details.append("Re-add missing options in *Edit options*")
+            advice = "Missing source data: re-add listed sources in *Edit options*."
 
     if error and not st.session_state["error"]:
-        message(message=msg, stage=stage, file=file, details=details)
+        message(message=msg, stage=stage, file=file, details=details, advice=advice)
     return False if error else True
 
 def _loop_collections(name_checked: str, collection_origin: list, 
@@ -188,7 +219,7 @@ def pending_backup(arciv):
         msg = "Tried and failed to catch backup data."
         details = [f"Backup interrupted for unknown file", 
                    f"Backup interruption reason: {mode}"]
-        logger.error(details)
+        logger.error(f"Backup error:\n    {details[0]}\n    {details[1]}")
         if not "error" in st.session_state:
             notify.message(
                 message=msg, stage="Project configuration", 
@@ -200,14 +231,14 @@ def pending_backup(arciv):
         msg = "Catch backup was requested without valid datatype."
         details = [f"Backup interrupted but without datatype it can't be forwarded to writer", 
                    f"Backup interruption reason: {mode}"]
-        logger.error(details)
+        logger.error(f"Backup error:\n    {details[0]}\n    {details[1]}")
         if not "error" in st.session_state:
             notify.message(
                 message=msg, stage="Project configuration", 
                 file=f"settings\\config.json", details=details)
 
     backup_file = catch.get("backup_file", "unknown")
-    if not backup_file: logger.warning("Catch backup requested without backup file.")
+    if not backup_file: logger.warning("Catch backup requested without backup file specified.")
     
     # Preventing overwriting backup data in case of error
     # Case: no data in file
@@ -249,7 +280,7 @@ def pending_backup(arciv):
                 st.json(data, width="stretch")
         except:
             st.markdown("Data could not be reviewed.")
-            logger.exception(f"Backup data could not be reviewed for: \n{data}.")
+            logger.exception(f"Backup error:\n    Backup data not be reviewed for: {data}.")
 
     # User action selection
     confirm = _confirm_action()
@@ -303,7 +334,22 @@ def pending_backup(arciv):
             )
             st.session_state["pending_backup"] = False
             st.session_state["pending_save"] = False
-            st.rerun()
+        else:
+            dump(
+                "Archivist.writer", {
+                    "data": data, 
+                    "object_type": datatype, 
+                    "self-file": file, 
+                    "set_file": filepath, 
+                    "join_path": None})
+            message(
+                "Backup failed", "Pending backup", name=None, file=file,
+                details=["Backup could not be solved, perhaps due to downstream issues",
+                         f"Data for  \n{file} \n  is placed in backup/data_dump.txt"],
+                advice=f"Data placed in dump; retrieve and verify data files before any other editing")
+            st.session_state["pending_backup"] = False
+            
+        st.rerun()
     # Abort if denied, reset backup
     elif confirm is False:
         st.session_state["pending_backup"] = False
@@ -328,6 +374,7 @@ def catch_data(
         - collects potential file and save settings for later pick-up
         - sends info for dump
     """
+    logger.info("Running")
     st.session_state["pending_save"] = {
         "name": name,
         "new_data": new_data,
@@ -360,7 +407,7 @@ def catch_backup_data(mode: str, data: any, file: str,
         object_type (str):
             identifier och datatype
     """
-    logger.info("Running file_manager.Archivist._catch_backup_data")
+    logger.info("Running")
     st.session_state["pending_backup"] = {
         "mode": mode,
         "data": data,
@@ -413,6 +460,6 @@ def dump(stage: str, details: dict, prefix: str = "data"):
     try:
         with open(dumpfile, "w", encoding="utf-8") as f:
             f.write(content)
-            logger.info(f"Dump created during {stage} at {dumpfile}")
+            logger.info(f"Dump during {stage} in {dumpfile}")
     except:
-        logger.exception(f"Creating dump during {stage} at {dumpfile} failed.")
+        logger.exception(f"Dump error:\n    Creating dump during {stage} at {dumpfile} failed.")

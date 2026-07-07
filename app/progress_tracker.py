@@ -78,6 +78,9 @@ def progress_meter(component_key: list, sub_keys: list,
         # Each utilizes a unique key generated in style module
         init_values = dict()
         for category, i in value_trackers.items():
+            if category not in progress_data:
+                _source_not_found(category)
+                continue
             # Per source:
             st.space("xxsmall")
             # Define a key for each subfeature and initiate their init value
@@ -89,19 +92,14 @@ def progress_meter(component_key: list, sub_keys: list,
             limit = options["source_limit"].get(category, None)
             if limit is None:
                 limit = 100
-                if not st.session_state["error"]:
-                    error.message(
-                        message="Options missing data.", stage="Data processing for timeline",
-                        file="settings\\data_options.json", details=[
-                            f"Source limit data needed for highlight generation: {category}",
-                            f"Solution: re-add source '{category}' in *Edit options*"])
+                _source_not_found(category)
             state = progress_data[category]["State"]
             with st.container(key=sub_keys[i]):
                 col_state, col_cat, col_number, col_10, col_slider, col_apply = _column_style()
                 with col_state:
                     is_static = False
                     color = text_color
-                    # Indicate prognisis state of source
+                    # Indicate prognisis state of source 
                     if state:
                         if state == staterand_ref:
                             symbol = f"**{state_rand_symbol}**"
@@ -281,7 +279,7 @@ def _increment_counter(init_values: dict, tracker_ids: list, idx: int, increment
             st.session_state[f"val_{i}"] = init_values[i]
             st.session_state[f"num_{i}"] = init_values[i]
             st.session_state[f"slider_{i}"] = init_values[i]
-        
+
 
 def _reset(init_values: dict, tracker_ids: list): 
     """Resets the values for all subfeatures to the current registered progress.
@@ -300,6 +298,16 @@ def _column_style():
     proggroup_column_size = [0.05, 0.22, 0.15, 0.08, 0.42, 0.08]
     return st.columns(
         proggroup_column_size, gap="xxsmall", vertical_alignment="center")
+
+
+def _source_not_found(category):
+    if not st.session_state["error"]:
+        error.message(
+            message="Options missing data.", 
+            stage="Data processing for timeline",
+            file="settings\\data_options.json", 
+            details=[f"Source limit data needed for highlight generation: {category}"], 
+            advice="Missing source data: re-add listed sources in *Edit options*.")
 
 
 def _update_progress(progress_data: dict, category: str, 
