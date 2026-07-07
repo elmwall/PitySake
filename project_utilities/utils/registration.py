@@ -425,6 +425,9 @@ def _streamlit_config() -> str:
 runOnSave = true
 address = "127.0.0.1"
 
+[client]
+toolbarMode = "minimal"
+
 [browser]
 gatherUsageStats = false
 

@@ -49,16 +49,24 @@ def table_view(component_key: str, object_type: str,
         overview_height = "stretch"
 
     # Collect relevant database
+    # Send for processing or collect cache for data and pandas dataframe
     if object_type == "main":
         database = hold.load_main_database()
         processed_database = hold.process_main_db(database)
+
         rows = processed_database["table_data"]
+        history_dataframe = hold.main_history_df(rows)
         overview = hold.process_main_db(database)["overview_data"]
+        overview_dataframe = hold.main_overview_df(overview)
+
     elif object_type == "secondary":
         database = hold.load_secondary_database()
         processed_database = hold.process_secondary_db(database)
+        
         rows = processed_database["table_data"]
+        history_dataframe = hold.secondary_history_df(rows)
         overview = hold.process_secondary_db(database)["overview_data"]
+        overview_dataframe = hold.secondary_overview_df(overview)
 
     # History tab container
     with st.container(
@@ -68,12 +76,10 @@ def table_view(component_key: str, object_type: str,
             st.error("Critical option data missing.")
             return
 
-        # Send for processing or collect cache for data and pandas dataframe
-        dataframe = hold.history_dataframe(rows, object_type)
         # Set dataframe style (should not be cached)
         style = table_style[1] if table_style else ""
         styled_dataframe = (
-            dataframe.style.set_properties(**{"background-color": style})
+            history_dataframe.style.set_properties(**{"background-color": style})
             .set_properties(subset=["Name"], **{"width": "small"})
             .format(precision=0))
         
@@ -86,8 +92,6 @@ def table_view(component_key: str, object_type: str,
     # Overview tab container
     with st.container(
             border=False, key=f"{component_key}_holder_overview", width="stretch", height=overview_height):
-        # Send for processing or collect cache for data and pandas dataframe
-        overview_dataframe = hold.overview_dataframe(overview)
         # Set dataframe style (should not be cached)
         styled_dataframe_overview = (
             overview_dataframe.style.set_properties(**{"background-color": style})

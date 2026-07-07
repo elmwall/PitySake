@@ -635,5 +635,9 @@ def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict):
                 arciv.writer(
                     changed_options, 
                     set_file=options_path, join_path="settings")
-        st.session_state["processed_edits"] = True
+        st.session_state["processed_edits"] = {
+            "clear_options": True,
+            "clear_main": False,
+            "clear_secondary": False,
+            "clear_progress": True}
         st.rerun()

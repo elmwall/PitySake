@@ -486,7 +486,15 @@ class Secretary:
             arciv.writer(
                 updated_library, object_type, set_file=datafile, join_path="data")
             if object_type == self.main_ref:
-                st.session_state["processed_edits"] = True
+                st.session_state["processed_edits"] = {
+                    "clear_options": False,
+                    "clear_main": True,
+                    "clear_secondary": False,
+                    "clear_progress": False}
             elif object_type == self.secondary_ref:
-                st.session_state["processed_edits"] = True
+                st.session_state["processed_edits"] = {
+                    "clear_options": False,
+                    "clear_main": False,
+                    "clear_secondary": True,
+                    "clear_progress": False}
             st.rerun()

@@ -304,7 +304,10 @@ def _log_session(meta, active_theme):
     Current session theme: {active_theme}""")
 
 
-def refresh():
+def refresh(clear_options: bool = True, 
+            clear_main: bool = True, 
+            clear_secondary: bool = True,
+            clear_progress: bool = True):
     """
     Perform clean slate
     - clears all databases and removes keys
@@ -312,14 +315,18 @@ def refresh():
     """
     logger.info("Refresh requested")
 
-    hold.load_options.clear(),
-    hold.load_main_database.clear(),
-    hold.load_secondary_database.clear(),
-    hold.load_progress_data.clear()
-    hold.process_main_db.clear()
-    hold.process_secondary_db.clear()
-    hold.history_dataframe.clear()
-    hold.overview_dataframe.clear()
+    if clear_options: hold.load_options.clear()
+    if clear_main: 
+        hold.load_main_database.clear()
+        hold.process_main_db.clear()
+        hold.main_history_df.clear()
+        hold.main_overview_df.clear()
+    if clear_secondary:
+        hold.load_secondary_database.clear()
+        hold.process_secondary_db.clear()
+        hold.secondary_history_df.clear()
+        hold.secondary_overview_df.clear()
+    if clear_progress: hold.load_progress_data.clear()
 
     for key in st.session_state.keys():
         del st.session_state[key]
@@ -346,6 +353,9 @@ def _settings_correction(themes: dict, active_theme: str, meta: dict, missing: b
 [server]
 runOnSave = true
 address = "127.0.0.1"
+
+[client]
+toolbarMode = "minimal"
 
 [browser]
 gatherUsageStats = false

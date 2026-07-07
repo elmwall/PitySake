@@ -43,9 +43,14 @@ import app.constructor as construct
 
 # Previous essential database/option changes resets system
 if "processed_edits" in st.session_state:
-    if st.session_state["processed_edits"]: 
+    processed_edits = st.session_state["processed_edits"]
+    if processed_edits: 
+        clear_options = processed_edits.get("clear_options", True)
+        clear_main = processed_edits.get("clear_main", True)
+        clear_secondary = processed_edits.get("clear_secondary", True)
+        clear_progress = processed_edits.get("clear_progress", True)
         logger.info("Edits declared")
-        init.refresh()
+        init.refresh(clear_options, clear_main, clear_secondary, clear_progress)
 
 # Initialize keys and chache databases
 init.initialize()
@@ -66,4 +71,4 @@ elif st.session_state["vertical_view"]:
 
 logger.info(f"System complete.")
 st.session_state["initated"] = True
-st.json(st.session_state)
+# st.json(st.session_state)

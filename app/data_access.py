@@ -425,20 +425,28 @@ def _translate_label(info, label):
 
 
 @st.cache_data
-def history_dataframe(rows: list, object_type: str):
+def main_history_df(rows: list):
     """
-    Database processing for table view (main or secondary) 
-    for view of object history
+    Database processing of main object datarows for overview table.  
+    Returns processed pandas dataframe rows:  
+    date, consecutive count, name, progress, source, labels, state
+    """
+    
+    dataframe = pd.DataFrame(rows)
+    # Use index for sorting, then discard 
+    processed_dataframe = (
+        dataframe.sort_values(["Date", "Index"], ascending=False)
+        .drop(columns=["Index"]))
 
-    Args:
-        rows (list):
-            list of dictionaries for pandas table view rows
-        object_type (str):
-            defines "main" or "secondary" object type
+    return processed_dataframe
 
-    Returns:
-        processed pandas dataframe rows:
-            date, consecutive count, name, progress, source, labels, state
+
+@st.cache_data
+def secondary_history_df(rows: list):
+    """
+    Database processing of secondary object datarows for overview table.  
+    Returns processed pandas dataframe rows:  
+    date, consecutive count, name, progress, source, labels, state
     """
     
     dataframe = pd.DataFrame(rows)
@@ -448,31 +456,35 @@ def history_dataframe(rows: list, object_type: str):
         .drop(columns=["Index"]))
 
     # Collection value disregarded for secondary type
-    if object_type == "secondary": 
-        processed_dataframe = (processed_dataframe.drop(columns=[" "]))
+    processed_dataframe = (processed_dataframe.drop(columns=[" "]))
 
     return processed_dataframe
 
 
 @st.cache_data
-def overview_dataframe(rows: list):
+def main_overview_df(rows: list):
     """
-    Database processing for table view (main or secondary) 
-    for view of object catalog
-
-    Args:
-        rows (list):
-            list of dictionaries for pandas table view rows
-
-    Returns:
-        processed pandas dataframe rows:
-            name, total count, mean progress, labels
+    Database processing of main object datarows for overview table.  
+    Returns processed pandas dataframe rows: name, total count, mean progress, labels
     """
     
     dataframe = pd.DataFrame(rows)
     # Use index for sorting, then discard
     processed_dataframe = (
         dataframe.sort_values(["Name"], ascending=True))
+    return processed_dataframe
 
+
+@st.cache_data
+def secondary_overview_df(rows: list):
+    """
+    Database processing of secondary object datarows for overview table.  
+    Returns processed pandas dataframe rows: name, total count, mean progress, labels
+    """
+    
+    dataframe = pd.DataFrame(rows)
+    # Use index for sorting, then discard
+    processed_dataframe = (
+        dataframe.sort_values(["Name"], ascending=True))
     return processed_dataframe
                     
