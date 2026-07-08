@@ -1,7 +1,7 @@
 # Collection database and event log
 
-This tool was originally developed for tracking collectibles, progress and event history for gacha-type games. Over time it evolved into a configurable event-tracking database manager and works for other activities with date-based events, such as:
-- Learning and courses: register courses, track progress through lessons/exercises, log daily activity or milestones
+This tool was originally developed for tracking collectibles, progress and event history for gacha-type games. Over time it evolved into a configurable event-tracking database manager. It also works for other activities with date-based events, such as:
+- Learning and courses: register courses, track progress through exercises, and log daily activity or milestones
 - Collections in general: register acquisitions of items with different values
 - Activity tracker: log exercises or challenges and activity goals, with scores and evaluations
 
@@ -19,7 +19,7 @@ This tool was originally developed for tracking collectibles, progress and event
 
 
 
-## *System overview*
+## System overview
 
 This is a modular Python system using the Streamlit API, consisting of two separate sub-systems as well as a few supportive functions; [see file structure](#file-structure).
 - Local-first: only installation requires internet connection, all data needed for the main app and wizard are maintained in the PitySake directory
@@ -29,9 +29,9 @@ This is a modular Python system using the Streamlit API, consisting of two separ
     ⤷ User projects → Project main app → Data visualization 
 - The projects are isolated, but due to local server usage only one can be open at a time
 
-### *The project main app*
+### The project main app
 
-This system runs the UI for projects and manager all editing of project databases.
+This system runs the UI for projects and manages all editing of project databases.
 
 #### Configuration
 
@@ -61,35 +61,35 @@ This system runs the UI for projects and manager all editing of project database
 - Logging: essential information for troubleshooting errors is stored in log files
 
 
-### *Wizard for new projects*  
+### Wizard for new projects
 
 - Multistep form with examples
 - Generates project files and folders  
 - Creates a template for new projects with the same subject
 
 
-### *Additional files (for Windows)*
+### Additional files (for Windows)
 
 - Module installer: automatically checks Python and modules required
 - Clear cache: in case of persistant bugs, this removes all Python cache files
 
 
-### *Limitations*
+### Limitations
 
-- This is not for managing and analyzing large data quantities, but for easy logging of smaller scale project with immediate access to tables and data
+- This is not a tool for managing and analyzing large data quantities, but for easy logging of smaller scale projects with immediate access to tables and data
 - Not optimized for managing multiple projects in open windows simultaneously; close the active project before opening another.
 - The [calculator](#calculator) is partially optimized for calculations of defined data sets, and most useful for specific kinds of projects, but a more basic calculator is accessible.
 
 
 
-## *Installation*
+## Installation
 
-### *Download*
+### Download
 
 All user data is maintained within the tool folder, while shortcuts can be used for easy access of different projects. Either clone the repository using Git, or [download ZIP](https://github.com/elmwall/PitySake/archive/refs/heads/main.zip) and unpack in suitable folder. Avoid moving the folder after shortcuts are created, otherwise their path need to changed in properties, alternatively start via *your_project.bat*. 
 
 
-### *Requirements*
+### Requirements
 
 In a terminal, check your Python version:
 - `python --verison`  
@@ -98,9 +98,9 @@ In a terminal, check your Python version:
 
 Python can otherwise be installed from [Python.org](https://www.python.org/downloads/). This system is optimized for Windows in Python 3.13.3; minimum Python 3.10 is required for Streamlit. 
 
-**Compatibility:** the Streamlit part of the system is compatible with Mac/Linux, but not shortcuts (.lnk and .bat files). Use in other operating systems has not been evaluated extensively.
+Compatibility: the Streamlit part of the system is compatible with Mac/Linux, but not shortcuts (.lnk and .bat files). Use in other operating systems has not been evaluated extensively.
 
-**Required Python modules:**
+Required Python modules:
 - Streamlit version 1.57.0 (functionality may change with newer versions)
 - pandas
 - plotly
@@ -108,7 +108,7 @@ Python can otherwise be installed from [Python.org](https://www.python.org/downl
 - pywin32 (for Windows)
 
 
-### *Module installation*
+### Module installation
 
 Windows: start the file *module_installer.bat*. This will run a script automatically checking/installing required modules. This will also place a shortcut *New_Project* to the wizard and a quick start project file shortcut *User_Project* is created in PitySake folder.  
 
@@ -144,7 +144,7 @@ with terminal directory set to PitySake folder (`cd path\to\PitySake`):
 
 
 
-## *Getting started*
+## Getting started
 
 Windows: projects and wizard are easiest to launch via shortcuts (*your_project_name.lnk* and *New_Project.lnk*). This will open a terminal running a streamlit session and a browser rendering the app.  
 
@@ -163,13 +163,13 @@ Mac and Linux (and Windows), starting through terminal:
 > ❗ Close the active terminal before launching another project or the wizard.
 
 
-### *Quick start user project*
+### Quick start user project
 
 A generalized system exists ready to use. Run the system via *User_Project* shortcut (after running [*Module_Installer*](#module-installation)) or via *user_project.bat* file.
 - Labels, event categories, and value limits must here be added internally
 
 
-### *Wizard - create new or personalized project*
+### Wizard - create new or personalized project
 
 - Set your own terminology for items, labels, values, and event categories
 - Pre-define limits and highlighting behavior
@@ -181,7 +181,7 @@ More details on the wizard [here](#project-installation-wizard).
 
 
 
-## *User guide*
+## User guide
 
 The system uses the following data structure:
 - **Main and secondary object:** two over-arching categories of items/subjects
@@ -192,7 +192,7 @@ The system uses the following data structure:
     Value and outcome can be disabled for specific categories
 
 
-### *Feature overview*
+### Feature overview
 
 - [Register objects](#object-registration) and/or events
 - [Tracking values](#value-tracking): for each event category defined, you can record one active value
@@ -204,7 +204,7 @@ The system uses the following data structure:
 - Tool-tips: hover above question marks for explanations on context and usage
 
 
-### *Object registration*
+### Object registration
 
 Through this feature new objects or events can be added, or old ones edited.
 
@@ -220,7 +220,7 @@ Through this feature new objects or events can be added, or old ones edited.
 <p style="text-align:center"><img src="./accessories/object_reg6.png" style="border-radius: 5px"></p>
 
 
-### *Value tracking*
+### Value tracking
 
 **Event categories:** Any number of event categories can be created, and set to include/exclude value and evaluation. Each category that include a value has a tracker widget generated, which can be used simply for tracking a value or as a progress bar. 
 
@@ -236,7 +236,7 @@ Each category is defined with an upper limit, setting the value range from 0 to 
 <p style="text-align:center"><img src="./accessories/progress6.png" style="border-radius: 5px"></p>
 
 
-### *Tables*
+### Tables
 
 One table each for main and secondary categories:
 - History: shows all events within the categories
@@ -250,7 +250,7 @@ One table each for main and secondary categories:
 <p style="text-align:center"><img src="./accessories/tables3.png" style="border-radius: 5px"></p>
 
 
-### *Timeline*
+### Timeline
 
 A display of all evets with associated outcomes and values, with indicators for 
 - Main (circle) or secondary (square)
@@ -266,7 +266,7 @@ High or low value highlights: how these are indicated (e.g. as positive and nega
 <p style="text-align:center"><img src="./accessories/timeline5.png" style="border-radius: 5px"></p>
 
 
-### *Calculator*
+### Calculator
 
 **Set mode:** event categories can be defined with sets consisting of subsets of different length. This feature can calculate a distance across subsets, i.e. from subset X1 position Y1 to subset X2 position Y2. 
 - Best used for estimating a progression or amount in-between
@@ -287,7 +287,7 @@ High or low value highlights: how these are indicated (e.g. as positive and nega
 </p>
 
 
-### *Analysis*
+### Analysis
 
 Calculations for main objects: due to differences in management and values, only main are analyzed.
 - Value median
@@ -302,7 +302,7 @@ Calculations includig all:
 <p style="text-align:center"><img src="./accessories/analyze4.png" style="border-radius: 5px"></p>
 
 
-### *Settings & considerations*
+### Settings & considerations
 
 Certain settings can be changed through dialog boxes in the app:
 
@@ -358,9 +358,9 @@ Certain settings can be changed through dialog boxes in the app:
 
 
 
-## *Troubleshooting*
+## Troubleshooting
 
-### *Lag*
+### Lag
 
 Streamlit reruns the page for most interactions and changes in data files. If multiple changes occur in rapid succession it may cause lag - just wait and it should catch up. 
 
@@ -369,7 +369,7 @@ For changing progress values, the slider or entering a number is optimal for lar
 While changing theme, due to changes in configuration files there can sometimes be a lag. If it seems to show the wrong colors, refresh the page.
 
 
-### *Crashes*
+### Crashes
 
 As with lag, during many rapid changes, session states values from individual features can change unexpectedly. Most such are accounted for, but if the system crashes, try the following methods one at the time:
 - *Refresh page* button - reloads all states (is usually enough)
@@ -378,7 +378,7 @@ As with lag, during many rapid changes, session states values from individual fe
 - Remove all `__pychache__` folders (may be hidden). On Windows, use the clean_cache.bat located in the PitySake folder to do this automatically. 
 
 
-### *Errors*
+### Errors
 
 > 💡 If an error occurs, try pressing refresh in the header, which may clear temporary disruptions or hickups.  
 > If you have performed any actions which may clear the error, press refresh to clear the error.
@@ -394,7 +394,7 @@ Interruptions while editing is usually not an issue. event categories and tracki
 <p style="text-align:center"><img src="./accessories/error3.png" style="border-radius: 5px"></p>
 
 
-### *Data backup*
+### Data backup
 
 All files modified from within an active project are backed upp. Data options edited will also create backups. A small numeral suffix in the backup indicates most frequent and most likely the latest, otherwise check the last modified date, or the contents using a text editor. Replacing a data file with a backup requires correct naming. Either copy the content of a backup file into a corresponding data file (but be careful of altering the contents), or copy the whole file and change the name. 
 
@@ -409,19 +409,19 @@ There are checks for data health, which alert the user regarding abrubt decrease
 <p style="text-align:center"><img src="./accessories/backup2.png" style="border-radius: 16px"></p>
 
 
-## *File structure*
+## File structure
 
 Return to [System overview](#system-overview)
 
 ```
 PitySake/
 │
-├── {user_project}.py               # Project entry (matching project name)
-├── {user_project}.bat              # Windows script for launching project
+├── <user_project>.py               # Project entry (matching project name)
+├── <user_project>.bat              # Windows script for launching project
 │
 ├── app/                            # MAIN APP MODULES
 │   │                               # Core
-│   ├── project_configuration.py    #   Configures {user_project} -> app -> data
+│   ├── project_configuration.py    #   Configures <user_project> -> app -> data
 │   ├── file_manager.py             #   Reading/writing/backup
 │   ├── data_access.py              #   Cache and forward data
 │   ├── initialize.py               #   Session state and cache management
@@ -439,7 +439,7 @@ PitySake/
 │   ├── error_handler.py            #   Error responses and messages 
 │   └── logger.py                   #   Generate log files
 │
-│── {user_project}/                 # Data/settings for specific project
+│── <user_project>/                 # Data/settings for specific project
 │   ├── settings/
 │   │   ├── config.json             # Pathways and terms
 │   │   ├── data_options.json       # Label and event options
@@ -457,7 +457,7 @@ PitySake/
 │   ├── utils/
 │   │   ├── init.py                 # Session keys and settings
 │   │   ├── tools.py                # Toolkit and controls
-│   │   └── registration.py         # → {user_project}.py + .bat + .lnk + folder
+│   │   └── registration.py         # → <user_project>.py + .bat + .lnk + folder
 │   └── shortcut_maker.py           # makes shortcuts to initial .bat files
 │
 ├── requirements.txt 
@@ -470,7 +470,7 @@ PitySake/
 ```
 
 
-## *Project installation wizard*
+## Project installation wizard
 
 Return to [Getting started](#getting-started)
 
@@ -496,14 +496,14 @@ A project with unique settings and terminology is defined in a six-step form, wh
 
 
 
-## *Whole page examples*
+## Whole page examples
 
-### *Horizontal view*
+### Horizontal view
 
 Example with imaginary data for a game collection database:  
 <p style="text-align:center"><img src="./accessories/whole_page5.png"></p>
 
-### *Vertical view*
+### Vertical view
 
 Vertical view example with imaginary data for learning and courses:  
 <p style="text-align:center"><img src="./accessories/whole_page7.png" width="700"></p>
