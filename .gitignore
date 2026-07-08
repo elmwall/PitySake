@@ -1,33 +1,15 @@
 # Accessory files
 __pycache__/
-# .streamlit/
 logs/
 data/
 backup/
 settings/
 templates/
-meta.json
-# user_project.bat
 User_Project.lnk
 New_Project.lnk
+backup_meta.json
 
 # Dev files
-Notes/
-PitySake_Accessories/
-images/
-settings_dev/
-venv/
-unused/
-test/
-PitySake.lnk
 test.py
-test_1.py
 test.ipynb
-users.py
-init_demo.py
-sample.png
-sample_obj.png
-sample_att.png
-sample_data.png
-sample_t.png
-launch.vbs
+presentation.py

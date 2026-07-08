@@ -122,13 +122,6 @@ def initialize():
     </style>
     """)
 
-    # st.session_state["checklists"] = {
-    #     "objects_save": [],
-    #     "b_labels": [],
-    #     "c_event": [],
-    #     "d_limit": []
-    # }
-
     st.session_state["initialized"] = True
 
 

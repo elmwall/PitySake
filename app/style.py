@@ -257,15 +257,7 @@ def theme():
             st.session_state["show_theme_settings"] = True
             themes["active"] = selected_theme
             # Config file non-theme-related settings
-            config_base = """
-[server]
-runOnSave = true
-address = "127.0.0.1"
-
-[browser]
-gatherUsageStats = false
-
-"""
+            config_base = _toml_base()
             if select_colors:
                 # Sync theme settings with temporary states (edited or not)
                 themes[selected_theme] = {
@@ -285,22 +277,10 @@ gatherUsageStats = false
                 }
 
                 # Adjust theme in config file with edited colors
-                config = config_base + f"""[theme]
-backgroundColor = '{st.session_state["background_temp"]}'
-secondaryBackgroundColor = '{st.session_state["input_field_temp"]}'
-primaryColor = '{st.session_state["highlights_temp"]}'
-textColor = '{st.session_state["text_color_temp"]}'
-font = 'sans serif'
-"""         
+                config = config_base + _edited_colors()
             # Adjust theme in config file with predefined theme colors
             else:
-                config = config_base + f"""[theme]
-backgroundColor = '{themes[selected_theme]["background"]}'
-secondaryBackgroundColor = '{themes[selected_theme]["input_field"]}'
-primaryColor = '{themes[selected_theme]["highlights"]}'
-textColor = '{themes[selected_theme]["text_color"]}'
-font = 'sans serif'
-"""
+                config = config_base + _predefined_colors(themes, selected_theme)
             for x in themes[selected_theme].keys():
                 st.session_state[x] = st.session_state[f"{x}_temp"]
             st.session_state["theme_edited"] = time.perf_counter()
@@ -317,6 +297,37 @@ font = 'sans serif'
             select_colors = False
             st.session_state["show_theme_settings"] = False
             st.rerun()
+
+def _toml_base():
+    return """
+[server]
+runOnSave = true
+address = "127.0.0.1"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+"""
+
+def _edited_colors():
+    return f"""[theme]
+backgroundColor = '{st.session_state["background_temp"]}'
+secondaryBackgroundColor = '{st.session_state["input_field_temp"]}'
+primaryColor = '{st.session_state["highlights_temp"]}'
+textColor = '{st.session_state["text_color_temp"]}'
+font = 'sans serif'
+"""
+
+def _predefined_colors(themes, selected_theme):
+    return f"""[theme]
+backgroundColor = '{themes[selected_theme]["background"]}'
+secondaryBackgroundColor = '{themes[selected_theme]["input_field"]}'
+primaryColor = '{themes[selected_theme]["highlights"]}'
+textColor = '{themes[selected_theme]["text_color"]}'
+font = 'sans serif'
+"""
 
 
 def _reset_colors(themes):

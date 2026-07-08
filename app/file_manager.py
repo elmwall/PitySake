@@ -177,7 +177,7 @@ class Archivist:
         
         # Call file containing edit count info for all files
         meta_file = os.path.join(self.data_directory, self.backup_meta)
-        edit_meta = self.reader(meta_file)
+        edit_meta = self.reader(meta_file, allow_missing=True)
         if not edit_meta:
             edit_meta = dict()
             file_edit_count = 0
