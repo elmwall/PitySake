@@ -91,13 +91,13 @@ class Secretary:
 
         registration_options = {
             "add_new": {
-                "reg_key": "Add completely new",
+                "reg_key": f"Add new",
                 "is_static": False,
                 "for_deletion": False,
                 "for_renaming": False
             },
             "add_event": {
-                "reg_key": f"New {self.event_ref} of old",
+                "reg_key": "New event",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": False
@@ -109,13 +109,13 @@ class Secretary:
                 "for_renaming": False
             },
             "edit_entry": {
-                "reg_key": "Edit details",
+                "reg_key": "Edit labels",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": True
             },
             "del_event": {
-                "reg_key": f"Delete {self.event_ref}",
+                "reg_key": f"Delete event",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": False
