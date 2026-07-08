@@ -189,12 +189,12 @@ The system uses the following data structure:
     3 labels for main and 1 label for secondary objects
 - **Events:** information attached to registered objects at dates  
     Info attached: event category, value, and outcome evaluation  
-    Value and outcome can be disabled for specific categories
+    Value and evaluation can be disabled for specific categories
 
 
 ### Feature overview
 
-- [Register objects](#object-registration) and/or events
+- [Update library](#update-library) and/or events
 - [Tracking values](#value-tracking): for each event category defined, you can record one active value
 - [Tables](#tables): separate tables for main and secondary objects, views all objects and events under separate tabs. 
 - [Timeline](#timeline): a view of *all* events in the database
@@ -204,20 +204,43 @@ The system uses the following data structure:
 - Tool-tips: hover above question marks for explanations on context and usage
 
 
-### Object registration
+### Update library
 
 Through this feature new objects or events can be added, or old ones edited.
 
+> #### Fields in example images shows terms defined for a course/learning tracker:
+>
+> - Object types: main as Course, secondary as Tutorial
+> - Label categories: Subject/Platform/Difficulty
+> - Events: called Track, with events registered as Languages etc
+> - Evaluations: Easy/Normal/Difficult
+> - Values: Progress
+
+
+#### Modes (top field): 
+
+- **Add new:** enter a new name to add a completely new object/subject to the database. You can simultaneously add an to that object
+- **New event:** select an existing object in the name field to which a new event is attached
+- **Delete entry:** select an object to remove
+- **Edit labels:** by this, other labels can be set on an object. Object type and events cannot be edited, remove and add them again instead.
+- **Delete event:** select an event in the date field with a date-time ID to remove
+
+#### Object details
+
+- **Object type and name:** set to one of you defined sub-types and enter a new name or select one to edit
 - **Labels:** objects *must* be registered with a selection in each available field. You can exclude labels by defining a blank in the [editing feature](#editing-event-categories), or define a label such as "None", "Unavailable" etc.
+
+#### Event details
+
 - **Event category:** Selecting an event category automatically collects the current value of that category from the tracker.  
 ❗ set the value after category, otherwise it may alter changes you've made in the value field.
-- **Outcome:** this will label the event as a positive/neutral/negative outcome
+- **Evaluation:** this will label the event as a positive/neutral/negative outcome
 - **Value:** a value between 0 and the limit you have set for the event category
 
 
 💡 In the [project installation wizard](#project-installation-wizard), counting of objects can be set to count true value, or to count additional instances after the first one.  
 
-<p style="text-align:center"><img src="./accessories/object_reg6.png" style="border-radius: 5px"></p>
+<p style="text-align:center"><img src="./accessories/object_reg.png" style="border-radius: 5px"></p>
 
 
 ### Value tracking
@@ -239,13 +262,14 @@ Each category is defined with an upper limit, setting the value range from 0 to 
 ### Tables
 
 One table each for main and secondary categories:
-- History: shows all events within the categories
-- Overview: shows all registered objects
+- **History**: shows all events within the categories
+- **Overview**: shows all registered objects
 - Search or sort by any field: event information, name, values, and labels
-- Hover over the top right corner for extra search and export
+- Hover over the top right corner for search and export
 - Data can also be accessed in corresponding JSON file under data or backup in the project folder, see [file structure](#file-structure)
 - Mark and copy fields directly
 
+#### Example with imaginary data for a game collection database:  
 
 <p style="text-align:center"><img src="./accessories/tables3.png" style="border-radius: 5px"></p>
 
@@ -253,11 +277,11 @@ One table each for main and secondary categories:
 ### Timeline
 
 A display of all evets with associated outcomes and values, with indicators for 
-- Main (circle) or secondary (square)
+- Object types: main (circle) or secondary (square)
+- Events with values represented by lines; values above/below thresholds (line color)
 - Events without values along the axis (arrows)
-- Outcome (fill color)
-- Values above/below thresholds (line color)
-- Neutral values, neutral outcomes, and events without outcomes shares the neutral color
+- Evaluation (fill color)
+- Neutral values, neutral evaluation, and events without evaluation shares the neutral color
 
 Hover over the top right corner for extra tools and download as PNG.
 
@@ -297,7 +321,7 @@ Calculations for main objects: due to differences in management and values, only
 
 Calculations includig all:
 - Sum of all values recorded
-- Rate of outcomes
+- Rate of evaluation outcomes
 
 <p style="text-align:center"><img src="./accessories/analyze4.png" style="border-radius: 5px"></p>
 
@@ -343,7 +367,7 @@ Certain settings can be changed through dialog boxes in the app:
 #### Data visualization
 
 - While installing a project you can disable or set thresholds for highlight color coding dependent on values. These settings can be changed later. 
-- Decide if you want data points to get an evaluation labeling. Opt out either by using 'neutral' evaluation or by disabling outcome states when defining an event category.
+- Decide if you want data points to get an evaluation labeling. Opt out either by using 'neutral' evaluation or by disabling evaluation states when defining an event category.
 
 #### Horizontal or vertical layout; [see examples](#whole-page-examples)
 
@@ -501,11 +525,13 @@ A project with unique settings and terminology is defined in a six-step form, wh
 
 ### Horizontal view
 
-Example with imaginary data for a game collection database:  
+#### Example with imaginary data for a game collection database:  
+
 <p style="text-align:center"><img src="./accessories/whole_page5.png"></p>
 
 ### Vertical view
 
-Vertical view example with imaginary data for learning and courses:  
+#### Vertical view example with imaginary data for learning and courses:  
+
 <p style="text-align:center"><img src="./accessories/whole_page7.png" width="700"></p>
 
