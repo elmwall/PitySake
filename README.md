@@ -381,7 +381,8 @@ As with lag, during many rapid changes, session states values from individual fe
 ### Errors
 
 > 💡 If an error occurs, try pressing refresh in the header, which may clear temporary disruptions or hickups.  
-> If you have performed any actions which may clear the error, press refresh to clear the error.
+>
+> If you have performed any actions which may clear the error, press refresh to reset the system.
 
 Critical errors will likely only happen if files have been moved or corrupted, which should not happen through normal use. Error messages will inform which files or data are missing. 
 
