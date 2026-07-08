@@ -219,10 +219,10 @@ Through this feature new objects or events can be added, or old ones edited.
 
 #### Modes (top field): 
 
-- **Add new:** enter a new name to add a completely new object/subject to the database. You can simultaneously add an to that object
+- **Add new:** enter a new name to add a completely new object/subject to the database. You can simultaneously add an event to that object
 - **New event:** select an existing object in the name field to which a new event is attached
 - **Delete entry:** select an object to remove
-- **Edit labels:** by this, other labels can be set on an object. Object type and events cannot be edited, remove and add them again instead.
+- **Edit detail:** edit object name or labels. Object type and events cannot be changed, delete and add again instead.
 - **Delete event:** select an event in the date field with a date-time ID to remove
 
 #### Object details
