@@ -15,14 +15,18 @@ To avoid hickups in states and interface not updating:
 - If true, forces a clean slate before re-building the app.
 """
 
+import datetime
 import logging
 import os
-import datetime
+import sys
 
 import streamlit as st
-# Initiate logger here makes configurations available accross modules
-logger = logging.getLogger(__name__)
+# Define root path which may be lost during partial module reload
+root = os.path.dirname(__file__)
+if root not in sys.path: sys.path.insert(0, root)
+# Initiate logger here makes configurations available accross modules 
 import app.logger as log
+logger = logging.getLogger(__name__)
 # Project initiation 
 # File name of project main is key to project folder --> configuration and data 
 from app.project_configuration import initialize_constants
@@ -71,4 +75,4 @@ elif st.session_state["vertical_view"]:
 
 logger.info(f"System complete.")
 st.session_state["initated"] = True
-# st.json(st.session_state)
+# st.json(st.session_state) 

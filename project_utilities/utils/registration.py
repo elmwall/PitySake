@@ -431,6 +431,9 @@ toolbarMode = "minimal"
 [browser]
 gatherUsageStats = false
 
+[logger]
+level = "warning"
+
 [theme]
 backgroundColor = '#000000'
 secondaryBackgroundColor = '#620d5b'
@@ -454,7 +457,7 @@ def _bat(name: str, dev: bool = False):
     if dev:
         prefix = ""
     else:
-        prefix = ".venv\Scripts\python.exe -m "
+        prefix = ".venv\\Scripts\\python.exe -m "
     
     return f"""@echo off
 {prefix}streamlit run {name}.py

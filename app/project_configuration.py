@@ -116,7 +116,7 @@ def edit_options(options: dict):
     st.session_state["dialog_active"] = True
     logger.info("Edit options dialog opened")
 
-    from app.initialize import DATAPATH, DIRECTORIES, SETTINGS, TERMS
+    from app.initialize import DATAPATH, SETTINGS, TERMS
 
     col_main, col_p = st.columns([1, 0.01])
     col_1, col_2, col_3, col_4, col_5 = st.columns([2, 3, 3, 3, 2])
@@ -133,11 +133,12 @@ def edit_options(options: dict):
                 # Select to add new or remove option if available
                 col_a, col_b = st.columns(2)
                 if col_a.checkbox("Remove option", value=False, key="remove_option"):
-                    _remove_option(col_2, TERMS, selection)
+                    cache_opt_main_sec_prog = _remove_option(col_2, TERMS, selection)
                 else:
                     # If user selected to edit
                     # Selected: edit options of a label
                     if selection in ["utility", "attribute", "origin"]:
+                        cache_opt_main_sec_prog = [True, False, False, False]
                         _edit_label(col_2, TERMS, selection)
 
                     # Selected: edit source
@@ -146,19 +147,21 @@ def edit_options(options: dict):
                     # - Limit of progress/attempts
                     # - If fail/success states are relevant
                     elif selection == "edit_source":
+                        cache_opt_main_sec_prog = [True]*4
                         _edit_source(col_b, col_2, TERMS, source_options)
 
             # Selected: change limit of existing source
             elif selection == "change_limits":
+                cache_opt_main_sec_prog = [True, True, True, False]
                 _edit_value_settings(col_2, TERMS, source_options)
         
         # Reset button - restores changed_options and changed_progress databases
         no_changes = not st.session_state["edit_options_complete"]
         if col_3.button("Reset", disabled=no_changes, width="stretch"):
             _reset_changes()
-    
+    if not cache_opt_main_sec_prog: cache_opt_main_sec_prog = [False]*4
     # Save button - saves changed_options and changed_progress databases to file
-    _save_changes(col_4, DATAPATH, SETTINGS, TERMS)
+    _save_changes(col_4, DATAPATH, SETTINGS, TERMS, cache_opt_main_sec_prog)
 
 
 def _initiate_option_edit(TERMS: dict) -> tuple:
@@ -191,11 +194,11 @@ def _initiate_option_edit(TERMS: dict) -> tuple:
 
     # Text-based options and project reference
     named_option_ref = {
-        "utility": f"Label: {TERMS["utility"]}",
-        "attribute": f"Label: {TERMS["attribute"]}",
-        "origin": f"Label: {TERMS["origin"]}",
-        "edit_source": f"Source: {TERMS["source"]}",
-        "change_limits": f"{TERMS["source"]} and {TERMS["attempt"]} settings"
+        "utility": f"{TERMS["utility"]}: edit labels",
+        "attribute": f"{TERMS["attribute"]}: edit labels",
+        "origin": f"{TERMS["origin"]}: edit labels",
+        "edit_source": f"{TERMS["source"]}: edit events",
+        "change_limits": "Event and value settings"
     }
 
     # User selection: what to edit
@@ -273,10 +276,13 @@ def _remove_option(col_2, TERMS: dict, selection: str):
     
     if single_option: 
         st.markdown("At least one option required. Add a new one first.")
+
     if selection in ["utility", "attribute", "origin"]:
+        cache_opt_main_sec_prog = [True, False, False, False]
         st.markdown("Removing labels will not change labels on registered objects.")
         st.markdown("To change labels on objects, use 'Edit details' in *Update library*.")
     elif selection == "edit_source":
+        cache_opt_main_sec_prog = [True, False, False, True]
         st.markdown(f"""{TERMS["source"]} cannot be removed due to data dependencies, 
                     but are instead deactivated.""")
         st.markdown("You can re-activate here by choosing 'Re-activate an inactive.'")
@@ -300,6 +306,8 @@ def _remove_option(col_2, TERMS: dict, selection: str):
                 st.session_state["selected_removal"])
             st.session_state["progress_is_changed"] = False
         st.session_state["edit_options_complete"] = True
+
+        return cache_opt_main_sec_prog
     
 
 def _edit_label(col_2, TERMS: dict, selection: str) -> bool:
@@ -362,7 +370,7 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
     else:
         reactivate = True
         options = [x for x in source_options if x not in st.session_state["active_trackers"]]
-        to_reactivate = st.selectbox(f"Select among inactive {TERMS["source"]}", options=options)
+        to_reactivate = col_left.selectbox(f"Select inactive {TERMS["source"]}", options=options)
         new_option = None
     # col_left, col_right = st.columns(2)
 
@@ -372,13 +380,9 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
 
     progress_is_selected = col_L.checkbox(
         f"Track {TERMS["attempt"]}?", value=True, disabled=reactivate)
-    if progress_is_selected:
-        new_limit = col_L.number_input(
-            f"Enter new max value.", min_value=1, value=100, disabled=reactivate)
-    else:
-        col_L.number_input(
-            f"Enter new max value.", min_value=1, value=100, disabled=True)
-        new_limit = None
+    disable_limit = True if reactivate or not progress_is_selected else False
+    new_limit = col_L.number_input(
+        f"Enter max value.", min_value=1, value=100, disabled=disable_limit)
 
     not_valid = True
     if new_option and st.session_state["field_changed"]:
@@ -391,8 +395,7 @@ def _edit_source(col_b, col_2, TERMS: dict, source_options) -> bool:
     
     # Source states or not 
     col_left.space()
-    state_is_selected = col_R.checkbox(
-        "Selectable outcomes?", value=True, disabled=reactivate)
+    state_is_selected = col_R.checkbox("Selectable outcomes?", value=True, disabled=reactivate)
     if state_is_selected:
         new_state = f"{TERMS["state_rand"]}" 
     else:
@@ -448,8 +451,10 @@ def _edit_value_settings(col_2, TERMS: dict, source_options):
     change_general = st.checkbox("Change general settings")
     if change_general:
         user_indicators = st.session_state["changed_options"]["user_indicators"]
+        start_count = st.session_state["changed_options"]["value_limits"]["collection_start_count"]
         st.divider()
         col1, col2 = st.columns(2)
+        new_start_count = 1 if col1.checkbox("Start count from 1", value=start_count) else 0
         previous_highlight = user_indicators["use_highlights"]
         use_highlights = col1.checkbox("Highlights enabled", value=previous_highlight)
         st.space("small")
@@ -500,6 +505,7 @@ def _edit_value_settings(col_2, TERMS: dict, source_options):
             st.session_state["changed_options"]["user_indicators"]["reverse_positive"] = reverse
             st.session_state["changed_options"]["user_indicators"]["high_highlight"] = new_high
             st.session_state["changed_options"]["user_indicators"]["low_highligh"] = new_low
+            st.session_state["changed_options"]["value_limits"]["collection_start_count"] = new_start_count
         else:
             category = source_selection
             st.session_state["changed_options"]["source_limit"][category] = new_limit
@@ -592,7 +598,8 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
         return True, msg
 
 
-def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict):
+def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict, 
+                  cache_opt_main_sec_prog: list):
     """
     If all required fields are complete, enable save button.  
     Save button refers file for backup and sends info for writing file.
@@ -600,12 +607,15 @@ def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict):
     Args:
         col_4 (DeltaGenerator):
             Streamlit column instance
+        cache_opt_main_sec_prog (list):
+            controls for which cache needs refresh
     """
     from app.initialize import arciv
 
     progress_is_changed = st.session_state["progress_is_changed"]
     not_complete = any([not st.session_state["edit_options_complete"], 
                         progress_is_changed is None])
+    
     if col_4.button("Save", disabled=not_complete, type="primary", width="stretch"):
         # Saving progress data
         if progress_is_changed:
@@ -636,8 +646,8 @@ def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict):
                     changed_options, 
                     set_file=options_path, join_path="settings")
         st.session_state["processed_edits"] = {
-            "clear_options": True,
-            "clear_main": False,
-            "clear_secondary": False,
-            "clear_progress": True}
+            "clear_options": cache_opt_main_sec_prog[0],
+            "clear_main": cache_opt_main_sec_prog[1],
+            "clear_secondary": cache_opt_main_sec_prog[2],
+            "clear_progress": cache_opt_main_sec_prog[3]}
         st.rerun()

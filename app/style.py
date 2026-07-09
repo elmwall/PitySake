@@ -218,7 +218,8 @@ def theme():
     logger.info("Opened theme dialog")
 
     themes = st.session_state["themes"]
-    _reset_colors(themes)
+    if not st.session_state["colors_updated"]: 
+        _reset_colors(themes)
     active_theme = themes["active"]
 
     st.write(f"Select theme")
@@ -250,7 +251,6 @@ def theme():
 
     st.space()
     col_1, col_2, col_3, col_4 = st.columns([1, 1, 1, 1])
-
     # Apply button to trigger save to file and change of active theme settings
     with st.container(width="stretch", horizontal_alignment="center"):
         if col_2.button("Apply", type="secondary", width="stretch"):
@@ -291,11 +291,13 @@ def theme():
                     set_file=SETTINGS["Themes"], empty_allowed=False): 
                 if arciv.writer(themes, set_file="ui_themes.json", join_path="settings"):
                     logger.info("Theme updated")
+            st.session_state["colors_updated"] = False
             st.rerun()
 
         if col_3.button("Done", type="secondary", width="stretch"):
             select_colors = False
             st.session_state["show_theme_settings"] = False
+            st.session_state["colors_updated"] = False
             st.rerun()
 
 def _toml_base():
@@ -309,10 +311,14 @@ toolbarMode = "minimal"
 
 [browser]
 gatherUsageStats = false
+
+[logger]
+level = "warning"
 """
 
 def _edited_colors():
-    return f"""[theme]
+    return f"""
+[theme]
 backgroundColor = '{st.session_state["background_temp"]}'
 secondaryBackgroundColor = '{st.session_state["input_field_temp"]}'
 primaryColor = '{st.session_state["highlights_temp"]}'
@@ -321,7 +327,8 @@ font = 'sans serif'
 """
 
 def _predefined_colors(themes, selected_theme):
-    return f"""[theme]
+    return f"""
+[theme]
 backgroundColor = '{themes[selected_theme]["background"]}'
 secondaryBackgroundColor = '{themes[selected_theme]["input_field"]}'
 primaryColor = '{themes[selected_theme]["highlights"]}'
@@ -334,6 +341,7 @@ def _reset_colors(themes):
     "Sets temp color for theme up for consideration or editing"
     for cat, col in themes[st.session_state["active_theme_temp"]].items():
         st.session_state[f"{cat}_temp"] = col
+    st.session_state["colors_updated"] = True
     return True
 
 

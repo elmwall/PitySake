@@ -12,6 +12,7 @@ from pathlib import Path
 log_directory = Path("logs")
 log_directory.mkdir(exist_ok=True)
 project = "active_project"
+
 # Set level of logging - silence irrelevant messages  
 logging.getLogger("PIL").setLevel(logging.WARNING)
 logging.getLogger("watchdog").setLevel(logging.WARNING)
@@ -37,8 +38,8 @@ logging_config = {
             "level": "DEBUG",
             "formatter": "simple",
             "filename": f"logs/{project}.log",
-            "maxBytes": 400000,
-            "backupCount": 5
+            "maxBytes": 200000,
+            "backupCount": 3
         }
     },
     "loggers": {

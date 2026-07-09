@@ -107,7 +107,7 @@ def notify():
         advice = error.get("advice", None)
         info_list = error.get("info_list", None)
         col_1, col_2, col_4 = st.columns([3, 6, 1])
-        with col_2.expander(f"Details - Error ID {id}{extra}"):
+        with col_2.expander(f"Details - Error ID {id}{extra}", width=700):
             if advice:
                 st.markdown(advice)
                 st.divider()

@@ -43,6 +43,7 @@ INIT_STATE = {
     # "error": False,
     "pending_backup": False,
     "pending_save": False,
+    "processed_edits": False, 
     # Constructor
     "show_theme_settings": False,
     "theme_edited": 0,
@@ -97,6 +98,7 @@ INIT_STATE = {
     "leave_theme_open": False,
     "theme_edited": 0,
     "theme_missing": False,
+    "colors_updated": False,
     # Progress tracker
     "active_trackers": "state_import",
     "value_trackers": "state_import",
@@ -205,7 +207,7 @@ def initialize():
                 st.session_state[key] = state_import[key]
             else:
                 st.session_state[key] = state
-        # In case of values lost through errors or hickups, verify the state of existing keys
+        # In case of values lost through errors or hickups, verify the state of existing keys 
         elif st.session_state[key] is None:
             try:
                 if state == "state_import":
@@ -360,6 +362,9 @@ toolbarMode = "minimal"
 [browser]
 gatherUsageStats = false
 
+[logger]
+level = "warning"
+
 [theme]
 backgroundColor = '{active_theme_settings["background"]}'
 secondaryBackgroundColor = '{active_theme_settings["input_field"]}'
@@ -412,5 +417,6 @@ def _load_theme(active_theme: str, theme: dict|None = None):
 
 def _load_color(key: str, active_theme: str, color: str):
     "Sync theme settings with session state."
-    st.session_state[key] = st.session_state[f"{key}_temp"] = color
+    if f"{key}_temp" not in st.session_state:
+        st.session_state[key] = st.session_state[f"{key}_temp"] = color
     st.session_state["themes"][active_theme][key] = color

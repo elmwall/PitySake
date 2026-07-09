@@ -278,8 +278,9 @@ def _process_collection_db(database: dict, datatype: str):
 
                 high_threshold = high_highlight / 100
                 low_threshold = low_highlight / 100
-                limit = source_limit.get(source, None)
-                if limit is None:
+                if source in source_limit:
+                    limit = source_limit[source]
+                else:
                     limit = 100
                     if not st.session_state["error"]:
                         error.message(
@@ -288,8 +289,10 @@ def _process_collection_db(database: dict, datatype: str):
                             file="settings\\data_options.json", 
                             details=[f"Missing source limit data needed for highlight generation: {source}"],
                             advice="Missing source data: re-add listed sources in *Edit options*.")
-                relative = attempt_value / limit
-                if relative > high_threshold:
+                if limit is not None: relative = attempt_value / limit
+                if limit is None:
+                    graph_data["highlight"].append(None)
+                elif relative > high_threshold:
                     graph_data["highlight"].append(True)
                 elif relative < low_threshold:
                     graph_data["highlight"].append(False)

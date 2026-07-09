@@ -44,20 +44,34 @@ def header():
     if not st.session_state.get("initated", False):
         logger.info(f"Building header.")
 
+    st.html("""
+        <style> 
+            .st-key-settings_main {width: 100vw; min-width: 1200px;} 
+            .st-key-error_field_main {width: 800px; min-width: 700px;} 
+        </style>""")
+
     header_height = "content" if st.session_state["error"] else 40
     # Sets whole-page width area for header
     with st.container(
             border=False, key="settings_main",
             height=header_height, vertical_alignment="center"):
+        # error = st.session_state["error"]
         # Creates columns
-        c1, col_options, col_title, c3 = st.columns([0.1, 5, 2, 5])
-        # Error message for user is rendered in top-right corner 
-        # for visibility without being mixed up with other layout.
-        # Placing it in the rendered layout instead of dialog is preferable, 
-        # since only one dialog is allowed
-        if st.session_state["error"]:
-            with c3.container(border=True, key="error_field_main", width="stretch", height=header_height):
-                error.notify()
+        if not st.session_state["vertical_view"]:
+            c1, col_options, col_title, c3, c4 = st.columns([0.1, 5, 1.75, 0.5, 4.25])
+            # Error message for user is rendered in top-right corner 
+            # for visibility without being mixed up with other layout.
+            # Placing it in the rendered layout instead of dialog is preferable, 
+            # since only one dialog is allowed
+            if st.session_state["error"]:
+                with c4.container(border=True, key="error_field_main", width=800, height=header_height):
+                    error.notify()
+        else:
+            c1, col_options, col_title = st.columns([0.1, 5, 7])
+            if st.session_state["error"]:
+                with st.container(border=True, key="error_field_main", width=800, height=header_height):
+                    error.notify()
+
 
         with col_options:
             with st.container(key="border_options"):
@@ -90,7 +104,12 @@ def header():
 
                 if st.session_state["show_theme_settings"]:
                     # Set theme temp keys here for editing to have them available when dialog is opened
-                    st.session_state["active_theme_temp"] = st.session_state["themes"]["active"]
+                    active_theme_settings = st.session_state["themes"]["active"]
+                    if "active_theme_temp" not in st.session_state: 
+                        st.session_state["active_theme_temp"] = active_theme_settings
+                    elif not st.session_state["dialog_active"]: 
+                        st.session_state["active_theme_temp"] = active_theme_settings
+                    st.session_state["colors_updated"] = False
                     page.theme()
                     theme_edited = st.session_state.get("theme_edited", 0)
                     if theme_edited and not leave_theme_open:
@@ -133,9 +152,8 @@ def horizontal_view(registration_keys: list, prog_meter_keys: list,
     table_height = "stretch"
 
     # Main container
-    with st.container(
-            key="main_content", height="stretch", 
-            horizontal_alignment="center", vertical_alignment="center"):
+    with st.container(key="main_content", height="stretch", 
+                      horizontal_alignment="center", vertical_alignment="center"):
         # Row 1
         with st.container(width=CONTENT_WIDTH):
             st.space(15)
@@ -202,23 +220,21 @@ def vertical_view(registration_keys: list[str], prog_meter_keys: list[str],
 
     st.html("""
         <style> 
-            .st-key-main_content {width: 100vw; min-width: 800px; max-width: WIDTH_REFpx;} 
+            .st-key-main_content {width: 100vw; min-width: WIDTH_REFpx;} 
             .st-key-content_frame {padding: 16px;} 
         </style>""".replace("WIDTH_REF", f"{WIDTH_TOT_LEFT}"))
     table_height = 350
 
     # Main container
-    with st.container(
-            key="main_content", height="stretch", width="stretch", 
-            horizontal_alignment="center", vertical_alignment="center"):
-        width_left = "stretch"
+    with st.container(key="main_content", height="stretch",
+                      horizontal_alignment="center", vertical_alignment="center"):
+        width_left = WIDTH_TOT_LEFT
         # Content frame
         with st.container(
                 key="content_frame", width=width_left, horizontal_alignment="center"):
             # Object registration
             object_recorder.register_object(
-                "reg_object", registration_keys, 
-                width_left, highlight_html)
+                "reg_object", registration_keys, width_left, highlight_html)
             st.space()
 
             # Progress tracker

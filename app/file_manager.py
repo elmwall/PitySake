@@ -111,6 +111,10 @@ class Archivist:
                     error.message(message, stage, name=None, file=read_file, 
                                   details=[f"Invalid JSON format - {read_file}"])
                     return False
+            except MemoryError:
+                logger.exception(f"File error:\n    Warning! File too big: {read_file}.")
+                error.message(message, stage, name=None, file=read_file, 
+                                details=["Warning! Abnormal file size."])
             except Exception:
                 logger.exception(f"File error:\n    Archivist.reader failed to read json: {read_file}.")
                 error.message(message, stage, name=None, file=read_file, 

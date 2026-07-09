@@ -15,8 +15,6 @@ This tool was originally developed for tracking collectibles, progress and event
     <img src="./accessories/presentation2.png" style="width: 45%; max-width: 339px; min-width: 200px; border-radius: 5px; margin: -2px; padding: 0">
 </p>
 
-<!-- <p style="text-align:center"><img src="./accessories/presentation.png" width="700" style="border-radius: 10px"></p> -->
-
 
 
 ## System overview
@@ -27,7 +25,7 @@ This is a modular Python system using the Streamlit API, consisting of two separ
     ↓ Installation  
     ⤷ Wizard → Generate local user project  
     ⤷ User projects → Project main app → Data visualization 
-- The projects are isolated, but due to local server usage only one can be open at a time
+- The projects are isolated, but only one can be open at a time
 
 ### The project main app
 
@@ -77,7 +75,7 @@ This system runs the UI for projects and manages all editing of project database
 ### Limitations
 
 - This is not a tool for managing and analyzing large data quantities, but for easy logging of smaller scale projects with immediate access to tables and data
-- Not optimized for managing multiple projects in open windows simultaneously; close the active project before opening another.
+- Not designed for managing multiple projects in open windows simultaneously; close the active project before opening another.
 - The [calculator](#calculator) is partially optimized for calculations of defined data sets, and most useful for specific kinds of projects, but a more basic calculator is accessible.
 
 
@@ -146,21 +144,33 @@ with terminal directory set to PitySake folder (`cd path\to\PitySake`):
 
 ## Getting started
 
-Windows: projects and wizard are easiest to launch via shortcuts (*your_project_name.lnk* and *New_Project.lnk*). This will open a terminal running a streamlit session and a browser rendering the app.  
+Windows: projects and wizard are easiest to launch via shortcuts (*your_project_name.lnk* and *New_Project.lnk*). This will open a terminal running a streamlit session and a browser rendering the app. 
 
 Mac and Linux (and Windows), starting through terminal:  
 
 #### To create a project, run wizard:  
+
 1. set directory to the wizard folder (PitySake\project_utilities)  
 2. `.venv/bin/python -m streamlit run project_manager.py`  
+
 #### To run projects,  
+
 1. set directory to the path of your PitySake folder  
 2. `.venv\Scripts\python.exe -m streamlit run your_project.py`  
     replace "your_project" with your project file name
 
-> ❗ **Recommended:** start the browser *before* running the script. This way it is less prone to errors due to delays. Also, in some systems, if the script calls the browser, the browser will run as a child process. Terminating/closing the terminal will then close the browser as well.  
-> ❗ The terminal must remain open while running the app, else it will become unresponsive.  
-> ❗ Close the active terminal before launching another project or the wizard.
+> ### ❗Best practice for running the systems 
+>
+> - **Before:** start the browser before running the script, you may need to refresh the app page otherwise. Also, if the script initiates the browser, in some systems the browser will run as a child process. Terminating/closing the terminal will then close the browser as well.  
+> - **During:** the terminal must remain open while running the app, else it will become unresponsive.  
+> - **After:** close the active terminal before launching another project.
+
+> ### 💡Notes
+>
+> - One project and the wizard can run simultaneously by using the (Windows) shortcut, or by manually defining a unique port, e.g.   
+    `.venv/bin/python -m streamlit run project_manager.py --server.port 8502`.   
+    Doing this with projects however will cause conflict with shared meta and config files.
+> - The browser may show a warning due to not connecting to a network via HTTPS, however the system is set up to not connect to external resources.
 
 
 ### Quick start user project
@@ -185,11 +195,11 @@ More details on the wizard [here](#project-installation-wizard).
 
 The system uses the following data structure:
 - **Main and secondary object:** two over-arching categories of items/subjects
-- **Labels:** For searching/sorting tables  
-    3 labels for main and 1 label for secondary objects
-- **Events:** information attached to registered objects at dates  
-    Info attached: event category, value, and outcome evaluation  
-    Value and evaluation can be disabled for specific categories
+- **Labels:** For searching/sorting tables,  
+    3 labels for main and 1 label for secondary objects.
+- **Events:** information attached to registered objects at dates.  
+    Info attached: event category, value, and outcome evaluation.  
+    Value and evaluation can be disabled for specific categories.
 
 
 ### Feature overview
@@ -222,8 +232,10 @@ Through this feature new objects or events can be added, or old ones edited.
 - **Add new:** enter a new name to add a completely new object/subject to the database. You can simultaneously add an event to that object
 - **New event:** select an existing object in the name field to which a new event is attached
 - **Delete entry:** select an object to remove
-- **Edit detail:** edit object name or labels. Object type and events cannot be changed, delete and add again instead.
+- **Edit details:** edit object name or labels
 - **Delete event:** select an event in the date field with a date-time ID to remove
+
+Object type and events cannot be edited; instead, delete the object/event and add again with new details.
 
 #### Object details
 
@@ -233,12 +245,12 @@ Through this feature new objects or events can be added, or old ones edited.
 #### Event details
 
 - **Event category:** Selecting an event category automatically collects the current value of that category from the tracker.  
-❗ set the value after category, otherwise it may alter changes you've made in the value field.
+💡Set the value after event, otherwise it may alter changes you've made in the value field.
 - **Evaluation:** this will label the event as a positive/neutral/negative outcome
 - **Value:** a value between 0 and the limit you have set for the event category
 
 
-💡 In the [project installation wizard](#project-installation-wizard), counting of objects can be set to count true value, or to count additional instances after the first one.  
+>💡**Counting object events:** In the [project installation wizard](#project-installation-wizard), or [Edit options](#settings--considerations) counting of objects can be set to count true value or to count additional instances, i.e., whether the first event of an object is shown as 0 or 1. No count is shown without events added.
 
 <p style="text-align:center"><img src="./accessories/object_reg.png" style="border-radius: 5px"></p>
 
@@ -254,7 +266,7 @@ Through this feature new objects or events can be added, or old ones edited.
 
 Each category is defined with an upper limit, setting the value range from 0 to this limit, corresponding to the span of the slider. This works best for known sets of stages or percents. Otherwise, set the limit to a value above expected values, without being unreasonable. 
 
-> ❗ The limit can be set as high as you like, but value highlights in the [timeline](#timeline) are based on percentages of this span. Set the span with this in mind, or disable highlights completely.
+> ❗**Limit effects:** The limit can be set as high as you like, but value highlights in the [timeline](#timeline) are based on percentages of this span. Set the span with this in mind, or disable highlights completely.
 
 <p style="text-align:center"><img src="./accessories/progress6.png" style="border-radius: 5px"></p>
 
@@ -330,49 +342,36 @@ Calculations includig all:
 
 Certain settings can be changed through dialog boxes in the app:
 
-<div style="display: flex; flex-wrap: wrap; align-items: start">
-    <table style="min-width: 220px; flex-grow: 1; margin: 0px auto">
-        <tr><th style="text-align: center">
-            Project settings
-        </th></tr>
-        <tr><td><img src="./accessories/edit_options7.png" width="200" style="border-radius: 16px; "><br>
-        - Button: 'Edit options' in <i>Update library</i> feature<br>
-        - Add/remove labels<br>
-        - Add/activate/deactivate event categories<br>
-        - Change limits<br>
-        - Change highlight settings</td></tr>
-    </table>
-    <table style="min-width: 220px; flex-grow: 1; margin: 0px auto">
-        <tr><th style="text-align: center">
-            UI appearance
-        </th></tr>
-        <tr><td><img src="./accessories/theme9.png" width="200" style="border-radius: 16px"><br>
-        - Button: 'Theme' in header<br>
-        - Switch between different themes<br>
-        - Define theme colors<br>
-        - Enable/disable feature headers<br></td></tr>
-    </table><br>
-</div>
+| ![Edit options](./accessories/edit_options7.png)      | ![Edit theme](./accessories/theme9.png)   |
+| -                                                     | -                                         |
+| **Button:** *Edit options* in <i>Update library</i>   | **Button:** *Theme* in header             |
+| Add/remove labels                                     | Switch between different themes           |
+| Add/activate/deactivate event categories              | Define theme colors                       |
+| Change limits                                         | Enable/disable feature headers            |
+| Change highlight settings                             |                                           |
 
-#### Labels: add or remove any number of lables, however: 
+#### Labels:
+
+Add or remove any number of lables, however: 
 - The label field expands and can take any number of labels, but a large amount can clutter the view. 
 - At least one label in each category is required (3 categories for main, 1 for secondary), although a blank label can be set.
 - Labels or event categories removed are still visible in already registered data object data. To change these, use *Edit details* in *Update library* and select other existing options.
 
-#### Editing event categories: 
+#### Event categories:
+
 - For new ones, define whether to enable/disable values and evaluation, and set value limits.
 - You can change settings of a category by adding the same category again. Events already registered with the previous version of the category will retain the information they were logged with; to change them you need to remove/re-add those events.
 - Once added, event categories cannot be permanently removed due to dependencies with analytical modules. They can instead be deactivated/re-activated, which controls their visibility in the project.
 
-#### Data visualization
+#### Data visualization:
 
 - While installing a project you can disable or set thresholds for highlight color coding dependent on values. These settings can be changed later. 
 - Decide if you want data points to get an evaluation labeling. Opt out either by using 'neutral' evaluation or by disabling evaluation states when defining an event category.
 
-#### Horizontal or vertical layout; [see examples](#whole-page-examples)
+#### Horizontal or vertical layout: switch in header
 
-- Alter between horizontal and vertical layout via 'Vertical view' switch in the page header.
-- Due to complex dependencies, responsiveness to screen size is disabled. For smaller or standing windows, vertical view is more optimal. Zoom in within a vertical layout for enlarged views.
+- Alter between horizontal and vertical arrangement of the features, [see examples](#whole-page-examples)
+- Due to complex dependencies, responsiveness to screen size is disabled. For smaller or standing windows, vertical view is more optimal. Zoom in within a vertical layout for enlarged views easily navigated by scroll.
 
 #### Theme
 
@@ -404,15 +403,15 @@ As with lag, during many rapid changes, session states values from individual fe
 
 ### Errors
 
-> 💡 If an error occurs, try pressing refresh in the header, which may clear temporary disruptions or hickups.  
->
-> If you have performed any actions which may clear the error, press refresh to reset the system.
+> Error notifications indicates which data and file that was involved. For more advanced insights on what went wrong, error messages are shown with a time and unique ID, by which one can locate the error in the log file (the latest has no numeral suffix). The log indicates which module and function registered the error.
+> 
+> <p style="text-align:center"><img src="./accessories/error.png" style="border-radius: 5px"></p>
 
-Critical errors will likely only happen if files have been moved or corrupted, which should not happen through normal use. Error messages will inform which files or data are missing. 
+💡If an error occurs, try pressing refresh in the header, which may clear temporary disruptions or solved errors.  
+
+Persistent errors will likely only happen if files have been moved or altered.
 
 Data files can replaced with a backup or generated again (but empty) by saving data, but not configuration files. Those files can be replaced by loading a new project with the template for a previous one, and move the missing settings file to your original project, or your data files to the new. 
-
-<p style="text-align:center"><img src="./accessories/error.png" style="border-radius: 5px"></p>
 
 Interruptions while editing is usually not an issue. event categories and tracking are however kept in separate files, and an interruption while adding a new category in *Edit options* could potentially cause only one to be edited, preventing data on that category to be utilized properly. This is easily fixed by adding the same category with the same name again.
 

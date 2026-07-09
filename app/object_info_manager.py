@@ -109,7 +109,7 @@ class Secretary:
                 "for_renaming": False
             },
             "edit_entry": {
-                "reg_key": "Edit labels",
+                "reg_key": "Edit details",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": True

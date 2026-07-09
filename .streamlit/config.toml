@@ -8,6 +8,9 @@ toolbarMode = "minimal"
 [browser]
 gatherUsageStats = false
 
+[logger]
+level = "warning"
+
 [theme]
 backgroundColor = '#161616'
 secondaryBackgroundColor = '#3e4646'
