@@ -342,13 +342,11 @@ Calculations includig all:
 
 Certain settings can be changed through dialog boxes in the app:
 
-| ![Edit options](./accessories/edit_options7.png)      | ![Edit theme](./accessories/theme9.png)   |
-| -                                                     | -                                         |
-| **Button:** *Edit options* in <i>Update library</i>   | **Button:** *Theme* in header             |
-| Add/remove labels                                     | Switch between different themes           |
-| Add/activate/deactivate event categories              | Define theme colors                       |
-| Change limits                                         | Enable/disable feature headers            |
-| Change highlight settings                             |                                           |
+| ![Edit options](./accessories/edit_options7.png)  | ![Edit theme](./accessories/theme9.png)   |
+| :-:                                               | :-:                                       |
+| Edit options                                      | Edit theme                                |
+| Button in <i>Update library</i>                   | Button: in header                         |
+| Change labels, event, and value settings          | Define colors, switch between themes      |
 
 #### Labels:
 
