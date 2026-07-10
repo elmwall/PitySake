@@ -104,14 +104,24 @@ def check_duplicates(value_list, message=True):
         return False
     
 
-def sync_used_terms(collection: dict):
+def sync_used_terms(collection: dict, type: str|None = None):
+    "Collects entered text fields which may cause conflict if re-used."
+    if type: st.session_state["in_use"][type] = dict()
     for x, y in collection.items():
-        st.session_state["in_use"][x] = y
+        if type:
+            st.session_state["in_use"][type][x] = y
+        else:
+            st.session_state["in_use"][x] = y
 
-def check_used_terms(control_values: list):
+def check_used_terms(control_values: dict, type: str|None = None):
+    "Verifies that input in text field has not been used before."
+    if type: 
+        in_use = st.session_state["in_use"].get(type, {})
+    else: 
+        in_use = st.session_state["in_use"]
     for x, y in control_values.items():
         if y in st.session_state["in_use"].values():
-            for a, b in st.session_state["in_use"].items():
+            for a, b in in_use.items():
                 if a == x: 
                     continue
                 elif b == y:

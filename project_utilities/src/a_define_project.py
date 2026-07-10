@@ -194,8 +194,8 @@ def _name_objects(button_format_key: str, is_changed_key: str) -> dict:
                 "attribute": attribute, 
                 "origin": origin
             }
-            no_repeats = tools.check_used_terms(labels)
-            if no_repeats: tools.sync_used_terms(labels)
+            no_repeats = tools.check_used_terms(labels, type="label")
+            if no_repeats: tools.sync_used_terms(labels, type="label")
 
     # Word validation
     validated = dict()
