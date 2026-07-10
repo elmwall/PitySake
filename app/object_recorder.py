@@ -111,6 +111,7 @@ def register_object(component_key: str, sub_keys: list,
             # - render proper date selector (calender or selectbox)
             # - controlled by reg action type
             regset = st.session_state["regset"]
+            if regset == "add_event": st.session_state["include_event"] = True
             checkbox_disabled = regset != "add_new"
             include_event = st.checkbox(
                 "Add event", key="include_event", disabled=checkbox_disabled)
