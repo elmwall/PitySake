@@ -17,7 +17,7 @@ This tool was originally developed for tracking collectibles, progress and event
 
 
 
-## System overview
+## System overview: [v1.0.1](#change-log)
 
 This is a modular Python system using the Streamlit API, consisting of two separate sub-systems as well as a few supportive functions; [see file structure](#file-structure).
 - Local-first: only installation requires internet connection, all data needed for the main app and wizard are maintained in the PitySake directory
@@ -531,4 +531,12 @@ A project with unique settings and terminology is defined in a six-step form, wh
 #### Vertical view example with imaginary data for learning and courses:  
 
 <p style="text-align:center"><img src="./accessories/whole_page7.png" width="700"></p>
+
+
+
+## Change log
+
+v1.0.0 → v1.0.1
+
+Wizard improvement: allow label to have same name as other type (no conflict)
 

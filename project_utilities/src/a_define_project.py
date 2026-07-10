@@ -172,21 +172,21 @@ def _name_objects(button_format_key: str, is_changed_key: str) -> dict:
             args=(button_format_key, is_changed_key), 
             help="Use a broad label which can apply to both object types",
             placeholder="e.g. Topic / Effort / Series")
-        tools.sync_used_terms({"utility": utility})
+        tools.sync_used_terms({"utility": utility}, type="label")
         attribute = st.text_input(
             "2. Label for main object", 
             key="attribute", 
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             placeholder="e.g. Platform / Activity type / Manufacturer")
-        tools.sync_used_terms({"attribute": attribute})
+        tools.sync_used_terms({"attribute": attribute}, type="label")
         origin = st.text_input(
             "3. Label for main object", 
             key="origin", 
             on_change=tools.need_update, 
             args=(button_format_key, is_changed_key), 
             placeholder="e.g. Examination / Muscle group / Scale")
-        tools.sync_used_terms({"origin": origin})
+        tools.sync_used_terms({"origin": origin}, type="label")
 
         if utility and attribute and origin: 
             labels = {
