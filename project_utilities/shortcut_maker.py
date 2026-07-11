@@ -23,16 +23,38 @@ if os_name == "Windows":
     # make_shortcut(
     #     project_args, name="User_Project.lnk", working_dir=root_directory, 
     #     icon=str(project_icon_path), terminal=False, desktop=True)
-    if not "User_Project.lnk" in root_file_list:
-        print("Creating user project shortcut in PitySake/...")
+    print("Creating user project shortcut in PitySake/...")
+    try:
         make_shortcut(
             str(project_args), name="User_Project.lnk", working_dir=root_directory, 
             icon=str(project_icon_path), folder=root_directory, terminal=False, desktop=False)
-    if not "New_Project.lnk" in root_file_list:
-        print("Creating wizard shortcut in PitySake/...")
-        icon_path = os.path.join(accessory_directory, "icon2.ico")
+    except:
+        print(f"Failed to create shortcut for standard User Project")
+
+    print("Creating wizard shortcut in PitySake/...")
+    icon_path = os.path.join(accessory_directory, "icon2.ico")
+    try:
         make_shortcut(
             str(config_args), name="New_Project.lnk", working_dir=utilities_directory, 
             icon=str(icon_path), folder=root_directory, terminal=False, desktop=False)
+    except:
+        print(f"Failed to create shortcut for Wizard")
+        
+    for x in root_file_list:
+        file, extension = os.path.splitext(x)
+        if extension == ".bat":
+            if x not in ["module_installer.bat", "user_project.bat", "clear_cache.bat"]:
+                print(f"Creating shortcut for project: {file}")
+                try:
+                    batfile_args = f'{target_terminal} /k "{x}"'
+                    make_shortcut(
+                        str(batfile_args), name=f"{file}.lnk", working_dir=root_directory, 
+                        icon=str(project_icon_path), folder=root_directory, terminal=False, desktop=False)
+                    make_shortcut(
+                        str(batfile_args), name=f"{file}.lnk", working_dir=root_directory, 
+                        icon=str(project_icon_path), terminal=False, desktop=False)
+                except:
+                    print(f"Failed to create shortcut for {x}")
+        
 else:
     print("OS: not Windows. No shortcut made.")

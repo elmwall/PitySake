@@ -17,7 +17,9 @@ This tool was originally developed for tracking collectibles, progress and event
 
 
 
-## System overview: [v1.0.1](#change-log)
+## System overview: 
+
+Version v1.0.2: [see changes](#change-log)
 
 This is a modular Python system using the Streamlit API, consisting of two separate sub-systems as well as a few supportive functions; [see file structure](#file-structure).
 - Local-first: only installation requires internet connection, all data needed for the main app and wizard are maintained in the PitySake directory
@@ -110,8 +112,6 @@ Required Python modules:
 
 Windows: start the file *module_installer.bat*. This will run a script automatically checking/installing required modules. This will also place a shortcut *New_Project* to the wizard and a quick start project file shortcut *User_Project* is created in PitySake folder.  
 
-Shortcuts will not work if the PitySake folder is moved after installation. This can be fixed by rightclicking the shortcut > Properties, and change "Start in" field to the new directory or make your own shortcut.
-
 *Alternatively, in a terminal:*  
 
 #### 1. Setup a virtual environment and upgrade pip  
@@ -141,6 +141,17 @@ with terminal directory set to PitySake folder (`cd path\to\PitySake`):
     where "modulename" is the respective Python module above (pywin32 only for Windows)
 
 
+### ❗Moving folder location
+
+- Modules installed in virtual environments, as well as generated shortcut, are not portable and will be broken if the folder is moved
+- After moving: 
+    1. remove the folder *.venv* 
+    2. Redo the steps in Module installation  
+    This will renew the modules to a working condition.  
+    On Windows: *module_installer.bat* will regenerate shortcuts for wizard and all existing projects.
+
+
+
 
 ## Getting started
 
@@ -159,18 +170,19 @@ Mac and Linux (and Windows), starting through terminal:
 2. `.venv\Scripts\python.exe -m streamlit run your_project.py`  
     replace "your_project" with your project file name
 
-> ### ❗Best practice for running the systems 
->
-> - **Before:** start the browser before running the script, you may need to refresh the app page otherwise. Also, if the script initiates the browser, in some systems the browser will run as a child process. Terminating/closing the terminal will then close the browser as well.  
-> - **During:** the terminal must remain open while running the app, else it will become unresponsive.  
-> - **After:** close the active terminal before launching another project.
 
-> ### 💡Notes
->
-> - One project and the wizard can run simultaneously by using the (Windows) shortcut, or by manually defining a unique port, e.g.   
+### ❗Best practice for running the systems 
+
+- **Before:** start the browser before running the script, you may need to refresh the app page otherwise. Also, if the script initiates the browser, in some systems the browser will run as a child process. Terminating/closing the terminal will then close the browser as well.  
+- **During:** the terminal must remain open while running the app, else it will become unresponsive.  
+- **After:** close the active terminal before launching another project.
+
+### 💡Notes
+
+- One project and the wizard can run simultaneously by using the (Windows) shortcut, or by manually defining a unique port, e.g.   
     `.venv/bin/python -m streamlit run project_manager.py --server.port 8502`.   
     Doing this with projects however will cause conflict with shared meta and config files.
-> - The browser may show a warning due to not connecting to a network via HTTPS, however the system is set up to not connect to external resources.
+- The browser may show a warning due to not connecting to a network via HTTPS, however the system is set up to not connect to external resources.
 
 
 ### Quick start user project
@@ -536,7 +548,7 @@ A project with unique settings and terminology is defined in a six-step form, wh
 
 ## Change log
 
-v1.0.0 → v1.0.1
-
-Wizard improvement: allow label to have same name as other type (no conflict)
-
+v1.0.0 → v1.0.2
+- Wizard improvement: allow label to have same name as other type (no conflict)
+- Module installer improvement: module_installer.bat → shorcut_maker.py can now generate shortcuts to existing projects, which makes it possible to move folder and re-install modules
+- Module installer fix: shortcut_maker call corrected (via venv)

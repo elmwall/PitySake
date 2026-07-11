@@ -182,11 +182,11 @@ def register(key: str, disable: bool = False, use_template: bool = False):
                     place = "on desktop"
                     make_shortcut(
                         str(project_args), name=f"{title}.lnk", working_dir=str(root), 
-                        icon=str(icon_path), desktop=True)
+                        icon=str(icon_path), terminal=False, desktop=True)
                     place = "in folder"
                     make_shortcut(
                         str(project_args), name=f"{title}.lnk", working_dir=str(root), 
-                        icon=str(icon_path), folder=str(root_shortcut))
+                        icon=str(icon_path), terminal=False, folder=str(root_shortcut))
                 except Exception as e:
                     error = True
                     msg = "Shortcut could not be created."
