@@ -66,7 +66,7 @@ if %errorlevel% equ 0 (
 )
 
 echo Creating shortcuts...
-python project_utilities/shortcut_maker.py
+.venv\Scripts\python.exe -m project_utilities.shortcut_maker
 
 if %errorlevel% equ 0 (
     echo.
