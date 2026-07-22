@@ -92,6 +92,7 @@ INIT_STATE = {
     "options_are_edited": True,
     "reset_edits": False,
     "field_changed": False,
+    "cache_opt_main_sec_prog": None,
     # Style
     # "active_theme": "state_import",
     # "active_theme_temp": "state_import",

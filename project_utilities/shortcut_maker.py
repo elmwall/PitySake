@@ -52,7 +52,7 @@ if os_name == "Windows":
                         icon=str(project_icon_path), folder=root_directory, terminal=False, desktop=False)
                     make_shortcut(
                         str(batfile_args), name=f"{file}.lnk", working_dir=root_directory, 
-                        icon=str(project_icon_path), terminal=False, desktop=False)
+                        icon=str(project_icon_path), terminal=False, desktop=True)
                 except:
                     print(f"Failed to create shortcut for {x}")
         

@@ -109,7 +109,7 @@ def calculator(component_key: str, feature_width: int | str,
                 if not no_limit:
                     is_start_valid, is_stop_valid, msg, usertip_start, usertip_stop = _validation(limit)
                     # View settings depending on data validity
-                    if is_start_valid and is_stop_valid:
+                    if is_start_valid is not False and is_stop_valid is not False:
                         st.html(highlight_html.replace("KEY_REF", "calc_button"))
                         is_invalid, appearance = False, "primary"
                     else:
@@ -119,6 +119,12 @@ def calculator(component_key: str, feature_width: int | str,
                     is_invalid = True
                 # Field for submit and result
                 # Submit button
+                st.html("""
+                        <style>
+                            .st-key-calc_button button {
+                                white-space: nowrap;
+                            }
+                        </style>""")
                 if col_label.button(
                         f"{msg}", key="calc_button", type=appearance, 
                         disabled=is_invalid, width="stretch"):
@@ -264,7 +270,7 @@ def _validation(limit: int) -> tuple:
     stop_section = st.session_state.get("stop_section", 1)
     start_position = st.session_state.get("start_position", 1)
     stop_position = st.session_state.get("stop_position", 2)
-    if any([not start_section, not stop_section, not start_position, not stop_position]):
+    if any([start_section is None, stop_section is None, start_position is None, stop_position is None]):
         return False, False, msg, "", ""
 
     # Conditions for start data
@@ -502,11 +508,6 @@ def _result_viewer(col_label, output: int | None,
             st.html("""
                 <style> 
                     .st-key-warning {color: COLOR_REF;} 
-                    .st-key-warning_sign button {
-                        margin-top: 6px; 
-                        border-radius: 30px; 
-                        border: solid 1.6px COLOR_REF;
-                    } 
                 </style>""")
                 # .replace("COLOR_REF", st.session_state["negative_color"]))
             with st.container(key="warning", width="stretch", height="stretch"):

@@ -17,9 +17,9 @@ This tool was originally developed for tracking collectibles, progress and event
 
 
 
-## System overview: 
+## System overview 
 
-Version v1.0.2: [see changes](#change-log)
+### Version v1.0.3: [see changes](#change-log)
 
 This is a modular Python system using the Streamlit API, consisting of two separate sub-systems as well as a few supportive functions; [see file structure](#file-structure).
 - Local-first: only installation requires internet connection, all data needed for the main app and wizard are maintained in the PitySake directory
@@ -548,7 +548,20 @@ A project with unique settings and terminology is defined in a six-step form, wh
 
 ## Change log
 
-v1.0.0 → v1.0.2
-- Wizard improvement: allow label to have same name as other type (no conflict)
-- Module installer improvement: module_installer.bat → shorcut_maker.py can now generate shortcuts to existing projects, which makes it possible to move folder and re-install modules
-- Module installer fix: shortcut_maker call corrected (via venv)
+v1.0.0 → v1.0.3
+- Wizard improvement:  
+    `/project_utilities/src/a_define_project.py`  
+    Allow label to have same name as other type (no conflict)
+- Module installer:  
+    `/project_utilities/module_installer.bat`  
+    `/project_utilities/shorcut_maker.py`  
+    - Improvement: can now generate shortcuts to existing projects, which makes it possible to move folder and re-install modules
+    - Fixes:  
+        shortcut_maker call corrected (via venv)  
+        corrected desktop shortcut switch    
+- Edit option improvement:  
+    `/app/project_configuration.py`  
+    Changed cache clearance control to sessions state values for better sync
+- Calculator fix:  
+    `/app/calculate_progress.py`  
+    0 position no longer blocks calculation as a "None" value

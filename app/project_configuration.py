@@ -133,12 +133,12 @@ def edit_options(options: dict):
                 # Select to add new or remove option if available
                 col_a, col_b = st.columns(2)
                 if col_a.checkbox("Remove option", value=False, key="remove_option"):
-                    cache_opt_main_sec_prog = _remove_option(col_2, TERMS, selection)
+                    _remove_option(col_2, TERMS, selection)
                 else:
                     # If user selected to edit
                     # Selected: edit options of a label
                     if selection in ["utility", "attribute", "origin"]:
-                        cache_opt_main_sec_prog = [True, False, False, False]
+                        st.session_state["cache_opt_main_sec_prog"] = [True, False, False, False]
                         _edit_label(col_2, TERMS, selection)
 
                     # Selected: edit source
@@ -147,21 +147,21 @@ def edit_options(options: dict):
                     # - Limit of progress/attempts
                     # - If fail/success states are relevant
                     elif selection == "edit_source":
-                        cache_opt_main_sec_prog = [True]*4
+                        st.session_state["cache_opt_main_sec_prog"] = [True]*4
                         _edit_source(col_b, col_2, TERMS, source_options)
 
             # Selected: change limit of existing source
             elif selection == "change_limits":
-                cache_opt_main_sec_prog = [True, True, True, False]
+                st.session_state["cache_opt_main_sec_prog"] = [True, True, True, False]
                 _edit_value_settings(col_2, TERMS, source_options)
-        
         # Reset button - restores changed_options and changed_progress databases
         no_changes = not st.session_state["edit_options_complete"]
         if col_3.button("Reset", disabled=no_changes, width="stretch"):
             _reset_changes()
-    if not cache_opt_main_sec_prog: cache_opt_main_sec_prog = [False]*4
+    if not st.session_state["cache_opt_main_sec_prog"]: 
+        st.session_state["cache_opt_main_sec_prog"] = [False]*4
     # Save button - saves changed_options and changed_progress databases to file
-    _save_changes(col_4, DATAPATH, SETTINGS, TERMS, cache_opt_main_sec_prog)
+    _save_changes(col_4, DATAPATH, SETTINGS, TERMS)
 
 
 def _initiate_option_edit(TERMS: dict) -> tuple:
@@ -307,7 +307,7 @@ def _remove_option(col_2, TERMS: dict, selection: str):
             st.session_state["progress_is_changed"] = False
         st.session_state["edit_options_complete"] = True
 
-        return cache_opt_main_sec_prog
+        st.session_state["cache_opt_main_sec_prog"] = cache_opt_main_sec_prog
     
 
 def _edit_label(col_2, TERMS: dict, selection: str) -> bool:
@@ -598,8 +598,7 @@ def _validity_check(name: str | bool = False, number: int | bool = False,
         return True, msg
 
 
-def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict, 
-                  cache_opt_main_sec_prog: list):
+def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict):
     """
     If all required fields are complete, enable save button.  
     Save button refers file for backup and sends info for writing file.
@@ -607,16 +606,16 @@ def _save_changes(col_4, DATAPATH: dict, SETTINGS: dict, TERMS: dict,
     Args:
         col_4 (DeltaGenerator):
             Streamlit column instance
-        cache_opt_main_sec_prog (list):
-            controls for which cache needs refresh
     """
     from app.initialize import arciv
 
+    cache_opt_main_sec_prog = st.session_state["cache_opt_main_sec_prog"]
     progress_is_changed = st.session_state["progress_is_changed"]
     not_complete = any([not st.session_state["edit_options_complete"], 
                         progress_is_changed is None])
     
     if col_4.button("Save", disabled=not_complete, type="primary", width="stretch"):
+        st.session_state["cache_opt_main_sec_prog"] = None
         # Saving progress data
         if progress_is_changed:
             changed_progress = st.session_state["changed_progress"]
