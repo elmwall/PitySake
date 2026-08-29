@@ -19,7 +19,7 @@ This tool was originally developed for tracking collectibles, progress and event
 
 ## System overview 
 
-### Version v1.0.3: [see changes](#change-log)
+### Version v1.0.4: [see changes](#change-log)
 
 This is a modular Python system using the Streamlit API, consisting of two separate sub-systems as well as a few supportive functions; [see file structure](#file-structure).
 - Local-first: only installation requires internet connection, all data needed for the main app and wizard are maintained in the PitySake directory
@@ -86,7 +86,9 @@ This system runs the UI for projects and manages all editing of project database
 
 ### Download
 
-All user data is maintained within the tool folder, while shortcuts can be used for easy access of different projects. Either clone the repository using Git, or [download ZIP](https://github.com/elmwall/PitySake/archive/refs/heads/main.zip) and unpack in suitable folder. Avoid moving the folder after shortcuts are created, otherwise their path need to changed in properties, alternatively start via *your_project.bat*. 
+All user data is maintained within the tool folder, while shortcuts can be used for easy access of different projects. Either clone the repository using Git, or [download ZIP](https://github.com/elmwall/PitySake/archive/refs/heads/main.zip) and unpack in suitable folder. 
+
+Avoid moving the folder after installation, see [further details](#moving-folder-location) below. 
 
 
 ### Requirements
@@ -107,10 +109,12 @@ Required Python modules:
 - pyshortcuts
 - pywin32 (for Windows)
 
+Total size of installation (excluding Python) with all modules in a virtual environment: ~400 MB.
+
 
 ### Module installation
 
-Windows: start the file *module_installer.bat*. This will run a script automatically checking/installing required modules. This will also place a shortcut *New_Project* to the wizard and a quick start project file shortcut *User_Project* is created in PitySake folder.  
+Windows: start the file *module_installer.bat*. This will run a script automatically checking required modules specified in [requirements.txt](./requirements.txt) and installing them in a virtual environment. This will also place a shortcut *New_Project* to the wizard and a shortcut to quick start project file *User_Project* is created in the PitySake folder.  
 
 *Alternatively, in a terminal:*  
 
@@ -145,11 +149,10 @@ with terminal directory set to PitySake folder (`cd path\to\PitySake`):
 
 - Modules installed in virtual environments, as well as generated shortcut, are not portable and will be broken if the folder is moved
 - After moving: 
-    1. remove the folder *.venv* 
+    1. remove the virtual environment folder *.venv* 
     2. Redo the steps in Module installation  
     This will renew the modules to a working condition.  
     On Windows: *module_installer.bat* will regenerate shortcuts for wizard and all existing projects.
-
 
 
 
@@ -187,8 +190,8 @@ Mac and Linux (and Windows), starting through terminal:
 
 ### Quick start user project
 
-A generalized system exists ready to use. Run the system via *User_Project* shortcut (after running [*Module_Installer*](#module-installation)) or via *user_project.bat* file.
-- Labels, event categories, and value limits must here be added internally
+A generalized system exists ready to use. (Windows) Run the system via *User_Project* shortcut (after running [*Module_Installer*](#module-installation)) or via *user_project.bat* file, or (other OS) via `.venv\Scripts\python.exe -m streamlit run user_project.py` in terminal.
+- Labels, event categories, and value limits are project unique, and must here be added internally through the UI for User_Project
 
 
 ### Wizard - create new or personalized project
@@ -197,7 +200,7 @@ A generalized system exists ready to use. Run the system via *User_Project* shor
 - Pre-define limits and highlighting behavior
 - Create a new project based on previous ones
 
-The wizard is a six-step form (or single step for re-used settings via template) with explanations and examples, and creates new files and data sets for the new project, as well as shortcuts within the folder and on desktop. 
+The wizard is a six-step form (or single step for re-used settings via template) with explanations and examples, and creates new files and data sets for the new project, and for Windows also a .bat script and shortcuts within the folder and on desktop. 
 
 More details on the wizard [here](#project-installation-wizard).
 
@@ -519,9 +522,10 @@ A project with unique settings and terminology is defined in a six-step form, wh
     Define start count (is the first object 0 or 1)  
     Value unit: for large or small values  
 6. Review and register  
+    (through [registration script](./project_utilities/utils/registration.py))  
     → project files created  
     → template created  
-    → (Windows) shortcut created
+    → (Windows) .bat script and shortcut created
 
 > 💡 Individual pages can be revised without affecting the rest, but all fields of that page must then be re-filled.  
 > 💡 Invalid or conflicting entries blocks progression, with prompts for which information that needs correction.
@@ -548,9 +552,11 @@ A project with unique settings and terminology is defined in a six-step form, wh
 
 ## Change log
 
-v1.0.0 → v1.0.3
+v1.0.0 → v1.0.4
 - Wizard improvement:  
-    `/project_utilities/src/a_define_project.py`  
+    - `/project_utilities/util/registration.py`  
+    Project .bat files only created in Windows OS  
+    - `/project_utilities/src/a_define_project.py`  
     Allow label to have same name as other type (no conflict)
 - Module installer:  
     `/project_utilities/module_installer.bat`  

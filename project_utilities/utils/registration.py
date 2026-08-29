@@ -164,13 +164,13 @@ def register(key: str, disable: bool = False, use_template: bool = False):
             _write(themes, settings_folder, "ui_themes.json")
             # Create project main module
             shutil.copy(root_py, project_py)
-            # Shortcut bat script
-            _write(bat_content, root, project_bat, file_type="bat")
-            icon_path = root / "accessories/icon1.ico"
-            root_shortcut = root
-            # Windows hortcuts
+            # Windows shortcuts
             os_name = platform.system()
             if os_name == "Windows":
+                icon_path = root / "accessories/icon1.ico"
+                root_shortcut = root
+                # Shortcut bat script
+                _write(bat_content, root, project_bat, file_type="bat")
                 place = ""
                 try:
                     target_terminal = os.environ.get("COMSPEC", "cmd.exe")
