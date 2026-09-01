@@ -552,7 +552,7 @@ A project with unique settings and terminology is defined in a six-step form, wh
 
 ## Change log
 
-v1.0.0 → v1.0.4
+v1.0.0 → v1.0.5
 - Wizard improvement:  
     - `/project_utilities/util/registration.py`  
     Project .bat files only created in Windows OS  
@@ -570,4 +570,7 @@ v1.0.0 → v1.0.4
     Changed cache clearance control to sessions state values for better sync
 - Calculator fix:  
     `/app/calculate_progress.py`  
-    0 position no longer blocks calculation as a "None" value
+    Section 1 0th start position no longer blocks calculation (differentiates 0 and "None" value)
+- Table generation fix:  
+    `/app/data_access.py`  
+    Multiple None values in list caused error for mean calculation

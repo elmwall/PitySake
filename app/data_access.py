@@ -338,7 +338,7 @@ def _process_collection_db(database: dict, datatype: str):
         if not any(attempt_per_object):
             mean_attempt = None
         else:
-            if None in attempt_per_object:
+            while None in attempt_per_object:
                 attempt_per_object.remove(None)
             mean_attempt = "%.1f" % statistics.mean(attempt_per_object)
         total = len(info[event_ref]) - 1 + start_count_value
