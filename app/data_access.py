@@ -219,14 +219,31 @@ def _process_collection_db(database: dict, datatype: str):
     source_limit = data_options["source_limit"]
     start_count_value = data_options["value_limits"]["collection_start_count"]
     for name, info in database.items():
+        error_encountered = False
+        if not event_ref in info.keys():
+            error_encountered = True
+            error.message(
+                message="Missing event data.", 
+                stage="Data processing for tables and timeline",
+                file=f"settings\\{datatype}.json", 
+                details=[f"Missing event data for: {name}"],
+                advice=f"Check file contents. Remove {name} via *Update library* and add again.")
         # Only count labels for main type object
         if datatype == "main": 
             for category in category_list:
-                if info[category] not in counts[category]:
+                if not category in info.keys():
+                    error_encountered = True
+                    error.message(
+                        message="Missing label info.", 
+                        stage="Data processing for tables and timeline",
+                        file=f"settings\\{datatype}.json", 
+                        details=[f"Missing {category} label data for: {name}"],
+                        advice=f"Check file contents. Remove {name} via *Update library* and add again.")
+                elif info[category] not in counts[category]:
                     counts[category][info[category]] = 1
                 else:
                     counts[category][info[category]] += 1
-        
+        if error_encountered: continue
         attempt_per_object = list()  
         # Collect event data
         for event_id, event_data in info[event_ref].items(): 
@@ -370,6 +387,9 @@ def _process_collection_db(database: dict, datatype: str):
             for option in data_options[TERMS["main"]][category]:
                 if option not in counts[category]:
                     counts[category][option] = 0
+        for category, options in counts.items():
+            sorted_category = dict(sorted(options.items(), key=lambda item: item[1], reverse=True))
+            counts[category] = sorted_category
 
     # Placeholder data for new/missing database
     if len(rows_for_history) == 0: 

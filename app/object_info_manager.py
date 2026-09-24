@@ -8,6 +8,7 @@ Secretary (class):
 """
 
 import copy
+import datetime
 import logging
 
 import streamlit as st
@@ -103,19 +104,19 @@ class Secretary:
                 "for_renaming": False
             },
             "del_entry": {
-                "reg_key": "Delete entry",
+                "reg_key": "Delete/Convert",
                 "is_static": False,
                 "for_deletion": True,
                 "for_renaming": False
             },
             "edit_entry": {
-                "reg_key": "Edit details",
+                "reg_key": "Edit info",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": True
             },
             "del_event": {
-                "reg_key": f"Delete event",
+                "reg_key": f"Edit event",
                 "is_static": True,
                 "for_deletion": False,
                 "for_renaming": False
@@ -125,14 +126,14 @@ class Secretary:
         return preset_options, registration_options, required_keys
     
 
-    def collect_object_info(self, reg_selection: str):
+    def collect_object_info(self, reg_selected: str):
         "Retrieves info from existing object in library to session state."
         # Predefined settings collected from object details in library
         reg_name = st.session_state["reg_name"]
         current_database = st.session_state["current_database"]
         if reg_name not in current_database:
             pass
-        elif reg_name and not reg_selection == "add_new":
+        elif reg_name and not reg_selected == "add_new":
             settings = current_database[reg_name]
             if st.session_state["reg_type"] == self.main_ref:
                 st.session_state["reg_utility"] = settings[self.utility_ref]
@@ -161,7 +162,7 @@ class Secretary:
             return hold.load_secondary_database()
 
 
-    def data_validation(self, preset_keys: list, reg_selection: str, 
+    def data_validation(self, preset_keys: list, reg_selected: str, 
                         object_in_library: bool, event_length: int | None) -> tuple: 
         """
         Validation control before save-button acitvation
@@ -172,7 +173,7 @@ class Secretary:
         Args:
             preset_keys (list):
                 session state keys for all required values
-            reg_selection (str):
+            reg_selected (str):
                 action to be performed
 
         Returns:
@@ -215,18 +216,23 @@ class Secretary:
         
         # "Already in library" 
         # - to avoid losing data, prevent adding same object more than once
-        if reg_selection == "add_new" and object_in_library:
+        if reg_selected == "add_new" and object_in_library:
             data_is_valid, save_button_msg = False, "Already exists"
-            print(data_is_valid)
         elif name_invalid:
             data_is_valid, save_button_msg = False, name_invalid
-        # "Delete object"
-        elif reg_selection == "del_entry":
-            data_is_valid, save_button_msg = True, f"Delete object"
+        # "Delete/convert object"
+        elif reg_selected == "del_entry":
+            if st.session_state["convert_type"]:
+                if st.session_state["convert_already_exists"]:
+                    data_is_valid, save_button_msg = False, f"Already exists"
+                else:
+                    data_is_valid, save_button_msg = True, f"Convert object"
+            else:
+                data_is_valid, save_button_msg = True, f"Delete object"
         # "Delete object event" 
         # - removing collection info of object at date
-        elif reg_selection == "del_event":
-            save_button_msg = f"Delete {self.event_ref}"
+        elif reg_selected == "del_event":
+            save_button_msg = f"Edit {self.event_ref}"
             # Do not attempt if event data is empty 
             # - should only occur after previous deletion
             data_is_valid = True if event_length else False
@@ -281,7 +287,7 @@ class Secretary:
             else:
                 data_checks["attribute_done"], data_checks["origin_done"] = True, True
             # Override labels as completed if irrelevant registration setting
-            if st.session_state["regset"] in ["del_entry", "add_event", "del_event"]: 
+            if st.session_state["reg_selected"] in ["del_entry", "add_event", "del_event"]: 
                 for x in ["utility_done", "attribute_done", "origin_done"]:
                     data_checks[x] = True
             
@@ -365,33 +371,119 @@ class Secretary:
         return msg
 
 
-    @st.dialog(f"Removing object data")
-    def confirm_deletion(self, name: str, object_type: str, new_data: dict, 
-                         reg_setting: dict, reg_selection: str, removal_date: str):
+    @st.dialog(f"Editing object data")
+    def confirm_deletion(self, name: str, object_type: str, new_data: dict, event_date: str|None, 
+                         reg_setting: dict, reg_selected: str, removal_date: str):
         """
-        User confirmation dialog box.
-        - Called to confirm removal of object or event            
+        User confirmation dialog box applied in the following cases:  
+        - Confirm removal of object  
+        - Confirm conversion of object type  
+            - Informs user of consequences: loss of labels / added blanks  
+            - Adjusts data accordingly  
+            - Calls for addition update to other database type, then removal update in original database  
+        - Confirm removal or changing info of an event  
+            - Removes old event data and/or adds new data and calls for update
         """
         st.session_state["dialog_active"] = True
+        new_date = None
+        edited_data = copy.deepcopy(new_data)
+        for_conversion = st.session_state["convert_type"]
+
         # Info section
-        if reg_selection == "del_entry":
-            st.markdown(f"Remove from library?")
+        # Delete/convert object
+        if reg_selected == "del_entry":
+            msg = "Remove from library?" if not for_conversion else "Convert object?"
+            st.markdown(msg)
             st.markdown(f"### **{name}**")
-        elif reg_selection == "del_event":
-            st.markdown(f"Remove from library?")
+            if for_conversion:
+                st.space()
+                if object_type == self.main_ref:
+                    # if name in hold.load_secondary_database():
+                    st.warning(f"""
+                    #### Move from {self.main_ref} to {self.secondary_ref} database:
+
+                    This will discard the labels for {self.attribute_ref} and {self.origin_ref}.""")
+                elif object_type == self.secondary_ref:
+                    # if name in hold.load_main_database():
+                    st.warning(f"""
+                    #### Move from {self.secondary_ref} to {self.main_ref} database:
+
+                    This will add blank labels for {self.attribute_ref} and {self.origin_ref}, which can be changed manually via *Update library: Edit info*.""")
+        # Delete event
+        elif reg_selected == "del_event" and st.session_state["delete_event"]:
+            msg = "Remove from library?"
+            st.markdown(msg)
             st.markdown(f"### {TERMS["event"]} of {name}")
             st.markdown(f"""at 20{removal_date[:2]}-
                         {removal_date[2:4]}-{removal_date[4:6]}, 
-                        {removal_date[7:9]}:{removal_date[9:11]}:{removal_date[11:13]}?""")
+                        ID: {removal_date[7:13]}""")
+        # Change event info
+        elif reg_selected == "del_event"and not st.session_state["delete_event"]:
+            msg = "Change event information?"
+            st.markdown(msg)
+            st.markdown(f"### {TERMS["event"]} of {name}")
+            st.markdown(f"""at 20{removal_date[:2]}-
+                        {removal_date[2:4]}-{removal_date[4:6]}, 
+                        ID: {removal_date[7:13]}""")
+            st.space()
+            st.markdown("New information:")
+            col_margin, col_indent, col_tab = st.columns([1, 5, 10])
+            for x, y in new_data[name]["event"][event_date].items():
+                col_indent.markdown(x)
+                col_tab.markdown(y)
+            st.space()
+            col_margin, col_indent, col_tab = st.columns([1, 5, 10])
+            change_date = col_indent.checkbox("Change date?", value=False)
+            # Event date change 
+            # - collect date info
+            # - removing and adding with new date ID
+            if change_date: 
+                date_min = None
+                data_options = hold.load_options()
+                if len(data_options) > 0: date_min = data_options["value_limits"]["date"][0]
+                if date_min:
+                    date_min = datetime.datetime(
+                        int("20"+date_min[0:2]),
+                        int(date_min[2:4]), 
+                        int(date_min[4:6]))
+                date_max = datetime.date.today()
+                new_date = col_tab.date_input(
+                    "New date", min_value=date_min, max_value=date_max, label_visibility="collapsed")
+                now = datetime.datetime.now()
+                hhmmss = now.strftime("%H%M%S")
+                edited_event = f"{new_date.strftime("%y%m%d")}-{hhmmss}"
+                event_data = new_data[name]["event"][event_date]
+                edited_data[name]["event"].pop(event_date)
+                edited_data[name]["event"][edited_event] = event_data
+                edited_data[name]["event"] = dict(sorted(edited_data[name]["event"].items()))
+            else:
+                col_tab.date_input("New date", disabled=True, label_visibility="collapsed")
         
         # Confirm/Cancel user interaction
-        st.space("xsmall")
+        st.space()
         col_left, col_right = st.columns(2)
         if col_left.button(
                 "Confirm", type="secondary", width="stretch"):
             st.session_state["reg_object_type"] = None
+            conversion_state = False
+            if for_conversion:
+                # Adjust label data, then add to other database
+                # Ajust processed data sync settings (conversion_state) after update
+                conversion_settings = self.settings()[1]["add_new"]
+                if object_type == self.main_ref:
+                    edited_data[name].pop(self.attribute_ref)
+                    edited_data[name].pop(self.origin_ref)
+                    new_type = self.secondary_ref
+                elif object_type == self.secondary_ref:
+                    edited_data[name].update(
+                        {self.attribute_ref: "_Blank_", self.origin_ref: "_Blank_"})
+                    new_type = self.main_ref
+                self.update_object(
+                    name, new_type, edited_data, conversion_settings, None, conversion=True)
+                conversion_state = "Done"
+            # Remove from original database
             self.update_object(
-                name, object_type, new_data, reg_setting, None)
+                name, object_type, edited_data, reg_setting, None, conversion=conversion_state)
         if col_right.button(
                 "Cancel", type="secondary", width="stretch"):
             st.rerun()
@@ -441,12 +533,13 @@ class Secretary:
                 st.rerun()
 
 
-    def update_object(self, name: str, object_type: str, 
-                      new_data: dict, reg_setting: dict, new_name: str):
+    def update_object(self, name: str, object_type: str, new_data: dict, 
+                      reg_setting: dict, new_name: str|None, conversion: bool = False):
         """
         Saving registered info to file
         - Directs settings for correct editing of database
         - Sends data for backup then to file editing
+        - Set states for processed data - calls cache re-sync of changed data only
         """
 
         # Rename truth-check also carries new name, define as new_name from rename
@@ -485,16 +578,25 @@ class Secretary:
         if edits_successful:
             arciv.writer(
                 updated_library, object_type, set_file=datafile, join_path="data")
-            if object_type == self.main_ref:
+            if conversion:
+                is_done = conversion == "Done"
+                st.session_state["processed_edits"] = {
+                    "clear_options": False,
+                    "clear_main": is_done,
+                    "clear_secondary": is_done,
+                    "clear_progress": False}
+                if is_done: st.rerun()
+            elif object_type == self.main_ref:
                 st.session_state["processed_edits"] = {
                     "clear_options": False,
                     "clear_main": True,
                     "clear_secondary": False,
                     "clear_progress": False}
+                st.rerun()
             elif object_type == self.secondary_ref:
                 st.session_state["processed_edits"] = {
                     "clear_options": False,
                     "clear_main": False,
                     "clear_secondary": True,
                     "clear_progress": False}
-            st.rerun()
+                st.rerun()

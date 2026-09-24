@@ -63,9 +63,11 @@ INIT_STATE = {
     "current_database": "state_import",
     # Object info manager - main
     "include_event": True,
+    "delete_event": False,
     "dialog_active": False,
     "limit": 0,
-    "regset": "add_new",
+    "reg_selected": "add_new",
+    "reg_selected_changed": False,
     "reg_attempt": "state_import",
     "reg_attribute": None,
     "reg_date": datetime.date.today(),
@@ -81,6 +83,8 @@ INIT_STATE = {
     "limit_disabled": "state_import",
     "state_disabled": "state_import",
     "date_helptext": "",
+    "convert_type": False,
+    "convert_already_exists": False,
     # Object info manager - edit options
     "changed_options": None,
     "changed_progress": None,

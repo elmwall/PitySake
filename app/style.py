@@ -73,6 +73,8 @@ def settings():
             .st-key-result_disp {
                 overflow-y: hidden;
             } 
+
+            .st-key-convert_type {margin-top: -3px; scale: 0.9;}
         </style>""")
 
     feature_keys = [

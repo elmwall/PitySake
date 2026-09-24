@@ -246,11 +246,9 @@ Through this feature new objects or events can be added, or old ones edited.
 
 - **Add new:** enter a new name to add a completely new object/subject to the database. You can simultaneously add an event to that object
 - **New event:** select an existing object in the name field to which a new event is attached
-- **Delete entry:** select an object to remove
+- **Delete/Convert:** select an object to remove
 - **Edit details:** edit object name or labels
-- **Delete event:** select an event in the date field with a date-time ID to remove
-
-Object type and events cannot be edited; instead, delete the object/event and add again with new details.
+- **Edit event:** select an event in the date field with a date-time ID for editing
 
 #### Object details
 
@@ -264,10 +262,26 @@ Object type and events cannot be edited; instead, delete the object/event and ad
 - **Evaluation:** this will label the event as a positive/neutral/negative outcome
 - **Value:** a value between 0 and the limit you have set for the event category
 
+<p style="text-align:center"><img src="./accessories/object_reg.png" style="border-radius: 5px"></p>
+
+#### Editing data
+
+- In *Delete/Convert*, an object can be deleted or the object type (main or secondary) can be changed   
+    - A checkbox appears next to type selection. Conversion is blocked if the name already exists in both databases  
+    - Changing **main → secondary**: the two extra labels of main are discarded
+    - Changing **secondary → main**: the two missing labels are set as blanks. Adjust this manually in *Edit details*  
+- To edit object or event info: 
+    1. Select *Edit details* or *Edit event* in To Do, respectively.   
+    2. Select an entry in dropdown menues, make any changes and press *Save*.   
+    3. In a popup window you can change object name or event date, then confirm.  
+
+<p style="text-align:center">
+    <img src="./accessories/edit_event.png" style="width: 45%; max-width: 339px; min-width: 200px; border-radius: 5px; padding-right: 20px;">
+    <img src="./accessories/convert_object.png" style="width: 45%; max-width: 339px; min-width: 200px; border-radius: 5px">
+</p>
 
 >💡**Counting object events:** In the [project installation wizard](#project-installation-wizard), or [Edit options](#settings--considerations) counting of objects can be set to count true value or to count additional instances, i.e., whether the first event of an object is shown as 0 or 1. No count is shown without events added.
 
-<p style="text-align:center"><img src="./accessories/object_reg.png" style="border-radius: 5px"></p>
 
 
 ### Value tracking
@@ -552,25 +566,39 @@ A project with unique settings and terminology is defined in a six-step form, wh
 
 ## Change log
 
-v1.0.0 → v1.0.5
-- Wizard improvement:  
-    - `/project_utilities/util/registration.py`  
-    Project .bat files only created in Windows OS  
-    - `/project_utilities/src/a_define_project.py`  
-    Allow label to have same name as other type (no conflict)
+v1.0.0 → v1.1.0  
+- Calculator fix:  
+    `/app/calculate_progress.py`  
+    Section 1 0th start position no longer blocks calculation (differentiates 0 and "None" value)  
+- Data analysis improvement:
+    `/app/data_access.py`  
+    Counted labels are sorted in order of counts  
+    Error management for missing labels added  
+- Edit option improvement:  
+    `/app/project_configuration.py`  
 - Module installer:  
     `/project_utilities/module_installer.bat`  
     `/project_utilities/shorcut_maker.py`  
-    - Improvement: can now generate shortcuts to existing projects, which makes it possible to move folder and re-install modules
     - Fixes:  
         shortcut_maker call corrected (via venv)  
-        corrected desktop shortcut switch    
-- Edit option improvement:  
-    `/app/project_configuration.py`  
-    Changed cache clearance control to sessions state values for better sync
-- Calculator fix:  
-    `/app/calculate_progress.py`  
-    Section 1 0th start position no longer blocks calculation (differentiates 0 and "None" value)
+        Corrected desktop shortcut switch  
+    - Improvement: can now generate shortcuts to existing projects, which makes it possible to move folder and re-install modules
+- Object/event registration:  
+    `/app/initialize.py`  
+    `/app/object_info_manager.py`  
+    `/app/object_recorder.py`  
+    `/app/stype.py`  
+    - Improvements of Update library:  
+        Events can now be edited  
+        Object type can now be converted  
+        Further interactive disabled inputs assists in correct usage  
+    -Fixes: Labels a re-synced upon changed To Do  
 - Table generation fix:  
     `/app/data_access.py`  
-    Multiple None values in list caused error for mean calculation
+    Multiple None values in list previously caused error for mean calculation  
+- Wizard improvement:  
+    - `/project_utilities/util/registration.py`  
+        Project .bat files are only created in Windows OS  
+    - `/project_utilities/src/a_define_project.py`  
+        Allows label to have same name as other type (no conflict).  
+        Changed the cache clearance control to sessions state values for better sync  

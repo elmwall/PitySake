@@ -84,13 +84,13 @@ def register_object(component_key: str, sub_keys: list,
         with col_object_info:
             # Action selector field - what to do 
             # - control name and date selection options
-            reg_selection, reg_setting = _action_selector(
+            reg_selected, reg_setting = _action_selector(
                 sub_keys, reg_options, pill_group_height)
             
             # Name
             col_name, col_type = _style_target()
             with col_name:
-                _naming_object(secretary, reg_selection)
+                _naming_object(secretary, reg_selected)
             # Option type 
             # - controls object label options
             with col_type:
@@ -99,26 +99,36 @@ def register_object(component_key: str, sub_keys: list,
             # Object details 
             # - options controlled by type 
             # - "secondary" object has disabled extras "attribute" and "origin"
+            if st.session_state["reg_selected_changed"]:
+                secretary.collect_object_info(reg_selected)
+                st.session_state["reg_selected_changed"] = False
             _select_labels(sub_keys, preset_options, disable_extras, pill_group_height)
         
         # Column: save button | event details | edit options
         with col_save_and_event:
-            _save_data(secretary, preset_keys, reg_setting, reg_selection, highlight_html)
+            _save_data(secretary, preset_keys, reg_setting, reg_selected, highlight_html)
             st.space("xxsmall")
 
             # Event data - how and when object was collected
             # Date selector: 
             # - render proper date selector (calender or selectbox)
             # - controlled by reg action type
-            regset = st.session_state["regset"]
-            if regset == "add_event": st.session_state["include_event"] = True
-            checkbox_disabled = regset != "add_new"
-            include_event = st.checkbox(
-                "Add event", key="include_event", disabled=checkbox_disabled)
+            reg_selected = st.session_state["reg_selected"]
+            if reg_selected == "add_event": st.session_state["include_event"] = True
+            checkbox_disabled = reg_selected != "add_new"
+            if reg_selected != "del_event":
+                st.session_state["delete_event"] = delete_event = False
+                include_event = st.checkbox(
+                    "Add event", key="include_event", disabled=checkbox_disabled)
+            else:
+                st.session_state["include_event"] = include_event = False
+                delete_event = st.checkbox(
+                    "Delete event", key="delete_event")
             _date_input(data_options)
             event_disabled = any([
-                not include_event, 
-                regset not in ["add_new", "add_event"]])
+                any([delete_event, not include_event and reg_selected != "del_event"]),
+                # not include_event, 
+                reg_selected not in ["add_new", "add_event", "del_event"]])
             # Event details: source, state, attempts
             _event_details(preset_options, event_disabled, data_options, progress_data)
 
@@ -140,7 +150,7 @@ def _feature_style(component_key: str):
 
 def _style_form() -> list:
     "Sets feature main columns."
-    return st.columns([1, 0.2], vertical_alignment="top")
+    return st.columns([1, 0.25], vertical_alignment="top")
 
 def _style_selector():
     "Sets label selection fields."
@@ -169,8 +179,8 @@ def _action_selector(sub_keys: list, reg_options: dict,
     
     Returns:
         Tuple (str, dict):
-            identifier for selected action (str)  
-            settings for selected actions (dict)
+            reg_selected: identifier for selected action (str)  
+            reg_setting: settings for selected actions (dict|None)
     """
     with st.container(
             border=True, key=sub_keys[0], width="stretch", 
@@ -181,24 +191,27 @@ def _action_selector(sub_keys: list, reg_options: dict,
         # Action options
         # Options listed are generated via reg_options label value via lambda, 
         # while sending key to session state
-        reg_selection = col_options.pills(
+        reg_setting = None
+        reg_selected = col_options.pills(
             "Registration setting", options=list(reg_options.keys()), 
             format_func=lambda x:reg_options[x]["reg_key"], 
-            key="regset", on_change=_update_event_choice,
+            key="reg_selected", on_change=_update_settings,
             width="stretch", label_visibility="collapsed")
-        if reg_selection:
-            reg_setting = reg_options[reg_selection]
+        if reg_selected:
+            reg_setting = reg_options[reg_selected]
         
-    return reg_selection, reg_setting
+    return reg_selected, reg_setting
+
 
 # _action_selector ->
-def _update_event_choice():
+def _update_settings():
     "Syncs control value for adding event to session state."
-    if st.session_state["regset"] not in ["add_new", "add_event"]:
+    st.session_state["reg_selected_changed"] = True
+    if st.session_state["reg_selected"] not in ["add_new", "add_event"]:
         st.session_state["include_event"] = False
 
 
-def _naming_object(secretary: Secretary, reg_selection: str):
+def _naming_object(secretary: Secretary, reg_selected: str):
     """
     Controls name input method and options
     
@@ -208,18 +221,18 @@ def _naming_object(secretary: Secretary, reg_selection: str):
         sets selectbox with objects from database
 
     Args:
-        reg_selection (str):
+        reg_selected (str):
             user selection for action, controlling input method
     """
     # For new object --> enter name
 
     object_viewname = st.session_state.get("reg_object_type", "object")
-    if reg_selection == "add_new":
+    if reg_selected == "add_new":
         st.text_input(
             "Name", key="reg_name", 
             placeholder=f"Enter new {object_viewname}", 
             label_visibility="collapsed")
-    elif not reg_selection:
+    elif not reg_selected:
         st.text_input(
             "Name", key="reg_name", 
             placeholder="No action selected", disabled=True,
@@ -243,19 +256,23 @@ def _naming_object(secretary: Secretary, reg_selection: str):
             options=object_options,
             placeholder=message, disabled=disable_selection, key="reg_name", 
             on_change=secretary.collect_object_info, 
-            args=(reg_selection,), label_visibility="collapsed")
+            args=(reg_selected,), label_visibility="collapsed")
 
 
 def _type_selection(secretary: Secretary, preset_options: dict) -> bool:
     """
-    Select main or secondary object type 
-    and collect database deepcopy to session state.
+    - Select main or secondary object type and collect database deepcopy to session state
+    - For deletion, select whether to remove, 
+        or to convert (with checks for existance in other databse),  
+        and sends bools to session state
 
     Returns:
         disable_extras (bool):
             control for enabling only "utility" label for secondary objects
     """
-    if st.pills(
+    col_1, col_2 = st.columns(2)
+    # Select object type
+    if col_1.pills(
             "Object type", 
             options=preset_options["options_type"], 
             key="reg_object_type", 
@@ -272,6 +289,17 @@ def _type_selection(secretary: Secretary, preset_options: dict) -> bool:
     else:
         disable_extras = False
 
+    # Select delete/convert
+    if st.session_state["reg_selected"] == "del_entry":
+        if col_2.checkbox("Convert object type", key="convert_type"):
+            st.session_state["convert_already_exists"] = False
+            if st.session_state["reg_object_type"] == main_ref:
+                if st.session_state["reg_name"] in hold.load_secondary_database():
+                    st.session_state["convert_already_exists"] = True
+            elif st.session_state["reg_object_type"] == secondary_ref:
+                if st.session_state["reg_name"] in hold.load_main_database():
+                    st.session_state["convert_already_exists"] = True
+
     return disable_extras
 
 
@@ -285,6 +313,8 @@ def _select_labels(sub_keys: list, preset_options: dict,
             disable "origin" and "attribute" labels for secondary objects, 
             while "utility" is active for both
     """
+    disable = st.session_state["reg_selected"] not in ["add_new", "edit_entry"]
+    if disable: disable_extras = True
     # Utility selection
     with st.container(
             border=True, key=sub_keys[1], width="stretch", 
@@ -293,7 +323,7 @@ def _select_labels(sub_keys: list, preset_options: dict,
         col_label.markdown(TERMS["utility"])
         col_options.pills(
             "reg_utility", options=preset_options["options_utility"], 
-            key="reg_utility", label_visibility="collapsed", width="content")  
+            key="reg_utility", disabled=disable, label_visibility="collapsed", width="content")  
 
     # Attribute selection
     with st.container(
@@ -319,7 +349,7 @@ def _select_labels(sub_keys: list, preset_options: dict,
 
 
 def _save_data(secretary: Secretary, preset_keys: list, 
-               reg_setting: str, reg_selection: str, highlight_html: str):
+               reg_setting: str|None, reg_selected: str, highlight_html: str):
     """
     Central function for validating information input and redirecting data management to Secretary.
     
@@ -343,9 +373,9 @@ def _save_data(secretary: Secretary, preset_keys: list,
             object_info_manager class
         preset_keys (list):
             session state keys for all required values
-        reg_setting (str):
+        reg_setting (str|None):
             settings for saving
-        reg_selection (str): 
+        reg_selected (str): 
             action to be performed
     """
     # 1. Check data 
@@ -359,26 +389,26 @@ def _save_data(secretary: Secretary, preset_keys: list,
             event_length = len(current_database[reg_name]["event"])
             old_data = current_database[reg_name]
 
-    regset = st.session_state["regset"]
+    reg_selected = st.session_state["reg_selected"]
     data_is_valid, save_button_msg, is_secondary = secretary.data_validation(
-        preset_keys, regset, 
+        preset_keys, reg_selected, 
         object_in_library, event_length)
     task_states = secretary.checklist(data_is_valid)
     # 2. Compile object data on press of all data present, else disable button
-    name, new_data = _compile_data(
+    name, new_data, event_date = _compile_data(
         task_states, save_button_msg, is_secondary, highlight_html, old_data)
     object_type = st.session_state["reg_object_type"]
     # 3. Saving process. For editing data, ask for renaming in dialog box
     if new_data and object_type: 
-        if regset == "edit_entry":
+        if reg_selected == "edit_entry":
             secretary.rename(
                 name, object_type, new_data, reg_setting, 
                 current_database, highlight_html)
         else:
             # Update (with confirmation required for deletion)
-            if regset in ["del_entry", "del_event"]:
+            if reg_selected in ["del_entry", "del_event"]:
                 secretary.confirm_deletion(
-                    name, object_type, new_data, reg_setting, reg_selection, 
+                    name, object_type, new_data, event_date, reg_setting, reg_selected, 
                     removal_date=st.session_state["translated_values"]["reg_date"])
             else:
                 secretary.update_object(
@@ -430,8 +460,9 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
         new_data = dict()
         new_data[name] = dict()
 
-        regset = st.session_state["regset"]
-        if regset not in ["add_event", "del_event"]: 
+        reg_selected = st.session_state["reg_selected"]
+        # Setting object labels
+        if reg_selected not in ["add_event", "del_event"]: 
             new_data[name][utility_ref] = translated_values["reg_utility"]
             if not is_secondary:
                 new_data[name][origin_ref] = translated_values["reg_origin"]
@@ -441,8 +472,9 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
             if not is_secondary:
                 new_data[name][origin_ref] = old_data[origin_ref]
                 new_data[name][attribute_ref] = old_data[attribute_ref]
-            
-        if st.session_state["include_event"]:
+        
+        if any([st.session_state["include_event"], 
+                reg_selected == "del_event" and not st.session_state["delete_event"]]):
             new_event = {
                 source_ref: translated_values["reg_source"],
                 attempt_ref: translated_values["reg_attempt"],
@@ -457,34 +489,35 @@ def _compile_data(task_states:list, save_button_msg: str, is_secondary: bool,
         # If save is pressed, event info is adjusted
         if data_is_collected:
             event_date = translated_values["reg_date"]
-            if regset == "edit_entry":
+            if reg_selected in ["del_entry", "edit_entry"]:
                 new_data[name]["event"] = old_data["event"]
-            elif regset in ["add_new", "add_event", "del_event"]:
-                if regset == "add_new":
+            elif reg_selected in ["add_new", "add_event", "del_event"]:
+                if reg_selected == "add_new":
                     event_data = dict()
                 else:
                     event_data = old_data["event"]
 
-                if regset != "del_event": 
+                if reg_selected != "del_event": 
                     if st.session_state["include_event"]:
                         now = datetime.datetime.now()
                         hhmmss = now.strftime("%H%M%S")
                         event_data[f"{event_date}-{hhmmss}"] = new_event
+                elif reg_selected == "del_event" and not st.session_state["delete_event"]:
+                    event_data[event_date] = new_event
                 else:
                     event_data.pop(event_date)
 
                 if len(event_data) > 0: 
                     event_data = dict(sorted(event_data.items()))
                 new_data[name]["event"] = event_data
-            
-            return name, new_data
+            return name, new_data, event_date
         else:
-            return None, None
+            return None, None, None
     else:
         st.button(
             f"{save_button_msg}", key="save", 
             type="secondary", disabled=True, width="stretch")
-        return None, None
+        return None, None, None
     
 
 def _date_input(data_options: dict):
@@ -501,9 +534,9 @@ def _date_input(data_options: dict):
         options_dates (list):
             previous events for object
     """
-    regset = st.session_state["regset"]
+    reg_selected = st.session_state["reg_selected"]
     reg_name = st.session_state["reg_name"]
-    if regset == "del_event" and reg_name: 
+    if reg_selected == "del_event" and reg_name: 
         options_dates = st.session_state["current_database"][
             reg_name]["event"].keys()
     else:
@@ -519,13 +552,13 @@ def _date_input(data_options: dict):
     date_max = datetime.date.today()
     disable_dates = False
     # Option "Delete event" sets the list options as previous event dates
-    if regset == "del_event":
+    if reg_selected == "del_event":
         if reg_name and options_dates:
             disable_dates = False 
         else:
             disable_dates = True
-        st.session_state["date_helptext"] = """To delete an event, select from the above dropdown list.  
-            Events referenced as Date-Time: YYMMDD-HHMMSS"""
+        st.session_state["date_helptext"] = """To edit an event, select from the above dropdown list.  
+            Events referenced as Date-ID: YYMMDD-xxxxxx"""
         st.selectbox(
             f"Select date", options_dates, key="reg_date", 
             disabled=disable_dates, label_visibility="collapsed")
@@ -536,10 +569,10 @@ def _date_input(data_options: dict):
             st.session_state["reg_date"].strftime("%y%m%d")
         except:
             st.session_state["reg_date"] = datetime.date.today()
-        not_ready = not reg_name
+        disable = not reg_name or reg_selected in ["del_entry", "edit_entry"]
         st.date_input(
             "First received", min_value=date_min, max_value=date_max, 
-            key="reg_date", disabled=not_ready, label_visibility="collapsed")    
+            key="reg_date", disabled=disable, label_visibility="collapsed")    
 
 
 def _event_details(preset_options: dict, event_disabled: bool, 

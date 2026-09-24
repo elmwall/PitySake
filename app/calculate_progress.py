@@ -44,7 +44,7 @@ def calculator(component_key: str, feature_width: int | str,
         with st.container(
                 key=f"{component_key}_head",
                 width=feature_width, height="content"):
-            feature_help = f"""Calculate {attempt_ref} from events.  
+            feature_help = f"""Calculate {attempt_ref} from events, or perform simple math operations.  
             Select a {TERMS["source"]} to define sections and max limit."""
             st.markdown("##### *Calculate*", help=feature_help, text_alignment="left")
 
@@ -65,7 +65,7 @@ def calculator(component_key: str, feature_width: int | str,
             else:
                 mode_text = "Mode: sets"
             help = """☐ **Sets:** calculate distance across sets  
-                🗹 **Values:** calculate % + ×"""
+                🗹 **Values:** calculate % + × ÷"""
             percent_mode = col_select.checkbox(mode_text, key="calc_mode", help=help)
             
             # Calculator value start value setting
