@@ -69,7 +69,7 @@ def progress_meter(component_key: list, sub_keys: list,
 
         progress_data = hold.load_progress_data()
         reset_key = f"reset_key"
-        height, html_label, html_add10 = _feature_style(component_key, widget_color, reset_key)
+        height, html_label, html_num, html_add10 = _feature_style(component_key, widget_color, reset_key)
         
         value_trackers = st.session_state["value_trackers"]
         tracker_ids = list(value_trackers.values())
@@ -139,6 +139,8 @@ def progress_meter(component_key: list, sub_keys: list,
                 # Enter number / change by increments
                 # Syncs to slider
                 num_key = keys["num"]
+                num_style = html_num.replace("REF", num_key)
+                st.html(num_style)
                 with col_number:
                     st.number_input(
                         "Number", min_value=0, max_value=limit, key=num_key, 
@@ -202,12 +204,22 @@ def _feature_style(component_key: str, widget_color: str, reset_key:str):
                 transparent; border: none;
             } 
         </style>"""
+    html_num = """
+        <style> 
+            .st-key-REF button {
+                background-color: COLOR_REF; 
+                border: none; 
+                padding-left: -14.4px;
+                opacity: 0.3;
+            } 
+        </style>""".replace("COLOR_REF", widget_color)
     html_add10 = """
         <style> 
             .st-key-REF button {
                 background-color: COLOR_REF; 
                 border: none; 
                 padding-left: -14.4px;
+                opacity: 0.5;
             } 
         </style>""".replace("COLOR_REF", widget_color)
     st.html("""
@@ -217,7 +229,7 @@ def _feature_style(component_key: str, widget_color: str, reset_key:str):
             </style>"""
             .replace("KEY_REF", reset_key)
             .replace("COLOR_REF", positive_color))
-    return height, html_label, html_add10
+    return height, html_label, html_num, html_add10
 
 
 def _initiate(progress_data: dict, category: str, 
